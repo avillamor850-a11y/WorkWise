@@ -1,8 +1,10 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
 export default function ShowProject({ project }) {
+    const { flash } = usePage().props;
+
     const formatCurrency = (amount) => {
         if (!amount) return '₱0.00';
         return '₱' + new Intl.NumberFormat('en-PH', { 
@@ -48,7 +50,42 @@ export default function ShowProject({ project }) {
                         {project.status?.replace('_', ' ').toUpperCase()}
                     </span>
                 </div>
+                {flash?.success && (
+                    <p className="text-sm text-green-600 mb-2">{flash.success}</p>
+                )}
+                {flash?.error && (
+                    <p className="text-sm text-red-600 mb-2">{flash.error}</p>
+                )}
             </div>
+
+            {/* Admin: Approve completion & release payment */}
+            {project.status === 'completed' && !project.payment_released && (
+                <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-amber-900 mb-2">Payment release</h3>
+                    {!project.employer_approved && (
+                        <p className="text-sm text-amber-800 mb-3">Employer has not approved; you can release on their behalf.</p>
+                    )}
+                    {project.admin_review_requested_at && (
+                        <p className="text-sm text-amber-800 mb-3">
+                            Gig worker requested admin review on {new Date(project.admin_review_requested_at).toLocaleString()}.
+                            {project.admin_review_request_notes && ` Notes: ${project.admin_review_request_notes}`}
+                        </p>
+                    )}
+                    <form
+                        method="post"
+                        action={route('admin.projects.approveAndRelease', project.id)}
+                        onSubmit={(e) => { e.preventDefault(); router.post(route('admin.projects.approveAndRelease', project.id), {}, { preserveScroll: true }); }}
+                        className="inline"
+                    >
+                        <button
+                            type="submit"
+                            className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg"
+                        >
+                            Approve completion & release payment
+                        </button>
+                    </form>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Content */}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 export default function MessagesPageModal({ isOpen, onClose, initialUserId = null }) {
     const [conversations, setConversations] = useState([]);
@@ -103,11 +104,12 @@ export default function MessagesPageModal({ isOpen, onClose, initialUserId = nul
 
     // Get user avatar
     const getUserAvatar = (user) => {
-        if (user.avatar) {
+        const avatarSrc = resolveProfileImageUrl(user?.profile_picture ?? user?.profile_photo ?? user?.avatar);
+        if (avatarSrc) {
             return (
                 <div 
                     className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-12 w-12"
-                    style={{ backgroundImage: `url(${user.avatar})` }}
+                    style={{ backgroundImage: `url(${avatarSrc})` }}
                 />
             );
         }
@@ -119,11 +121,12 @@ export default function MessagesPageModal({ isOpen, onClose, initialUserId = nul
     };
 
     const getSmallUserAvatar = (user) => {
-        if (user.avatar) {
+        const avatarSrc = resolveProfileImageUrl(user?.profile_picture ?? user?.profile_photo ?? user?.avatar);
+        if (avatarSrc) {
             return (
                 <div 
                     className="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 shrink-0"
-                    style={{ backgroundImage: `url(${user.avatar})` }}
+                    style={{ backgroundImage: `url(${avatarSrc})` }}
                 />
             );
         }

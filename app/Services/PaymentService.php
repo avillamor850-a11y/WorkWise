@@ -312,9 +312,11 @@ class PaymentService
         ->get();
 
         return $transactions->map(function($transaction) use ($userId) {
+            $projectTitle = $transaction->project?->job?->title ?? 'N/A';
             return [
                 'id' => $transaction->id,
-                'project_title' => $transaction->project->job->title ?? 'N/A',
+                'project_title' => $projectTitle,
+                'project' => ['title' => $projectTitle],
                 'amount' => (float) $transaction->amount,
                 'net_amount' => (float) $transaction->net_amount,
                 'platform_fee' => (float) $transaction->platform_fee,
@@ -322,10 +324,11 @@ class PaymentService
                 'status' => $transaction->status,
                 'description' => $transaction->description,
                 'is_incoming' => $transaction->payee_id === $userId,
-                'other_party' => $transaction->payee_id === $userId 
-                    ? $transaction->payer->first_name . ' ' . $transaction->payer->last_name
-                    : $transaction->payee->first_name . ' ' . $transaction->payee->last_name,
+                'other_party' => $transaction->payee_id === $userId
+                    ? (trim(($transaction->payer?->first_name ?? '') . ' ' . ($transaction->payer?->last_name ?? '')) ?: 'N/A')
+                    : (trim(($transaction->payee?->first_name ?? '') . ' ' . ($transaction->payee?->last_name ?? '')) ?: 'N/A'),
                 'date' => $transaction->created_at->format('M d, Y'),
+                'created_at' => $transaction->created_at->toIso8601String(),
                 'processed_at' => $transaction->processed_at?->format('M d, Y H:i')
             ];
         })->toArray();

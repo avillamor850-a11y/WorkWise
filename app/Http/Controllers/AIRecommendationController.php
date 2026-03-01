@@ -46,7 +46,7 @@ class AIRecommendationController extends Controller
                     ->where('status', 'open')
                     ->where('id', $requestedJobId)
                     ->first();
- 
+
                 if ($job) {
                     $singleJobId = $job->id;
                     $recommendations[$job->id] = [
@@ -54,22 +54,13 @@ class AIRecommendationController extends Controller
                         'matches' => $this->matchService->getJobMatches($job, 5, $refresh)
                     ];
                 }
-            } else {
-                $activeJobs = $user->postedJobs()
-                    ->where('status', 'open')
-                    ->limit(3)
-                    ->get();
- 
-                foreach ($activeJobs as $job) {
-                    $recommendations[$job->id] = [
-                        'job' => $job,
-                        'matches' => $this->matchService->getJobMatches($job, 3, $refresh)
-                    ];
-                }
             }
+            // When no job_id: do not load any matches; employer must choose a job first
         } catch (\Exception $e) {
             \Log::error('Employer AI matches error: ' . $e->getMessage());
         }
+
+        $openJobs = $user->postedJobs()->where('status', 'open')->orderByDesc('created_at')->get(['id', 'title', 'created_at']);
 
         // Add encrypted context token to each match so "View Profile" uses ?ctx= instead of raw query params
         foreach ($recommendations as $jobId => $data) {
@@ -92,6 +83,7 @@ class AIRecommendationController extends Controller
             'recommendations' => $recommendations,
             'skills' => $this->getUniqueSkills(),
             'singleJobId' => $singleJobId,
+            'openJobs' => $openJobs,
         ]);
     }
 
@@ -136,7 +128,7 @@ class AIRecommendationController extends Controller
 
         try {
             set_time_limit(25);
-            $refresh = $request->query('refresh') === '1';
+            $refresh = in_array($request->query('refresh'), [1, '1', true], true);
             $requestedJobId = $request->query('job_id');
 
             if ($requestedJobId) {
@@ -153,23 +145,13 @@ class AIRecommendationController extends Controller
                         'matches' => $matches,
                     ];
                 }
-            } else {
-                $activeJobs = $user->postedJobs()
-                    ->where('status', 'open')
-                    ->limit(3)
-                    ->get();
-
-                foreach ($activeJobs as $job) {
-                    $matches = $this->recommendationService->getJobRecommendationsForEmployer($job, 3, $refresh);
-                    $recommendations[$job->id] = [
-                        'job' => $job,
-                        'matches' => $matches,
-                    ];
-                }
             }
+            // When no job_id: do not load any matches; employer must choose a job first
         } catch (\Exception $e) {
             \Log::error('Employer AI recommendations error: ' . $e->getMessage());
         }
+
+        $openJobs = $user->postedJobs()->where('status', 'open')->orderByDesc('created_at')->get(['id', 'title', 'created_at']);
 
         foreach ($recommendations as $jobId => $data) {
             $job = $data['job'];
@@ -191,6 +173,7 @@ class AIRecommendationController extends Controller
             'recommendations' => $recommendations,
             'skills' => $this->getUniqueSkills(),
             'singleJobId' => $singleJobId,
+            'openJobs' => $openJobs,
         ]);
     }
 
@@ -206,17 +189,20 @@ class AIRecommendationController extends Controller
         }
 
         $recommendations = [];
+        $hasError = false;
         try {
             set_time_limit(25);
-            $refresh = $request->query('refresh') === '1';
-            $recommendations = $this->recommendationService->getJobRecommendationsForWorker($user, 5, $refresh);
+            $refresh = in_array($request->query('refresh'), [1, '1', true], true);
+            $recommendations = $this->recommendationService->getJobRecommendationsForWorker($user, 10, $refresh);
         } catch (\Exception $e) {
             \Log::error('Gig worker AI recommendations (quality) error: ' . $e->getMessage());
+            $hasError = true;
         }
 
         return Inertia::render('AI/RecommendationsGigWorker', [
             'recommendations' => $recommendations,
             'skills' => $this->getUniqueSkills(),
+            'hasError' => $hasError,
         ]);
     }
 

@@ -28,6 +28,7 @@ export default function AdminLayout({ children, header }) {
         { id: 'employer-verifications', name: 'Business Verifications', href: '/admin/employers/verifications', icon: 'domain_verification', current: isCurrentPage('/admin/employers/verifications') },
         { id: 'users', name: 'User Directory', href: '/admin/users', icon: 'group', current: isCurrentPage('/admin/users') },
         { id: 'payments', name: 'Payments', href: '/admin/payments', icon: 'payments', current: isCurrentPage('/admin/payments') },
+        { id: 'deposits', name: 'User Added Funds', href: '/admin/deposits', icon: 'account_balance_wallet', current: isCurrentPage('/admin/deposits') },
         { id: 'reports-transactions', name: 'Transaction Reports', href: '/admin/reports/transactions', icon: 'receipt_long', current: isCurrentPage('/admin/reports/transactions') },
         { id: 'reports', name: 'Escrow / Reports', href: '/admin/reports', icon: 'flag', current: isCurrentPage('/admin/reports') && !url?.startsWith('/admin/reports/transactions') },
     ];
@@ -39,6 +40,7 @@ export default function AdminLayout({ children, header }) {
         { id: 'employer-verifications-fallback', name: 'Business Verifications', href: '/admin/employers/verifications', icon: 'domain_verification', current: false },
         { id: 'users-fallback', name: 'User Directory', href: '/admin/users', icon: 'group', current: false },
         { id: 'payments-fallback', name: 'Payments', href: '/admin/payments', icon: 'payments', current: false },
+        { id: 'deposits-fallback', name: 'User Added Funds', href: '/admin/deposits', icon: 'account_balance_wallet', current: false },
         { id: 'reports-transactions-fallback', name: 'Transaction Reports', href: '/admin/reports/transactions', icon: 'receipt_long', current: false },
         { id: 'reports-fallback', name: 'Escrow / Reports', href: '/admin/reports', icon: 'flag', current: false },
     ];

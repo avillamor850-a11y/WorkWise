@@ -341,6 +341,541 @@ class ReportController extends Controller
     }
 
     /**
+     * Earnings Transparency report (Gross vs. Net) — gig workers only.
+     * Shows Amount (client paid) vs Net Amount (worker received) after platform_fee.
+     */
+    public function earningsTransparency(Request $request): Response
+    {
+        $user = auth()->user();
+
+        if (!$user->isGigWorker()) {
+            abort(403, 'This report is only available to gig workers.');
+        }
+
+        $filters = $request->only(['date_from', 'date_to', 'type', 'status']);
+
+        try {
+            $query = $this->buildEarningsTransparencyQuery($user, $filters);
+
+            $transactions = $query->with(['project.job', 'payer', 'payee'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            $summaryQuery = $this->buildEarningsTransparencyQuery($user, $filters);
+            $summary = [
+                'total_gross' => (float) (clone $summaryQuery)->sum('amount'),
+                'total_platform_fee' => (float) (clone $summaryQuery)->sum('platform_fee'),
+                'total_net' => (float) (clone $summaryQuery)->sum('net_amount'),
+                'total_transactions' => (clone $summaryQuery)->count(),
+            ];
+
+            return Inertia::render('Reports/EarningsTransparency', [
+                'transactions' => $transactions,
+                'summary' => $summary,
+                'filters' => $filters,
+                'user' => $user,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Earnings transparency error: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'filters' => $filters,
+            ]);
+
+            return Inertia::render('Reports/EarningsTransparency', [
+                'transactions' => ['data' => []],
+                'summary' => [
+                    'total_gross' => 0,
+                    'total_platform_fee' => 0,
+                    'total_net' => 0,
+                    'total_transactions' => 0,
+                ],
+                'filters' => $filters,
+                'user' => $user,
+                'error' => 'Unable to load report data. Please try again.',
+            ]);
+        }
+    }
+
+    /**
+     * Export Earnings Transparency report (PDF/Excel) — gig workers only.
+     */
+    public function exportEarningsTransparency(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user->isGigWorker()) {
+            abort(403, 'This report is only available to gig workers.');
+        }
+
+        $format = $request->get('format', 'pdf');
+        $filters = $request->only(['date_from', 'date_to', 'type', 'status']);
+
+        try {
+            $query = $this->buildEarningsTransparencyQuery($user, $filters);
+            $transactions = $query->with(['project.job', 'payer', 'payee'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            if ($format === 'pdf') {
+                return $this->generateEarningsTransparencyPdf($transactions, $user, $filters);
+            }
+            if ($format === 'excel') {
+                return $this->generateEarningsTransparencyExcel($transactions, $user);
+            }
+
+            return response()->json(['error' => 'Unsupported format'], 400);
+        } catch (\Exception $e) {
+            \Log::error('Earnings transparency export error: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'format' => $format,
+            ]);
+            return response()->json(['error' => 'Export failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Build query for earnings transparency: gig worker as payee, with filters.
+     */
+    private function buildEarningsTransparencyQuery($user, array $filters)
+    {
+        $query = Transaction::where('payee_id', $user->id);
+
+        if (!empty($filters['date_from'])) {
+            $query->where('created_at', '>=', $filters['date_from']);
+        }
+        if (!empty($filters['date_to'])) {
+            $query->where('created_at', '<=', $filters['date_to']);
+        }
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Generate PDF for Earnings Transparency report.
+     */
+    private function generateEarningsTransparencyPdf($transactions, $user, $filters)
+    {
+        $summaryQuery = $this->buildEarningsTransparencyQuery($user, $filters);
+        $summary = [
+            'total_gross' => (float) (clone $summaryQuery)->sum('amount'),
+            'total_platform_fee' => (float) (clone $summaryQuery)->sum('platform_fee'),
+            'total_net' => (float) (clone $summaryQuery)->sum('net_amount'),
+            'total_transactions' => (clone $summaryQuery)->count(),
+        ];
+
+        $data = $transactions->map(function ($transaction) use ($user) {
+            return [
+                'Date' => $transaction->created_at->format('Y-m-d H:i:s'),
+                'Type' => ucfirst($transaction->type),
+                'Description' => $transaction->description ?? ucfirst($transaction->type) . ' transaction',
+                'Amount' => $transaction->amount,
+                'Platform_Fee' => $transaction->platform_fee ?? 0,
+                'Net_Amount' => $transaction->net_amount ?? $transaction->amount,
+                'Status' => ucfirst($transaction->status),
+                'Project' => $transaction->project?->job?->title ?? 'N/A',
+                'Counterparty' => $this->getCounterpartyName($transaction, $user),
+            ];
+        });
+
+        $pdf = Pdf::loadView('reports.earnings-transparency-pdf', [
+            'data' => $data,
+            'user' => $user,
+            'summary' => $summary,
+            'filters' => $filters,
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'earnings_transparency_' . $user->id . '_' . now()->format('Y-m-d_H-i-s');
+        return $pdf->download($filename . '.pdf');
+    }
+
+    /**
+     * Generate Excel/JSON export for Earnings Transparency report.
+     */
+    private function generateEarningsTransparencyExcel($transactions, $user)
+    {
+        $data = $transactions->map(function ($transaction) use ($user) {
+            return [
+                'Date' => $transaction->created_at->format('Y-m-d H:i:s'),
+                'Type' => ucfirst($transaction->type),
+                'Description' => $transaction->description ?? ucfirst($transaction->type) . ' transaction',
+                'Amount (client paid)' => $transaction->amount,
+                'Platform Fee' => $transaction->platform_fee ?? 0,
+                'Net Amount (you received)' => $transaction->net_amount ?? $transaction->amount,
+                'Status' => ucfirst($transaction->status),
+                'Project' => $transaction->project?->job?->title ?? 'N/A',
+                'Counterparty' => $this->getCounterpartyName($transaction, $user),
+            ];
+        });
+
+        $filename = 'earnings_transparency_' . $user->id . '_' . now()->format('Y-m-d_H-i-s');
+        return response()->json($data->toArray(), 200, [
+            'Content-Disposition' => "attachment; filename=\"{$filename}.json\"",
+        ]);
+    }
+
+    /**
+     * Pending/Accrued Income report — gig workers only.
+     * Lists transactions with status = pending or type = escrow (in the pipeline, not yet withdrawable).
+     */
+    public function pendingAccruedIncome(Request $request): Response
+    {
+        $user = auth()->user();
+
+        if (!$user->isGigWorker()) {
+            abort(403, 'This report is only available to gig workers.');
+        }
+
+        $filters = $request->only(['date_from', 'date_to']);
+
+        try {
+            $query = Transaction::where('payee_id', $user->id)
+                ->where(function ($q) {
+                    $q->where('status', 'pending')->orWhere('type', 'escrow');
+                });
+
+            if (!empty($filters['date_from'])) {
+                $query->where('created_at', '>=', $filters['date_from']);
+            }
+            if (!empty($filters['date_to'])) {
+                $query->where('created_at', '<=', $filters['date_to']);
+            }
+
+            $transactions = $query->with(['project.job', 'payer', 'payee'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            $summaryQuery = Transaction::where('payee_id', $user->id)
+                ->where(function ($q) {
+                    $q->where('status', 'pending')->orWhere('type', 'escrow');
+                });
+            if (!empty($filters['date_from'])) {
+                $summaryQuery->where('created_at', '>=', $filters['date_from']);
+            }
+            if (!empty($filters['date_to'])) {
+                $summaryQuery->where('created_at', '<=', $filters['date_to']);
+            }
+
+            $summary = [
+                'total_pending_amount' => (float) (clone $summaryQuery)->sum('amount'),
+                'total_pending_net' => (float) (clone $summaryQuery)->sum('net_amount'),
+                'total_count' => (clone $summaryQuery)->count(),
+            ];
+
+            return Inertia::render('Reports/PendingAccruedIncome', [
+                'transactions' => $transactions,
+                'summary' => $summary,
+                'filters' => $filters,
+                'user' => $user,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Pending accrued income error: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
+
+            return Inertia::render('Reports/PendingAccruedIncome', [
+                'transactions' => ['data' => []],
+                'summary' => [
+                    'total_pending_amount' => 0,
+                    'total_pending_net' => 0,
+                    'total_count' => 0,
+                ],
+                'filters' => $filters,
+                'user' => $user,
+                'error' => 'Unable to load report data. Please try again.',
+            ]);
+        }
+    }
+
+    /**
+     * Project Budget Utilization report — employers only.
+     * Compares agreed amount (budget) to actual release amounts per project, with over/under variance.
+     */
+    public function budgetUtilization(Request $request): Response
+    {
+        $user = auth()->user();
+
+        if (!$user->isEmployer()) {
+            abort(403, 'This report is only available to employers.');
+        }
+
+        $filters = $request->only(['date_from', 'date_to', 'status']);
+
+        try {
+            $query = $this->buildBudgetUtilizationQuery($user->id, $filters);
+
+            $projects = $query->with(['job:id,title,budget_min,budget_max'])
+                ->withSum(['transactions as total_released' => function ($q) {
+                    $q->where('type', 'release')->where('status', 'completed');
+                }], 'amount')
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            $summaryQuery = $this->buildBudgetUtilizationQuery($user->id, $filters);
+            $summaryQuery->withSum(['transactions as total_released' => function ($q) {
+                $q->where('type', 'release')->where('status', 'completed');
+            }], 'amount');
+
+            $items = $summaryQuery->get();
+            $total_agreed = (float) $items->sum('agreed_amount');
+            $total_released = (float) $items->sum('total_released');
+            $summary = [
+                'total_agreed' => $total_agreed,
+                'total_released' => $total_released,
+                'total_variance' => $total_released - $total_agreed,
+                'project_count' => $items->count(),
+            ];
+
+            $projects->getCollection()->transform(function ($project) {
+                $released = (float) ($project->total_released ?? 0);
+                $agreed = (float) ($project->agreed_amount ?? 0);
+                return [
+                    'id' => $project->id,
+                    'job_title' => $project->job?->title ?? 'N/A',
+                    'job_budget_min' => $project->job?->budget_min,
+                    'job_budget_max' => $project->job?->budget_max,
+                    'agreed_amount' => $agreed,
+                    'total_released' => $released,
+                    'variance' => $released - $agreed,
+                    'status' => $project->status,
+                    'created_at' => $project->created_at?->toISOString(),
+                ];
+            });
+
+            return Inertia::render('Reports/BudgetUtilization', [
+                'projects' => $projects,
+                'summary' => $summary,
+                'filters' => $filters,
+                'user' => $user,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Budget utilization error: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'filters' => $filters,
+            ]);
+
+            return Inertia::render('Reports/BudgetUtilization', [
+                'projects' => ['data' => [], 'links' => []],
+                'summary' => [
+                    'total_agreed' => 0,
+                    'total_released' => 0,
+                    'total_variance' => 0,
+                    'project_count' => 0,
+                ],
+                'filters' => $filters,
+                'user' => $user,
+                'error' => 'Unable to load report data. Please try again.',
+            ]);
+        }
+    }
+
+    /**
+     * Export Budget Utilization report (PDF/Excel) — employers only.
+     */
+    public function exportBudgetUtilization(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user->isEmployer()) {
+            abort(403, 'This report is only available to employers.');
+        }
+
+        $format = $request->get('format', 'pdf');
+        $filters = $request->only(['date_from', 'date_to', 'status']);
+
+        try {
+            $query = $this->buildBudgetUtilizationQuery($user->id, $filters);
+            $projects = $query->with(['job:id,title,budget_min,budget_max'])
+                ->withSum(['transactions as total_released' => function ($q) {
+                    $q->where('type', 'release')->where('status', 'completed');
+                }], 'amount')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            if ($format === 'pdf') {
+                return $this->generateBudgetUtilizationPdf($projects, $user, $filters);
+            }
+            if ($format === 'excel') {
+                return $this->generateBudgetUtilizationExcel($projects, $user);
+            }
+
+            return response()->json(['error' => 'Unsupported format'], 400);
+        } catch (\Exception $e) {
+            \Log::error('Budget utilization export error: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'format' => $format,
+            ]);
+            return response()->json(['error' => 'Export failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Build query for budget utilization: employer's projects with optional filters.
+     */
+    private function buildBudgetUtilizationQuery(int $employerId, array $filters)
+    {
+        $query = Project::where('employer_id', $employerId);
+
+        if (!empty($filters['date_from'])) {
+            $query->where('created_at', '>=', $filters['date_from']);
+        }
+        if (!empty($filters['date_to'])) {
+            $query->where('created_at', '<=', $filters['date_to']);
+        }
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Generate PDF for Budget Utilization report.
+     */
+    private function generateBudgetUtilizationPdf($projects, $user, $filters)
+    {
+        $items = $projects->map(function ($project) {
+            $released = (float) ($project->total_released ?? 0);
+            $agreed = (float) ($project->agreed_amount ?? 0);
+            return [
+                'Job_Title' => $project->job?->title ?? 'N/A',
+                'Agreed_Amount' => $agreed,
+                'Total_Released' => $released,
+                'Variance' => $released - $agreed,
+                'Status' => ucfirst($project->status ?? ''),
+            ];
+        });
+
+        $summaryQuery = $this->buildBudgetUtilizationQuery($user->id, $filters);
+        $summaryQuery->withSum(['transactions as total_released' => function ($q) {
+            $q->where('type', 'release')->where('status', 'completed');
+        }], 'amount');
+        $all = $summaryQuery->get();
+        $summary = [
+            'total_agreed' => (float) $all->sum('agreed_amount'),
+            'total_released' => (float) $all->sum('total_released'),
+            'total_variance' => (float) $all->sum('total_released') - (float) $all->sum('agreed_amount'),
+            'project_count' => $all->count(),
+        ];
+
+        $pdf = Pdf::loadView('reports.budget-utilization-pdf', [
+            'data' => $items,
+            'user' => $user,
+            'summary' => $summary,
+            'filters' => $filters,
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'budget_utilization_' . $user->id . '_' . now()->format('Y-m-d_H-i-s');
+        return $pdf->download($filename . '.pdf');
+    }
+
+    /**
+     * Generate Excel/JSON export for Budget Utilization report.
+     */
+    private function generateBudgetUtilizationExcel($projects, $user)
+    {
+        $data = $projects->map(function ($project) {
+            $released = (float) ($project->total_released ?? 0);
+            $agreed = (float) ($project->agreed_amount ?? 0);
+            return [
+                'Job Title' => $project->job?->title ?? 'N/A',
+                'Agreed Amount (Budget)' => $agreed,
+                'Total Released' => $released,
+                'Variance' => $released - $agreed,
+                'Status' => $project->status,
+            ];
+        });
+
+        $filename = 'budget_utilization_' . $user->id . '_' . now()->format('Y-m-d_H-i-s');
+        return response()->json($data->toArray(), 200, [
+            'Content-Disposition' => "attachment; filename=\"{$filename}.json\"",
+        ]);
+    }
+
+    /**
+     * VAT/Tax Invoices list — employers only. Lists release transactions with download link per invoice.
+     */
+    public function vatInvoices(Request $request): Response
+    {
+        $user = auth()->user();
+
+        if (!$user->isEmployer()) {
+            abort(403, 'This report is only available to employers.');
+        }
+
+        $filters = $request->only(['date_from', 'date_to', 'project_id']);
+
+        try {
+            $query = Transaction::where('payer_id', $user->id)
+                ->where('type', 'release');
+
+            if (!empty($filters['date_from'])) {
+                $query->where('created_at', '>=', $filters['date_from']);
+            }
+            if (!empty($filters['date_to'])) {
+                $query->where('created_at', '<=', $filters['date_to']);
+            }
+            if (!empty($filters['project_id'])) {
+                $query->where('project_id', $filters['project_id']);
+            }
+
+            $transactions = $query->with(['project.job', 'payer', 'payee'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            return Inertia::render('Reports/VatInvoices', [
+                'transactions' => $transactions,
+                'filters' => $filters,
+                'user' => $user,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('VAT invoices list error: ' . $e->getMessage(), ['user_id' => $user->id]);
+
+            return Inertia::render('Reports/VatInvoices', [
+                'transactions' => ['data' => [], 'links' => []],
+                'filters' => $filters ?? [],
+                'user' => $user,
+                'error' => 'Unable to load data. Please try again.',
+            ]);
+        }
+    }
+
+    /**
+     * Single VAT/Tax Invoice PDF for one release transaction — employers only.
+     */
+    public function vatInvoicePdf(Transaction $transaction)
+    {
+        $user = auth()->user();
+
+        if (!$user->isEmployer()) {
+            abort(403, 'This report is only available to employers.');
+        }
+        if ($transaction->payer_id !== $user->id || $transaction->type !== 'release') {
+            abort(403, 'Unauthorized to download this invoice.');
+        }
+
+        $transaction->load(['project.job', 'payer', 'payee']);
+
+        $invoiceNumber = 'INV-' . $transaction->id . '-' . $transaction->created_at->format('Ymd');
+        $pdf = Pdf::loadView('reports.vat-invoice-pdf', [
+            'transaction' => $transaction,
+            'user' => $user,
+            'invoiceNumber' => $invoiceNumber,
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'vat_invoice_' . $invoiceNumber;
+        return $pdf->download($filename . '.pdf');
+    }
+
+    /**
      * Calculate transaction summary statistics
      */
     private function calculateTransactionSummary($query)

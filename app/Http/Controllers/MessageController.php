@@ -15,6 +15,46 @@ class MessageController extends Controller
 {
 
     /**
+     * Convert a stored Supabase path (e.g. /supabase/profiles/...) to the proxy URL
+     * served by the app at /storage/supabase/{path}. Matches HandleInertiaRequests::supabaseUrl.
+     */
+    private function supabaseProfileUrl(?string $stored): ?string
+    {
+        if (!$stored || !is_string($stored)) {
+            return null;
+        }
+        $stored = trim($stored);
+        if ($stored === '') {
+            return null;
+        }
+        if (str_starts_with($stored, 'http://') || str_starts_with($stored, 'https://')) {
+            return $stored;
+        }
+        $path = ltrim(str_replace('/supabase/', '', $stored), '/');
+        if ($path === '') {
+            return null;
+        }
+        return url('/storage/supabase/' . $path);
+    }
+
+    /**
+     * Normalize a user (model or object) for frontend: resolve profile_picture/profile_photo/avatar to proxy URL.
+     */
+    private function normalizeUserForMessages($user): array
+    {
+        if (!$user) {
+            return [];
+        }
+        $u = $user instanceof User ? $user->toArray() : (array) $user;
+        $resolved = $this->supabaseProfileUrl(
+            $u['profile_picture'] ?? $u['profile_photo'] ?? $u['avatar'] ?? null
+        );
+        $u['profile_picture'] = $resolved;
+        $u['profile_photo'] = $resolved;
+        return $u;
+    }
+
+    /**
      * Display message inbox
      */
     public function index(): Response
@@ -26,8 +66,8 @@ class MessageController extends Controller
             $query->where('sender_id', $userId)
                   ->orWhere('receiver_id', $userId);
         })
-        ->with(['sender:id,first_name,last_name,user_type,professional_title', 
-                'receiver:id,first_name,last_name,user_type,professional_title'])
+        ->with(['sender:id,first_name,last_name,user_type,professional_title,profile_picture,profile_photo,avatar',
+                'receiver:id,first_name,last_name,user_type,professional_title,profile_picture,profile_photo,avatar'])
         ->orderBy('created_at', 'desc')
         ->get()
         ->groupBy(function($message) use ($userId) {
@@ -70,7 +110,7 @@ class MessageController extends Controller
             }
 
             return [
-                'user' => $otherUser,
+                'user' => $this->normalizeUserForMessages($otherUser),
                 'latest_message' => [
                     'message' => $latestMessage->message,
                     'type' => $latestMessage->type,
@@ -119,9 +159,21 @@ class MessageController extends Controller
                ->where('is_read', false)
                ->update(['is_read' => true, 'read_at' => now()]);
 
+        $normalizedUser = $this->normalizeUserForMessages($user);
+        $normalizedMessages = $messages->map(function ($message) {
+            $arr = $message->toArray();
+            $arr['sender'] = $this->normalizeUserForMessages($message->sender);
+            $arr['receiver'] = $this->normalizeUserForMessages($message->receiver);
+            if (!empty($arr['reply_to']) && $message->replyTo) {
+                $arr['reply_to'] = $message->replyTo->toArray();
+                $arr['reply_to']['sender'] = $this->normalizeUserForMessages($message->replyTo->sender);
+            }
+            return $arr;
+        });
+
         return Inertia::render('Messages/EnhancedConversation', [
-            'user' => $user,
-            'messages' => $messages,
+            'user' => $normalizedUser,
+            'messages' => $normalizedMessages,
             'currentUser' => auth()->user()
         ]);
     }
@@ -258,9 +310,17 @@ class MessageController extends Controller
             'icon' => 'comments'
         ]);
 
+        $messageArr = $message->toArray();
+        $messageArr['sender'] = $this->normalizeUserForMessages($message->sender);
+        $messageArr['receiver'] = $this->normalizeUserForMessages($message->receiver);
+        if ($message->replyTo) {
+            $messageArr['reply_to'] = $message->replyTo->toArray();
+            $messageArr['reply_to']['sender'] = $this->normalizeUserForMessages($message->replyTo->sender);
+        }
+
         return response()->json([
             'success' => true,
-            'message' => $message
+            'message' => $messageArr
         ]);
     }
 
@@ -479,8 +539,8 @@ class MessageController extends Controller
             $query->where('sender_id', $userId)
                   ->orWhere('receiver_id', $userId);
         })
-        ->with(['sender:id,first_name,last_name,user_type,professional_title',
-                'receiver:id,first_name,last_name,user_type,professional_title'])
+        ->with(['sender:id,first_name,last_name,user_type,professional_title,profile_picture,profile_photo,avatar',
+                'receiver:id,first_name,last_name,user_type,professional_title,profile_picture,profile_photo,avatar'])
         ->orderBy('created_at', 'desc')
         ->get()
         ->groupBy(function($message) use ($userId) {
@@ -500,7 +560,7 @@ class MessageController extends Controller
                                   ->count();
 
             return [
-                'user' => $otherUser,
+                'user' => $this->normalizeUserForMessages($otherUser),
                 'latest_message' => [
                     'message' => $latestMessage->message,
                     'type' => $latestMessage->type,
@@ -549,7 +609,14 @@ class MessageController extends Controller
         ->orderBy('created_at', 'asc')
         ->get();
 
-        return response()->json(['messages' => $messages]);
+        $normalizedMessages = $messages->map(function ($message) {
+            $arr = $message->toArray();
+            $arr['sender'] = $this->normalizeUserForMessages($message->sender);
+            $arr['receiver'] = $this->normalizeUserForMessages($message->receiver);
+            return $arr;
+        });
+
+        return response()->json(['messages' => $normalizedMessages]);
     }
 
     /**
@@ -618,8 +685,15 @@ class MessageController extends Controller
                 ->update(['is_read' => true, 'read_at' => now()]);
         }
 
+        $normalizedMessages = $newMessages->map(function ($message) {
+            $arr = $message->toArray();
+            $arr['sender'] = $this->normalizeUserForMessages($message->sender);
+            $arr['receiver'] = $this->normalizeUserForMessages($message->receiver);
+            return $arr;
+        });
+
         return response()->json([
-            'messages' => $newMessages
+            'messages' => $normalizedMessages
         ]);
     }
 }

@@ -28,6 +28,16 @@ export default function Register({ selectedUserType }) {
             return;
         }
 
+        // Client-side password complexity (must match backend rules)
+        const hasMinLength = data.password.length >= 8;
+        const hasMixedCase = /^(?=.*[a-z])(?=.*[A-Z])/.test(data.password);
+        const hasNumber = /\d/.test(data.password);
+        const hasSymbol = /[^\w\s]/.test(data.password);
+        if (!hasMinLength || !hasMixedCase || !hasNumber || !hasSymbol) {
+            alert('Password must be at least 8 characters and include uppercase, lowercase, a number, and a symbol (e.g. !@#$%^&*).');
+            return;
+        }
+
         post(route('register'), {
             onFinish: () => reset('password', 'password_confirmation'),
         });
@@ -175,7 +185,7 @@ export default function Register({ selectedUserType }) {
                                         type={showPassword ? "text" : "password"}
                                         value={data.password}
                                         onChange={(e) => setData('password', e.target.value)}
-                                        placeholder="Password (8 or more characters)"
+                                        placeholder="At least 8 characters with upper, lower, number & symbol"
                                         className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white"
                                         required
                                     />
@@ -192,6 +202,23 @@ export default function Register({ selectedUserType }) {
                                             )}
                                         </svg>
                                     </button>
+                                </div>
+                                <div className="mt-2 space-y-1">
+                                    <p className="text-xs font-medium text-gray-600">Password must have:</p>
+                                    <ul className="text-xs text-gray-500 space-y-0.5">
+                                        <li className={data.password.length >= 8 ? 'text-green-600' : ''}>
+                                            {data.password.length >= 8 ? '✓' : '○'} At least 8 characters
+                                        </li>
+                                        <li className={/^(?=.*[a-z])(?=.*[A-Z])/.test(data.password) ? 'text-green-600' : ''}>
+                                            {/^(?=.*[a-z])(?=.*[A-Z])/.test(data.password) ? '✓' : '○'} Uppercase and lowercase letters
+                                        </li>
+                                        <li className={/\d/.test(data.password) ? 'text-green-600' : ''}>
+                                            {/\d/.test(data.password) ? '✓' : '○'} At least one number
+                                        </li>
+                                        <li className={/[^\w\s]/.test(data.password) ? 'text-green-600' : ''}>
+                                            {/[^\w\s]/.test(data.password) ? '✓' : '○'} At least one symbol (e.g. !@#$%^&*)
+                                        </li>
+                                    </ul>
                                 </div>
                                 <InputError message={errors.password} className="mt-1" />
                             </div>

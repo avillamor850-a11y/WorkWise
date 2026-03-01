@@ -78,13 +78,14 @@ class BidController extends Controller
             return back()->withErrors(['user' => 'Only gig workers can submit bids.']);
         }
 
-        // Check if gig worker already bid on this job
+        // Check if gig worker already has an active bid on this job
         $existingBid = Bid::where('job_id', $job->id)
             ->where('gig_worker_id', auth()->id())
+            ->whereNotIn('status', ['rejected', 'withdrawn'])
             ->first();
 
         if ($existingBid) {
-            return back()->withErrors(['bid' => 'You have already submitted a bid for this job.']);
+            return back()->withErrors(['bid' => 'You already have an active bid for this job.']);
         }
 
         $validated['gig_worker_id'] = auth()->id();

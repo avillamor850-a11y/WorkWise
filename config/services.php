@@ -63,10 +63,38 @@ return [
         'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
     ],
 
+    /*
+    | Groq API - used by AI Recommendations (/ai-recommendations/gig-worker and /ai-recommendations/employer).
+    | Set GROQ_API_KEY in .env for AI-powered recommendation insights.
+    */
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+        'base_url' => env('GROQ_BASE_URL', 'https://api.groq.com/openai/v1'),
+    ],
+
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    /*
+    | BIR (Philippines) - Optional. Set in .env for VAT/Tax invoice PDFs.
+    | BIR_COMPANY_ADDRESS=..., BIR_TIN=...
+    */
+    'bir' => [
+        'company_address' => env('BIR_COMPANY_ADDRESS'),
+        'tin' => env('BIR_TIN'),
+    ],
+
+    /*
+    | IP Geolocation for fraud detection (Philippines-only platform).
+    | FRAUD_SKIP_IP_COUNTRY_CHECK=true to treat all IPs as Philippines (e.g. local/VPN testing).
+    */
+    'ip_geolocation' => [
+        'skip_check' => env('FRAUD_SKIP_IP_COUNTRY_CHECK', false),
+        'default_country' => 'Philippines',
+        'api_url' => env('IP_GEOLOCATION_API_URL', 'http://ip-api.com/json'),
     ],
 
 ];

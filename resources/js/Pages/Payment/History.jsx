@@ -1,9 +1,9 @@
 import React from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 
-export default function PaymentHistory({ transactions }) {
+export default function PaymentHistory({ transactions = [], summary = {} }) {
     const { auth } = usePage().props;
     const isEmployer = auth.user.user_type === 'employer';
 
@@ -11,11 +11,16 @@ export default function PaymentHistory({ transactions }) {
         try {
             if (!dateString) return 'N/A';
             const date = parseISO(dateString);
-            return isValid(date) ? formatDistanceToNow(date, { addSuffix: true }) : 'Invalid date';
+            return isValid(date) ? format(date, 'MM/dd/yy') : 'N/A';
         } catch (error) {
-            return 'Invalid date';
+            if (typeof dateString === 'string' && dateString.match(/^[A-Z][a-z]{2} \d{1,2}, \d{4}/)) {
+                return dateString;
+            }
+            return 'N/A';
         }
     };
+
+    const projectTitle = (t) => t?.project?.title ?? t?.project_title ?? 'N/A';
 
     return (
         <AuthenticatedLayout
@@ -42,19 +47,19 @@ export default function PaymentHistory({ transactions }) {
                                         <div className="bg-white/5 border border-white/10 p-6 rounded-xl">
                                             <div className="text-sm text-blue-400 font-medium">Escrow Balance</div>
                                             <div className="text-2xl font-bold text-white">
-                                                ₱{auth.user.escrow_balance?.toLocaleString() ?? '0.00'}
+                                                ₱{(summary.escrow_balance ?? auth.user.escrow_balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/10 p-6 rounded-xl">
                                             <div className="text-sm text-blue-400 font-medium">Total Spent</div>
                                             <div className="text-2xl font-bold text-white">
-                                                ₱{transactions?.reduce((sum, t) => sum + (t.type === 'payment' ? t.amount : 0), 0).toLocaleString() ?? '0.00'}
+                                                ₱{(summary.total_spent ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/10 p-6 rounded-xl">
                                             <div className="text-sm text-blue-400 font-medium">Active Escrow</div>
                                             <div className="text-2xl font-bold text-white">
-                                                ₱{transactions?.reduce((sum, t) => sum + (t.type === 'escrow' && t.status === 'pending' ? t.amount : 0), 0).toLocaleString() ?? '0.00'}
+                                                ₱{(summary.active_escrow ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                     </>
@@ -63,19 +68,20 @@ export default function PaymentHistory({ transactions }) {
                                         <div className="bg-white/5 border border-white/10 p-6 rounded-xl">
                                             <div className="text-sm text-green-400 font-medium">Total Earned</div>
                                             <div className="text-2xl font-bold text-white">
-                                                ₱{transactions?.reduce((sum, t) => sum + (t.type === 'release' ? t.amount : 0), 0).toLocaleString() ?? '0.00'}
+                                                ₱{(summary.total_earned ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/10 p-6 rounded-xl">
                                             <div className="text-sm text-amber-400 font-medium">Pending Releases</div>
                                             <div className="text-2xl font-bold text-white">
-                                                ₱{transactions?.reduce((sum, t) => sum + (t.type === 'escrow' && t.status === 'pending' ? t.amount : 0), 0).toLocaleString() ?? '0.00'}
+                                                ₱{(summary.pending_releases ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
+                                            <p className="text-xs text-white/50 mt-1">Net after 5% platform fee</p>
                                         </div>
                                         <div className="bg-white/5 border border-white/10 p-6 rounded-xl">
                                             <div className="text-sm text-red-400 font-medium">Platform Fees</div>
                                             <div className="text-2xl font-bold text-white">
-                                                ₱{transactions?.reduce((sum, t) => sum + (t.platform_fee || 0), 0).toLocaleString() ?? '0.00'}
+                                                ₱{(summary.platform_fees ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                     </>
@@ -111,7 +117,7 @@ export default function PaymentHistory({ transactions }) {
                                         {transactions?.map((transaction) => (
                                             <tr key={transaction.id} className="hover:bg-white/5">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-white/80">
-                                                    {formatDate(transaction.created_at)}
+                                                    {formatDate(transaction.created_at ?? transaction.date)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -120,11 +126,11 @@ export default function PaymentHistory({ transactions }) {
                                                         transaction.type === 'refund' ? 'bg-red-500/20 text-red-400' :
                                                         'bg-white/10 text-white/70'
                                                     }`}>
-                                                        {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                                                        {transaction.type ? (transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)) : '—'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-white/90 font-medium">
-                                                    ₱{transaction.amount?.toLocaleString() ?? '0.00'}
+                                                    ₱{(transaction.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -132,11 +138,11 @@ export default function PaymentHistory({ transactions }) {
                                                         transaction.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
                                                         'bg-red-500/20 text-red-400'
                                                     }`}>
-                                                        {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                                                        {transaction.status ? (transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)) : '—'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-white/80">
-                                                    {transaction.project?.title || 'N/A'}
+                                                    {projectTitle(transaction)}
                                                 </td>
                                             </tr>
                                         ))}

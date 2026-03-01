@@ -9,6 +9,7 @@ export default function EnhancedAdminProjects({ projects: initialProjects, stats
     const [autoRefresh, setAutoRefresh] = useState(true);
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const [statusFilter, setStatusFilter] = useState(filters?.status || '');
+    const [requestedReviewFilter, setRequestedReviewFilter] = useState(filters?.requested_review === '1' || filters?.requested_review === true);
 
     const formatCurrency = (amount) => {
         if (!amount) return '₱0.00';
@@ -29,6 +30,7 @@ export default function EnhancedAdminProjects({ projects: initialProjects, stats
             const params = new URLSearchParams();
             if (searchTerm) params.append('search', searchTerm);
             if (statusFilter) params.append('status', statusFilter);
+            if (requestedReviewFilter) params.append('requested_review', '1');
             
             const response = await fetch(`/admin/projects?${params.toString()}`, {
                 headers: {
@@ -48,7 +50,7 @@ export default function EnhancedAdminProjects({ projects: initialProjects, stats
         } catch (error) {
             console.error('Error fetching projects:', error);
         }
-    }, [searchTerm, statusFilter]);
+    }, [searchTerm, statusFilter, requestedReviewFilter]);
 
     // Auto-refresh
     useEffect(() => {
@@ -65,16 +67,19 @@ export default function EnhancedAdminProjects({ projects: initialProjects, stats
         e.preventDefault();
         router.get('/admin/projects', {
             search: searchTerm,
-            status: statusFilter
+            status: statusFilter,
+            requested_review: requestedReviewFilter ? '1' : undefined
         }, { preserveState: true });
     };
 
     const handleFilterChange = (filterType, value) => {
         if (filterType === 'status') setStatusFilter(value);
-        
+        if (filterType === 'requested_review') setRequestedReviewFilter(!!value);
+
         router.get('/admin/projects', {
             search: searchTerm,
-            status: filterType === 'status' ? value : statusFilter
+            status: filterType === 'status' ? value : statusFilter,
+            requested_review: filterType === 'requested_review' ? (value ? '1' : undefined) : (requestedReviewFilter ? '1' : undefined)
         }, { preserveState: true });
     };
 
@@ -129,7 +134,7 @@ export default function EnhancedAdminProjects({ projects: initialProjects, stats
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-medium text-blue-600">Total Projects</h3>
@@ -173,13 +178,24 @@ export default function EnhancedAdminProjects({ projects: initialProjects, stats
                     <p className="text-3xl font-bold text-purple-900">{formatCurrency(stats.average_value)}</p>
                     <p className="text-sm text-purple-600 mt-2">Per project</p>
                 </div>
+
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-6 border border-amber-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-amber-600">Awaiting admin review</h3>
+                        <div className="bg-amber-500 p-2 rounded-full">
+                            <span className="material-symbols-outlined text-white text-xl">pending_actions</span>
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-amber-900">{formatNumber(stats.awaiting_admin_review ?? 0)}</p>
+                    <p className="text-sm text-amber-600 mt-2">Gig worker requested review</p>
+                </div>
             </div>
 
             {/* Filters */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <form onSubmit={handleSearch}>
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                        <div className="md:col-span-8">
+                        <div className="md:col-span-7">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Search Projects
                             </label>
@@ -210,6 +226,18 @@ export default function EnhancedAdminProjects({ projects: initialProjects, stats
                                 <option value="completed">Completed</option>
                                 <option value="cancelled">Cancelled</option>
                             </select>
+                        </div>
+
+                        <div className="md:col-span-1 flex items-end">
+                            <label className="flex items-center space-x-2 cursor-pointer h-10">
+                                <input
+                                    type="checkbox"
+                                    checked={requestedReviewFilter}
+                                    onChange={(e) => handleFilterChange('requested_review', e.target.checked)}
+                                    className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                />
+                                <span className="text-sm text-gray-700">Awaiting admin review</span>
+                            </label>
                         </div>
 
                         <div className="md:col-span-1 flex items-end">

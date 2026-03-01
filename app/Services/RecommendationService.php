@@ -22,12 +22,12 @@ class RecommendationService
     private const CACHE_TTL_HOURS = 24;
     private const MAX_PROCESS_TIME = 20;
     private const EMPLOYER_WORKER_LIMIT = 15;
-    private const WORKER_JOB_LIMIT = 10;
+    private const WORKER_JOB_LIMIT = 25;
 
     public function __construct()
     {
-        $this->apiKey = env('GROQ_API_KEY');
-        $this->baseUrl = 'https://api.groq.com/openai/v1';
+        $this->apiKey = config('services.groq.api_key');
+        $this->baseUrl = rtrim(config('services.groq.base_url', 'https://api.groq.com/openai/v1'), '/');
         $this->certPath = base_path('cacert.pem');
         $this->isConfigured = !empty($this->apiKey);
 
@@ -261,9 +261,16 @@ class RecommendationService
     {
         $query = GigJob::with(['employer' => fn($q) => $q->with(['receivedReviews' => fn($r) => $r->latest()->limit(self::REVIEW_SNIPPET_LIMIT)])])
             ->where('status', 'open')
-            ->where(fn($q) => $q->whereNotNull('required_skills')->orWhereNotNull('skills_requirements'));
+            ->where(fn($q) => $q->whereNotNull('required_skills')->orWhereNotNull('skills_requirements'))
+            ->latest();
 
         $jobs = $query->limit(self::WORKER_JOB_LIMIT)->get();
+
+        // #region agent log
+        $logPath = base_path('debug-2a3dda.log');
+        $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'A', 'location' => 'RecommendationService.php:getJobRecommendationsForWorker', 'message' => 'Job pool for worker', 'data' => ['worker_id' => $gigWorker->id, 'pool_size' => $jobs->count(), 'job_ids' => $jobs->pluck('id')->toArray(), 'total_open_with_skills' => GigJob::where('status', 'open')->where(fn($q) => $q->whereNotNull('required_skills')->orWhereNotNull('skills_requirements'))->count()], 'timestamp' => round(microtime(true) * 1000)]) . "\n";
+        @file_put_contents($logPath, $logLine, FILE_APPEND);
+        // #endregion
 
         $workerSkills = $this->normalizeWorkerSkills($gigWorker->skills_with_experience);
         $workerText = "Worker profile: {$gigWorker->professional_title}\nSkills: " . $this->formatSkillsForPrompt($workerSkills)
@@ -275,10 +282,18 @@ class RecommendationService
         foreach ($jobs as $job) {
             if ((microtime(true) - $startTime) > self::MAX_PROCESS_TIME) {
                 Log::warning('RecommendationService worker timeout', ['gig_worker_id' => $gigWorker->id]);
+                // #region agent log
+                $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'D', 'location' => 'RecommendationService.php:worker_loop', 'message' => 'Timeout hit', 'data' => ['processed' => count($matches), 'job_count' => $jobs->count()], 'timestamp' => round(microtime(true) * 1000)]) . "\n";
+                @file_put_contents($logPath, $logLine, FILE_APPEND);
+                // #endregion
                 break;
             }
 
             $result = $this->getJobRecommendationScoreForWorker($job, $gigWorker, $workerText, $refresh);
+            // #region agent log
+            $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'B', 'location' => 'RecommendationService.php:worker_loop', 'message' => 'Job scored', 'data' => ['job_id' => $job->id, 'score' => $result['score'] ?? null, 'success' => $result['success'] ?? false, 'added' => ($result['success'] && ($result['score'] ?? 0) > 0)], 'timestamp' => round(microtime(true) * 1000)]) . "\n";
+            @file_put_contents($logPath, $logLine, FILE_APPEND);
+            // #endregion
             if ($result['success'] && $result['score'] > 0) {
                 $matches[] = [
                     'job' => $job,
@@ -292,7 +307,12 @@ class RecommendationService
         }
 
         usort($matches, fn($a, $b) => $b['score'] - $a['score']);
-        return array_slice($matches, 0, $limit);
+        $returned = array_slice($matches, 0, $limit);
+        // #region agent log
+        $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'A', 'location' => 'RecommendationService.php:getJobRecommendationsForWorker', 'message' => 'Returned recommendations', 'data' => ['match_count' => count($returned), 'returned_job_ids' => array_map(fn($m) => $m['job']->id, $returned)], 'timestamp' => round(microtime(true) * 1000)]) . "\n";
+        @file_put_contents($logPath, $logLine, FILE_APPEND);
+        // #endregion
+        return $returned;
     }
 
     /**
@@ -302,7 +322,13 @@ class RecommendationService
     {
         $cacheKey = "recommendation_worker_{$gigWorker->id}_{$job->id}";
         if (!$refresh && Cache::has($cacheKey)) {
-            return Cache::get($cacheKey);
+            $cached = Cache::get($cacheKey);
+            // #region agent log
+            $logPath = base_path('debug-2a3dda.log');
+            $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'C', 'location' => 'RecommendationService.php:getJobRecommendationScoreForWorker', 'message' => 'Cache hit', 'data' => ['job_id' => $job->id, 'worker_id' => $gigWorker->id, 'cached_score' => $cached['score'] ?? null], 'timestamp' => round(microtime(true) * 1000)]) . "\n";
+            @file_put_contents($logPath, $logLine, FILE_APPEND);
+            // #endregion
+            return $cached;
         }
 
         if (!$this->isConfigured) {
@@ -329,6 +355,13 @@ class RecommendationService
 
         $result = $this->callGroq($systemPrompt, $userPrompt, 'worker');
         if ($result !== null) {
+            // When Groq returns 0, use fallback if it gives a positive score so exact skill matches still appear (log evidence: jobs 22,21,20,18 got 0 from Groq)
+            if (($result['score'] ?? 0) === 0) {
+                $fallback = $this->fallbackWorkerScore($job, $gigWorker);
+                if (($fallback['score'] ?? 0) > 0) {
+                    $result = $fallback;
+                }
+            }
             Cache::put($cacheKey, $result, now()->addHours(self::CACHE_TTL_HOURS));
             return $result;
         }
@@ -351,7 +384,15 @@ class RecommendationService
             $score = min(100, $score + (int) round($avg * 6));
         }
         $reason = "Relevance: {$matchCount}/{$total} skills. Employer rating: " . ($employer ? round($employer->receivedReviews()->avg('rating') ?? 0, 1) : 'N/A') . "/5.";
-        return ['score' => min(100, $score), 'reason' => $reason, 'success' => true];
+        $result = ['score' => min(100, $score), 'reason' => $reason, 'success' => true];
+        // #region agent log
+        if ($result['score'] === 0) {
+            $logPath = base_path('debug-2a3dda.log');
+            $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'E', 'location' => 'RecommendationService.php:fallbackWorkerScore', 'message' => 'Zero score', 'data' => ['job_id' => $job->id, 'job_skill_names' => $jobNames, 'worker_skill_names' => $workerNames, 'match_count' => $matchCount, 'total' => $total], 'timestamp' => round(microtime(true) * 1000)]) . "\n";
+            @file_put_contents($logPath, $logLine, FILE_APPEND);
+        }
+        // #endregion
+        return $result;
     }
 
     /**

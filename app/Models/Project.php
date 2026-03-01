@@ -32,6 +32,8 @@ class Project extends Model
         'net_amount',
         'contract_signed',
         'contract_signed_at',
+        'admin_review_requested_at',
+        'admin_review_request_notes',
     ];
 
     protected $casts = [
@@ -40,6 +42,7 @@ class Project extends Model
         'approved_at' => 'datetime',
         'payment_released_at' => 'datetime',
         'contract_signed_at' => 'datetime',
+        'admin_review_requested_at' => 'datetime',
         'deadline' => 'datetime',
         'payment_released' => 'boolean',
         'employer_approved' => 'boolean',

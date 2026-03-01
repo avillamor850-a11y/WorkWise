@@ -14,9 +14,12 @@ export default function Recommendations({
     pageTitle = "AI Recommendations",
     bannerTitle,
     bannerDescription,
+    openJobs = [],
+    singleJobId = null,
 }) {
     const isGigWorker = userType === "gig_worker";
     const isDark = pageTitle === "AI Match" || pageTitle === "AI Recommendations";
+    const isAimatchPage = pageTitle === "AI Match";
 
     const effectiveBannerTitle = bannerTitle ?? (isGigWorker ? "AI-Powered Job Recommendations" : "AI-Matched Gig Workers");
     const effectiveBannerDescription = bannerDescription ?? (isGigWorker
@@ -44,11 +47,9 @@ export default function Recommendations({
 
     const handleRefresh = () => {
         setIsRefreshing(true);
-        router.reload({
-            data: { refresh: 1 },
-            onFinish: () => setIsRefreshing(false),
-            preserveScroll: true,
-        });
+        const params = new URLSearchParams(window.location.search);
+        params.set("refresh", "1");
+        router.get(window.location.pathname + "?" + params.toString(), {}, { preserveScroll: true, onFinish: () => setIsRefreshing(false) });
     };
 
     const [isSkillDropdownOpen, setIsSkillDropdownOpen] = useState(false);
@@ -386,6 +387,15 @@ export default function Recommendations({
             ),
 
         [baseEmployerRecommendations],
+    );
+
+    const employerNeedsToChooseJob = useMemo(
+        () =>
+            !isGigWorker &&
+            Array.isArray(openJobs) &&
+            openJobs.length > 0 &&
+            Object.keys(baseEmployerRecommendations).length === 0,
+        [isGigWorker, openJobs, baseEmployerRecommendations],
     );
 
     const filtersAppliedForFreelancer =
@@ -1151,7 +1161,8 @@ export default function Recommendations({
                         </div>
                     </div>
 
-                    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+                    <div className={isAimatchPage ? "" : "grid gap-6 lg:grid-cols-[320px_1fr]"}>
+                        {!isAimatchPage && (
                         <aside className={isDark
                             ? "bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 lg:sticky lg:top-24 h-max"
                             : "bg-white/90 backdrop-blur-md border-2 border-blue-200 rounded-xl shadow-2xl p-6 lg:sticky lg:top-24 h-max ring-1 ring-blue-100"
@@ -1397,6 +1408,7 @@ export default function Recommendations({
                                 </div>
                             </div>
                         </aside>
+                        )}
 
                         <div className="space-y-6">
                             {hasError ? (
@@ -1427,6 +1439,34 @@ export default function Recommendations({
                                         </button>
                                     </div>
                                 </div>
+                            ) : employerNeedsToChooseJob ? (
+                                <div className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
+                                    <div className="p-8">
+                                        <h3 className={`text-lg font-semibold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>
+                                            Choose a job to see AI matches
+                                        </h3>
+                                        <p className={`text-sm mb-6 ${isDark ? "text-white/60" : "text-gray-600"}`}>
+                                            Select one of your open jobs below to view AI-matched gig workers or AI recommendations for that job.
+                                        </p>
+                                        <div className="space-y-3">
+                                            {openJobs.map((job) => (
+                                                <Link
+                                                    key={job.id}
+                                                    href={window.location.pathname + "?job_id=" + job.id}
+                                                    className={`flex items-center justify-between w-full rounded-xl border p-4 text-left transition-all ${isDark
+                                                        ? "border-white/10 bg-white/5 hover:border-blue-500/50 hover:bg-white/10"
+                                                        : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md"
+                                                    }`}
+                                                >
+                                                    <span className={isDark ? "font-medium text-white" : "font-medium text-gray-900"}>{job.title}</span>
+                                                    <span className={isDark ? "text-sm text-white/50" : "text-sm text-gray-500"}>
+                                                        {job.created_at ? new Date(job.created_at).toLocaleDateString() : ""}
+                                                    </span>
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                             ) : isGigWorker ? (
                                 renderFreelancerRecommendations(
                                     paginatedGigWorkerRecs,
@@ -1434,11 +1474,23 @@ export default function Recommendations({
                                     filtersAppliedForFreelancer,
                                 )
                             ) : (
-                                renderEmployerRecommendations(
-                                    Object.fromEntries(paginatedEmployerRecs),
+                                <>
+                                    {singleJobId && (
+                                        <div className="mb-4">
+                                            <Link
+                                                href={window.location.pathname}
+                                                className={isDark ? "text-sm font-medium text-blue-400 hover:text-blue-300" : "text-sm font-medium text-blue-600 hover:text-blue-700"}
+                                            >
+                                                ← Choose a different job
+                                            </Link>
+                                        </div>
+                                    )}
+                                    {renderEmployerRecommendations(
+                                        Object.fromEntries(paginatedEmployerRecs),
 
-                                    filtersAppliedForEmployer,
-                                )
+                                        filtersAppliedForEmployer,
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>

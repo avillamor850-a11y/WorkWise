@@ -382,7 +382,7 @@ class ProfileController extends Controller
             'hourly_rate'            => 'nullable|numeric|min:0|max:99999',
             'portfolio_link'         => 'nullable|string|max:500',
             'skills_with_experience' => 'nullable|string', // sent as JSON string
-            'country'                => 'nullable|string|max:255',
+            'country'                => 'nullable|string|max:255|in:Philippines',
             'city'                   => 'nullable|string|max:255',
             'profile_picture'        => 'nullable|image|mimes:jpeg,png,gif,webp|max:5120',
             'resume_file'            => 'nullable|file|mimes:pdf,doc,docx|max:10240',
@@ -585,7 +585,7 @@ class ProfileController extends Controller
             'bio' => 'nullable|string|max:1000',
             'company_description' => 'nullable|string|max:2000',
             'profile_picture' => 'nullable|image|mimes:jpeg,png,gif,webp|max:5120',
-            'country' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255|in:Philippines',
             'city' => 'nullable|string|max:255',
             'street_address' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:255',

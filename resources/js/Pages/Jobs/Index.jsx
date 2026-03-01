@@ -15,6 +15,20 @@ function safeRoute(name, fallback = '/') {
     }
 }
 
+/**
+ * Resolve profile image URL for display. Supabase paths are stored as /supabase/...
+ * but the app serves them at /storage/supabase/...
+ */
+function resolveProfileImageUrl(url) {
+    if (!url || typeof url !== 'string') return null;
+    const u = url.trim();
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    if (u.startsWith('/storage/supabase/')) return u;
+    if (u.startsWith('/supabase/')) return '/storage/supabase/' + u.slice(9);
+    if (u.startsWith('/storage/')) return u;
+    return '/storage/' + u.replace(/^\//, '');
+}
+
 export default function JobsIndex({ jobs, availableSkills = [] }) {
     const { auth } = usePage().props;
     const [search, setSearch] = useState('');
@@ -534,9 +548,43 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                     </div>
                                 ) : (
                                     <div className="space-y-8">
-                                        {paginatedJobs.map((job) => (
+                                        {paginatedJobs.map((job) => {
+                                            const emp = job.employer;
+                                            const empName = (emp?.first_name && emp?.last_name)
+                                                ? `${emp.first_name} ${emp.last_name}`.toUpperCase()
+                                                : 'EMPLOYER';
+                                            const empAvatarRaw = emp?.profile_picture || emp?.profile_photo;
+                                            const empAvatarSrc = (empAvatarRaw && resolveProfileImageUrl(empAvatarRaw))
+                                                || `https://ui-avatars.com/api/?name=${encodeURIComponent((emp?.first_name || '') + '+' + (emp?.last_name || ''))}&background=6366f1&color=fff`;
+                                            return (
                                             <div key={job.id} className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl hover:border-blue-500/30 transition-all duration-200" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
                                                 <div className="p-8">
+                                                    {/* Employer block: profile image, name (uppercase), company name */}
+                                                    <div className={`flex items-center gap-3 mb-5 pb-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                                                        <img
+                                                            src={empAvatarSrc}
+                                                            alt=""
+                                                            className="w-12 h-12 rounded-full object-cover border-2 border-white/20 shadow-sm"
+                                                            onError={(e) => {
+                                                                e.target.onerror = null;
+                                                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent((emp?.first_name || '') + '+' + (emp?.last_name || ''))}&background=6366f1&color=fff`;
+                                                            }}
+                                                        />
+                                                        <div className="min-w-0">
+                                                            <div className={`font-semibold text-sm uppercase tracking-wide ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                                                {empName}
+                                                            </div>
+                                                            {emp?.company_name ? (
+                                                                <div className={`text-sm truncate ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
+                                                                    {emp.company_name}
+                                                                </div>
+                                                            ) : (
+                                                                <div className={`text-sm ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                                                                    —
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                     <div className="flex items-start justify-between">
                                                         <div className="flex-1">
                                                             <div className="flex items-center space-x-4 mb-4">
@@ -658,7 +706,8 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
 
                                         {/* Pagination */}
                                         {shouldShowPagination && (

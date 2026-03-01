@@ -196,7 +196,9 @@ class GigJobController extends Controller
         return Inertia::render('Jobs/Show', [
             'job' => $job,
             'canBid' => auth()->user()?->isGigWorker() &&
-                        !$job->bids()->where('gig_worker_id', auth()->id())->exists(),
+                        !$job->bids()->where('gig_worker_id', auth()->id())
+                                     ->whereNotIn('status', ['rejected', 'withdrawn'])
+                                     ->exists(),
         ]);
     }
 

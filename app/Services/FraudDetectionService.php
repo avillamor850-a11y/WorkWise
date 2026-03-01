@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 
 class FraudDetectionService
@@ -288,15 +289,22 @@ class FraudDetectionService
         }
 
         $currentIP = $request->ip();
-        $registrationCountry = $user->country ?? 'Philippines';
-        
-        // Check for country mismatch between registration and KYC address
+        $registrationCountry = $user->registration_ip_country ?? $user->country ?? 'Philippines';
+
+        // Philippines-only: if current IP is not from Philippines, flag as Country Mismatch with high risk
+        $ipInfo = $this->getIPGeolocation($currentIP);
+        if ($ipInfo && isset($ipInfo['country'])) {
+            $data['current_ip_country'] = $ipInfo['country'];
+            if ($ipInfo['country'] !== 'Philippines') {
+                $riskScore += 75;
+                $indicators[] = 'Country Mismatch: Access from outside Philippines';
+            }
+        }
+
+        // Check for country mismatch between registration IP and KYC address
         if ($user->street_address && $user->country) {
-            // User has completed KYC with address
             $data['registration_country'] = $registrationCountry;
             $data['kyc_country'] = $user->country;
-            
-            // If countries don't match, flag for review
             if ($registrationCountry !== $user->country) {
                 $riskScore += 50;
                 $indicators[] = "Country mismatch: Registered from {$registrationCountry} but KYC address is in {$user->country}";
@@ -304,14 +312,9 @@ class FraudDetectionService
         }
 
         // Check for IP location mismatch with registration country
-        $ipInfo = $this->getIPGeolocation($currentIP);
-        if ($ipInfo && isset($ipInfo['country'])) {
-            $data['current_ip_country'] = $ipInfo['country'];
-            
-            if ($ipInfo['country'] !== $registrationCountry) {
-                $riskScore += 40;
-                $indicators[] = "Current IP country ({$ipInfo['country']}) differs from registration country ({$registrationCountry})";
-            }
+        if ($ipInfo && isset($ipInfo['country']) && $ipInfo['country'] !== $registrationCountry) {
+            $riskScore += 40;
+            $indicators[] = "Current IP country ({$ipInfo['country']}) differs from registration country ({$registrationCountry})";
         }
 
         // Check for rapid IP changes
@@ -326,11 +329,10 @@ class FraudDetectionService
             $indicators[] = 'Multiple IP addresses in short time frame';
         }
 
-        // Add additional data
         $data['current_ip'] = $currentIP;
         $data['ip_info'] = $ipInfo;
         $data['recent_ips'] = $recentIPs;
-        
+
         return [
             'risk_score' => min(100, $riskScore),
             'indicators' => $indicators,
@@ -443,18 +445,125 @@ class FraudDetectionService
     }
 
     /**
-     * Get IP geolocation information
+     * Get country for an IP (public helper for registration/login). Respects skip and private IP.
+     */
+    public function getIPCountry(string $ip): string
+    {
+        $info = $this->getIPGeolocation($ip);
+        return $info['country'] ?? config('services.ip_geolocation.default_country', 'Philippines');
+    }
+
+    /**
+     * Run geographic check on login: if IP not from Philippines, create Country Mismatch alert and case.
+     * Does not block login. Respects FRAUD_SKIP_IP_COUNTRY_CHECK and private IP.
+     */
+    public function recordLoginGeographicCheck(User $user, Request $request): void
+    {
+        if (config('services.ip_geolocation.skip_check', false)) {
+            return;
+        }
+        $ipCountry = $this->getIPCountry($request->ip());
+        if ($ipCountry === 'Philippines') {
+            return;
+        }
+        try {
+            FraudDetectionAlert::create([
+                'user_id' => $user->id,
+                'alert_type' => 'system_detected',
+                'rule_name' => 'Country Mismatch',
+                'alert_message' => 'Country Mismatch: Login from outside Philippines (IP country: ' . $ipCountry . ')',
+                'alert_data' => ['ip_country' => $ipCountry, 'ip' => $request->ip()],
+                'risk_score' => 75,
+                'severity' => 'high',
+                'status' => 'active',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent() ? ['user_agent' => $request->userAgent()] : null,
+            ]);
+            $analysis = $this->analyzeUserFraud($user, $request);
+            $this->createFraudCase($user, $analysis, 'country_mismatch');
+        } catch (\Throwable $e) {
+            Log::warning('FraudDetectionService: recordLoginGeographicCheck failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get IP geolocation information.
+     * Uses ip-api.com (free tier) when IP is public. Local/private IPs or FRAUD_SKIP_IP_COUNTRY_CHECK return Philippines.
      */
     private function getIPGeolocation(string $ip): ?array
     {
-        // This would integrate with a real IP geolocation service
-        // For now, return mock data
+        $defaultCountry = config('services.ip_geolocation.default_country', 'Philippines');
+
+        if (config('services.ip_geolocation.skip_check', false)) {
+            return [
+                'country' => $defaultCountry,
+                'region' => null,
+                'city' => null,
+                'latitude' => null,
+                'longitude' => null,
+            ];
+        }
+
+        if ($this->isPrivateOrLocalIp($ip)) {
+            return [
+                'country' => $defaultCountry,
+                'region' => null,
+                'city' => null,
+                'latitude' => null,
+                'longitude' => null,
+            ];
+        }
+
+        $url = rtrim(config('services.ip_geolocation.api_url', 'http://ip-api.com/json'), '/') . '/' . $ip;
+        $url .= '?fields=status,country,regionName,city,lat,lon';
+
+        try {
+            $response = Http::timeout(3)->get($url);
+            if (!$response->successful()) {
+                return $this->defaultGeo($defaultCountry);
+            }
+            $data = $response->json();
+            if (empty($data) || ($data['status'] ?? '') !== 'success') {
+                return $this->defaultGeo($defaultCountry);
+            }
+            return [
+                'country' => $data['country'] ?? $defaultCountry,
+                'region' => $data['regionName'] ?? null,
+                'city' => $data['city'] ?? null,
+                'latitude' => isset($data['lat']) ? (float) $data['lat'] : null,
+                'longitude' => isset($data['lon']) ? (float) $data['lon'] : null,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('FraudDetectionService: IP geolocation failed', ['ip' => $ip, 'error' => $e->getMessage()]);
+            return $this->defaultGeo($defaultCountry);
+        }
+    }
+
+    /**
+     * Whether the IP is private or local (treat as Philippines for local testing).
+     */
+    private function isPrivateOrLocalIp(string $ip): bool
+    {
+        if (in_array($ip, ['127.0.0.1', '::1', 'localhost'], true)) {
+            return true;
+        }
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return true;
+        }
+        return false;
+    }
+
+    private function defaultGeo(string $country): array
+    {
         return [
-            'country' => 'Philippines',
-            'region' => 'Central Visayas',
-            'city' => 'Lapu-Lapu City',
-            'latitude' => 10.3103,
-            'longitude' => 123.9494,
+            'country' => $country,
+            'region' => null,
+            'city' => null,
+            'latitude' => null,
+            'longitude' => null,
         ];
     }
 

@@ -27,11 +27,17 @@ export default function FreelancerDashboard({ overview, monthly_earnings, recent
         }).format(amount);
     };
 
-    // Mock data for additional insights
+    // Use real overview data; only fall back for null/undefined (so 0 from DB is shown as 0)
+    const totalEarnings = overview?.total_earnings ?? 0;
+    const completedProjects = overview?.completed_projects ?? 0;
+    const activeProjects = overview?.active_projects ?? 0;
+    const averageRating = overview?.average_rating ?? 0;
+    const bidSuccessRate = overview?.bid_success_rate ?? 0;
+
     const projectStatusData = [
-        { name: 'Completed', value: overview?.completed_projects || 12, color: '#10B981' },
-        { name: 'In Progress', value: overview?.active_projects || 3, color: '#3B82F6' },
-        { name: 'Pending', value: 2, color: '#F59E0B' }
+        { name: 'Completed', value: completedProjects, color: '#10B981' },
+        { name: 'In Progress', value: activeProjects, color: '#3B82F6' },
+        { name: 'Pending', value: 0, color: '#F59E0B' }
     ];
 
     const weeklyActivity = [
@@ -134,7 +140,9 @@ export default function FreelancerDashboard({ overview, monthly_earnings, recent
                                         Your Performance This Month
                                     </h3>
                                     <p className="text-green-100 text-lg">
-                                        You've earned {formatCurrency(overview?.total_earnings || 45000)} with a {overview?.bid_success_rate || 85}% success rate
+                                        {totalEarnings > 0
+                                            ? `You've earned ${formatCurrency(totalEarnings)} with a ${bidSuccessRate}% success rate`
+                                            : "You haven't earned yet. Complete jobs to see your performance here."}
                                     </p>
                                 </div>
                                 <div className="hidden md:block">
@@ -145,15 +153,15 @@ export default function FreelancerDashboard({ overview, monthly_earnings, recent
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                                 <div className="bg-white/20 rounded-lg p-4">
-                                    <div className="text-2xl font-bold">{overview?.completed_projects || 12}</div>
+                                    <div className="text-2xl font-bold">{completedProjects}</div>
                                     <div className="text-green-100">Projects Completed</div>
                                 </div>
                                 <div className="bg-white/20 rounded-lg p-4">
-                                    <div className="text-2xl font-bold">{overview?.average_rating || 4.8}/5</div>
+                                    <div className="text-2xl font-bold">{averageRating}/5</div>
                                     <div className="text-green-100">Average Rating</div>
                                 </div>
                                 <div className="bg-white/20 rounded-lg p-4">
-                                    <div className="text-2xl font-bold">{overview?.active_projects || 3}</div>
+                                    <div className="text-2xl font-bold">{activeProjects}</div>
                                     <div className="text-green-100">Active Projects</div>
                                 </div>
                             </div>
@@ -164,42 +172,42 @@ export default function FreelancerDashboard({ overview, monthly_earnings, recent
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                         <StatCard
                             title="Total Earnings"
-                            value={formatCurrency(overview?.total_earnings || 45000)}
+                            value={formatCurrency(totalEarnings)}
                             icon={CurrencyDollarIcon}
                             color="green"
-                            trend="up"
-                            trendValue="+12%"
+                            trend={totalEarnings > 0 ? 'up' : null}
+                            trendValue={totalEarnings > 0 ? '+12%' : null}
                         />
                         <StatCard
                             title="Completed Projects"
-                            value={overview?.completed_projects || 12}
+                            value={completedProjects}
                             icon={ClipboardDocumentListIcon}
                             color="blue"
-                            trend="up"
-                            trendValue="+3"
+                            trend={completedProjects > 0 ? 'up' : null}
+                            trendValue={completedProjects > 0 ? '+3' : null}
                         />
                         <StatCard
                             title="Average Rating"
-                            value={`${overview?.average_rating || 4.8}/5`}
+                            value={`${averageRating}/5`}
                             icon={StarIcon}
                             color="yellow"
-                            trend="up"
-                            trendValue="+0.2"
+                            trend={averageRating > 0 ? 'up' : null}
+                            trendValue={averageRating > 0 ? '+0.2' : null}
                         />
                         <StatCard
                             title="Active Projects"
-                            value={overview?.active_projects || 3}
+                            value={activeProjects}
                             icon={BriefcaseIcon}
                             color="purple"
                             subtitle="In progress"
                         />
                         <StatCard
                             title="Success Rate"
-                            value={`${overview?.bid_success_rate || 85}%`}
+                            value={`${bidSuccessRate}%`}
                             icon={ArrowTrendingUpIcon}
                             color="indigo"
-                            trend="up"
-                            trendValue="+5%"
+                            trend={bidSuccessRate > 0 ? 'up' : null}
+                            trendValue={bidSuccessRate > 0 ? '+5%' : null}
                         />
                     </div>
 
@@ -378,11 +386,11 @@ export default function FreelancerDashboard({ overview, monthly_earnings, recent
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-gray-600 mb-2">
-                                                    Client: {project.employer?.first_name} {project.employer?.last_name}
+                                                    Client: {project.client?.first_name} {project.client?.last_name}
                                                 </p>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-sm font-medium text-green-600">
-                                                        {formatCurrency(project.amount || 5000)}
+                                                        {formatCurrency(project.agreed_amount ?? project.amount ?? 0)}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
                                                         {project.created_at ? new Date(project.created_at).toLocaleDateString() : 'Recent'}

@@ -126,32 +126,42 @@ class PaymentController extends Controller
      */
     public function history(): Response
     {
-        $transactions = $this->paymentService->getPaymentHistory(auth()->id());
+        $user = auth()->user();
+        $transactions = $this->paymentService->getPaymentHistory($user->id);
 
-        // Calculate summary stats
-        $totalEarned = collect($transactions)
-            ->where('is_incoming', true)
-            ->where('type', 'release')
-            ->sum('net_amount');
-
-        $totalSpent = collect($transactions)
-            ->where('is_incoming', false)
-            ->where('type', 'escrow')
-            ->sum('amount');
-
-        $pendingEscrow = collect($transactions)
-            ->where('type', 'escrow')
-            ->where('status', 'completed')
-            ->sum('amount');
+        if ($user->user_type === 'employer') {
+            $escrowBalance = (float) ($user->escrow_balance ?? 0);
+            $totalSpent = (float) Transaction::where('payer_id', $user->id)
+                ->where('type', 'release')
+                ->where('status', 'completed')
+                ->sum('amount');
+            $activeEscrow = (float) Project::where('employer_id', $user->id)
+                ->where('status', 'active')
+                ->sum('agreed_amount');
+            $summary = [
+                'escrow_balance' => $escrowBalance,
+                'total_spent' => $totalSpent,
+                'active_escrow' => $activeEscrow,
+                'transaction_count' => count($transactions),
+            ];
+        } else {
+            $totalEarned = (float) collect($transactions)->where('is_incoming', true)->where('type', 'release')->sum('net_amount');
+            $pendingReleases = (float) Project::where('gig_worker_id', $user->id)
+                ->where('status', 'completed')
+                ->where('payment_released', false)
+                ->sum('net_amount');
+            $platformFees = (float) collect($transactions)->sum('platform_fee');
+            $summary = [
+                'total_earned' => $totalEarned,
+                'pending_releases' => $pendingReleases,
+                'platform_fees' => $platformFees,
+                'transaction_count' => count($transactions),
+            ];
+        }
 
         return Inertia::render('Payment/History', [
             'transactions' => $transactions,
-            'summary' => [
-                'total_earned' => $totalEarned,
-                'total_spent' => $totalSpent,
-                'pending_escrow' => $pendingEscrow,
-                'transaction_count' => count($transactions)
-            ]
+            'summary' => $summary,
         ]);
     }
 

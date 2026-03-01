@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
-export default function Show({ auth, contract, userRole, canSign, nextSigner, hasUserSigned }) {
+export default function Show({ auth, contract, employer, gigWorker, userRole, canSign, nextSigner, hasUserSigned }) {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancellationReason, setCancellationReason] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -161,20 +161,20 @@ export default function Show({ auth, contract, userRole, canSign, nextSigner, ha
                                             <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
                                                 <h4 className="font-medium text-white/80 mb-3">EMPLOYER</h4>
                                                 <div className="space-y-2 text-sm text-white/70">
-                                                    <div><span className="font-medium text-white/90">Name:</span> {contract.employer?.first_name} {contract.employer?.last_name}</div>
-                                                    <div><span className="font-medium text-white/90">Email:</span> {contract.employer?.email}</div>
-                                                    <div><span className="font-medium text-white/90">Phone:</span> {contract.employer?.phone || 'Not provided'}</div>
-                                                    <div><span className="font-medium text-white/90">Location:</span> {contract.employer?.location || contract.employer?.barangay || 'Not provided'}</div>
+                                                    <div><span className="font-medium text-white/90">Name:</span> {(employer || contract.employer) && `${(employer || contract.employer).first_name || ''} ${(employer || contract.employer).last_name || ''}`.trim() || '—'}</div>
+                                                    <div><span className="font-medium text-white/90">Email:</span> {(employer || contract.employer)?.email || '—'}</div>
+                                                    <div><span className="font-medium text-white/90">Phone:</span> {(employer || contract.employer)?.phone || 'Not provided'}</div>
+                                                    <div><span className="font-medium text-white/90">Location:</span> {(employer || contract.employer)?.location || (contract.employer?.barangay) || 'Not provided'}</div>
                                                 </div>
                                             </div>
 
                                             <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
                                                 <h4 className="font-medium text-white/80 mb-3">GIG WORKER</h4>
                                                 <div className="space-y-2 text-sm text-white/70">
-                                                    <div><span className="font-medium text-white/90">Name:</span> {contract.gigWorker?.first_name} {contract.gigWorker?.last_name}</div>
-                                                    <div><span className="font-medium text-white/90">Email:</span> {contract.gigWorker?.email}</div>
-                                                    <div><span className="font-medium text-white/90">Phone:</span> {contract.gigWorker?.phone || 'Not provided'}</div>
-                                                    <div><span className="font-medium text-white/90">Location:</span> {contract.gigWorker?.location || contract.gigWorker?.barangay || 'Not provided'}</div>
+                                                    <div><span className="font-medium text-white/90">Name:</span> {(gigWorker || contract.gig_worker || contract.gigWorker) && `${(gigWorker || contract.gig_worker || contract.gigWorker).first_name || ''} ${(gigWorker || contract.gig_worker || contract.gigWorker).last_name || ''}`.trim() || '—'}</div>
+                                                    <div><span className="font-medium text-white/90">Email:</span> {(gigWorker || contract.gig_worker || contract.gigWorker)?.email || '—'}</div>
+                                                    <div><span className="font-medium text-white/90">Phone:</span> {(gigWorker || contract.gig_worker || contract.gigWorker)?.phone || 'Not provided'}</div>
+                                                    <div><span className="font-medium text-white/90">Location:</span> {(gigWorker || contract.gig_worker || contract.gigWorker)?.location || (contract.gig_worker?.barangay || contract.gigWorker?.barangay) || 'Not provided'}</div>
                                                 </div>
                                             </div>
                                         </div>

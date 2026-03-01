@@ -172,7 +172,7 @@ export default function EmployerProfile({ user, stats, activeJobs, pastProjects,
                                         Edit
                                     </button>
                                 </div>
-                                <div className="text-gray-600 text-sm leading-relaxed space-y-2">
+                                <div className="text-gray-600 text-sm leading-relaxed space-y-2 break-all">
                                     {user.company_description ? (
                                         user.company_description.split('\n').map((p, i) => <p key={i}>{p}</p>)
                                     ) : (

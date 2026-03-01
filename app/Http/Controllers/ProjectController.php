@@ -62,7 +62,8 @@ class ProjectController extends Controller
             'project' => $project,
             'isEmployer' => $user->isEmployer(),
             'hasPayment' => $project->transactions()->where('type', 'escrow')->where('status', 'completed')->exists(),
-            'canReview' => $project->isCompleted() && !$project->reviews()->where('reviewer_id', $user->id)->exists()
+            'canReview' => $project->isCompleted() && !$project->reviews()->where('reviewer_id', $user->id)->exists(),
+            'autoReleaseDays' => config('project.auto_release_after_days', 14),
         ]);
     }
 
@@ -98,6 +99,22 @@ class ProjectController extends Controller
                 'completion_notes' => $validated['completion_notes']
             ]);
 
+            // Notify employer so they review and approve (and payment can be released)
+            try {
+                $project->loadMissing(['employer', 'job']);
+                if ($project->employer) {
+                    app(\App\Services\NotificationService::class)->createProjectCompletionNotification($project->employer, [
+                        'project_id' => $project->id,
+                        'project_title' => $project->job ? $project->job->title : 'Project #' . $project->id,
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Failed to send project completion notification to employer', [
+                    'project_id' => $project->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
             return back()->with('success', 'Project marked as complete! The employer will be notified to review and approve your work.');
 
         } catch (\Exception $e) {
@@ -108,6 +125,33 @@ class ProjectController extends Controller
 
             return back()->with('error', 'Failed to complete project. Please try again.');
         }
+    }
+
+    /**
+     * Gig worker: request admin review (employer has not approved completion).
+     */
+    public function requestAdminReview(Request $request, Project $project)
+    {
+        if ($project->gig_worker_id !== auth()->id()) {
+            return back()->with('error', 'Only the gig worker for this project can request admin review.');
+        }
+        if ($project->status !== 'completed') {
+            return back()->with('error', 'Project must be marked complete before requesting admin review.');
+        }
+        if ($project->payment_released) {
+            return back()->with('error', 'Payment has already been released.');
+        }
+
+        $validated = $request->validate([
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $project->update([
+            'admin_review_requested_at' => now(),
+            'admin_review_request_notes' => $validated['notes'] ?? null,
+        ]);
+
+        return back()->with('success', 'Admin review requested. An admin will review and can release your payment if appropriate.');
     }
 
     /**

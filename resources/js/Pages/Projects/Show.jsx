@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import SuccessModal from '@/Components/SuccessModal';
 import MiniChatModal from '@/Components/MiniChatModal';
@@ -86,7 +86,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
     );
 };
 
-export default function ProjectShow({ project, hasPayment, canReview, isEmployer }) {
+export default function ProjectShow({ project, hasPayment, canReview, isEmployer, autoReleaseDays = 14 }) {
     const { auth, flash } = usePage().props;
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [showRevisionForm, setShowRevisionForm] = useState(false);
@@ -95,6 +95,7 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
     const [showMiniChat, setShowMiniChat] = useState(false);
     const [miniChatTargetUserId, setMiniChatTargetUserId] = useState(null);
     const [showThankYouModal, setShowThankYouModal] = useState(false);
+    const [showAdminReviewModal, setShowAdminReviewModal] = useState(false);
     const miniChatRef = useRef(null);
 
     // Check for thank you flag from backend
@@ -154,6 +155,10 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
         completion_notes: ''
     });
 
+    const { data: adminReviewData, setData: setAdminReviewData, post: postAdminReview, processing: adminReviewProcessing } = useForm({
+        notes: project.admin_review_request_notes || ''
+    });
+
     const getStatusBadge = (status) => {
         const badges = {
             active: 'bg-blue-500/20 text-blue-400',
@@ -189,6 +194,21 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
             message: 'Are you sure you want to release the payment? This action cannot be undone and the funds will be transferred to the gig worker immediately.',
             confirmText: 'Release Payment',
             confirmColor: 'green'
+        });
+    };
+
+    const handleRequestAdminReview = () => {
+        setShowAdminReviewModal(true);
+        setAdminReviewData('notes', project.admin_review_request_notes || '');
+    };
+
+    const submitAdminReviewRequest = () => {
+        postAdminReview(`/projects/${project.id}/request-admin-review`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowAdminReviewModal(false);
+                setSuccessModal({ isOpen: true, message: 'Admin review requested. An admin will review and can release your payment if appropriate.' });
+            }
         });
     };
 
@@ -473,6 +493,17 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
                                                     </h3>
                                                     <div className="mt-2 text-sm text-white/70">
                                                         <p>This project has been marked as completed.</p>
+                                                        {!isEmployer && !project.employer_approved && !project.payment_released && autoReleaseDays > 0 && (
+                                                            <p className="mt-2 text-amber-200/90">
+                                                                Waiting for employer approval. If they don&apos;t respond within {autoReleaseDays} days, payment will be released to you automatically.
+                                                            </p>
+                                                        )}
+                                                        {!isEmployer && project.admin_review_requested_at && !project.payment_released && (
+                                                            <p className="mt-2 text-amber-200/90">
+                                                                Admin review requested on {new Date(project.admin_review_requested_at).toLocaleString()}.
+                                                                {project.admin_review_request_notes && ` Notes: ${project.admin_review_request_notes}`}
+                                                            </p>
+                                                        )}
                                                         {project.completion_notes && (
                                                             <p className="mt-1"><strong className="text-white/90">Notes:</strong> {project.completion_notes}</p>
                                                         )}
@@ -493,6 +524,11 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
                                                     Approve Completion
                                                 </button>
                                             )}
+                                            {isEmployer && !project.employer_approved && autoReleaseDays > 0 && (
+                                                <p className="text-sm text-white/50 mt-1 w-full">
+                                                    If you don&apos;t approve or request revision within {autoReleaseDays} days, payment will be released to the gig worker automatically.
+                                                </p>
+                                            )}
 
                                             {isEmployer && project.employer_approved && hasPayment && !project.payment_released && (
                                                 <button
@@ -503,6 +539,18 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
                                                     Release Payment
+                                                </button>
+                                            )}
+
+                                            {!isEmployer && !project.employer_approved && !project.payment_released && (
+                                                <button
+                                                    onClick={handleRequestAdminReview}
+                                                    className="inline-flex items-center px-5 py-2.5 bg-amber-600 hover:bg-amber-500 border border-transparent rounded-lg font-medium text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 focus:ring-offset-[#05070A] transition-colors duration-200"
+                                                >
+                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                    </svg>
+                                                    {project.admin_review_requested_at ? 'Update admin review request' : 'Request admin review'}
                                                 </button>
                                             )}
 
@@ -820,6 +868,49 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
                 duration={successModal.message.toLowerCase().includes('payment') ? 4000 : 2000}
                 showProcessing={!successModal.message.toLowerCase().includes('payment')}
             />
+
+            {/* Request admin review modal (gig worker) */}
+            {showAdminReviewModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !adminReviewProcessing && setShowAdminReviewModal(false)} />
+                        <div className="inline-block align-bottom bg-[#0d1014] border border-white/10 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                            <div className="px-4 pt-5 pb-4 sm:p-6">
+                                <h3 className="text-lg font-medium text-white">Request admin review</h3>
+                                <p className="mt-2 text-sm text-white/60">An admin can approve completion and release your payment if the employer has not responded. Optional: add notes for the admin.</p>
+                                <div className="mt-4">
+                                    <textarea
+                                        value={adminReviewData.notes}
+                                        onChange={(e) => setAdminReviewData('notes', e.target.value)}
+                                        placeholder="e.g. Work delivered on time, employer not responding..."
+                                        rows={3}
+                                        className="mt-1 block w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/40 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 sm:text-sm"
+                                        maxLength={1000}
+                                    />
+                                </div>
+                            </div>
+                            <div className="bg-white/5 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-white/10 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={submitAdminReviewRequest}
+                                    disabled={adminReviewProcessing}
+                                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0d1014] focus:ring-amber-500 sm:w-auto disabled:opacity-50"
+                                >
+                                    {adminReviewProcessing ? 'Sending...' : 'Submit request'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => !adminReviewProcessing && setShowAdminReviewModal(false)}
+                                    disabled={adminReviewProcessing}
+                                    className="mt-3 w-full inline-flex justify-center rounded-md border border-white/20 px-4 py-2 bg-white/5 text-white/80 hover:bg-white/10 text-sm font-medium sm:mt-0 sm:w-auto disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Mini Chat Modal */}
             {showMiniChat && (

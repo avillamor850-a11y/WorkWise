@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 // Enhanced Avatar Component with gradient fallback
 const UserAvatar = ({ user, size = "w-12 h-12", showOnline = false }) => {
@@ -12,26 +13,12 @@ const UserAvatar = ({ user, size = "w-12 h-12", showOnline = false }) => {
         'w-16 h-16': 'text-xl'
     };
 
-    if (user.profile_picture) {
+    const avatarSrc = resolveProfileImageUrl(user.profile_picture ?? user.profile_photo ?? user.avatar);
+    if (avatarSrc) {
         return (
             <div className="relative">
                 <img
-                    src={user.profile_picture}
-                    alt={`${user.first_name} ${user.last_name}`}
-                    className={`${size} rounded-full object-cover ring-2 ring-white shadow-sm`}
-                />
-                {showOnline && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
-                )}
-            </div>
-        );
-    }
-
-    if (user.profile_photo) {
-        return (
-            <div className="relative">
-                <img
-                    src={`/storage/${user.profile_photo}`}
+                    src={avatarSrc}
                     alt={`${user.first_name} ${user.last_name}`}
                     className={`${size} rounded-full object-cover ring-2 ring-white shadow-sm`}
                 />

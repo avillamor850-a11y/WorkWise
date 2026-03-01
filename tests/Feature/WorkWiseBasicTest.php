@@ -20,39 +20,43 @@ class WorkWiseBasicTest extends TestCase
 
     public function test_user_can_register_as_freelancer(): void
     {
-        // Set the session to simulate role selection
-        session(['selected_user_type' => 'freelancer']);
+        session(['selected_user_type' => 'gig_worker']);
 
         $response = $this->post('/register', [
-            'name' => 'Test Freelancer',
+            'first_name' => 'Test',
+            'last_name' => 'Freelancer',
             'email' => 'freelancer@test.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Password1!',
+            'password_confirmation' => 'Password1!',
+            'user_type' => 'gig_worker',
+            'terms_agreed' => true,
         ]);
 
-        $response->assertRedirect('/dashboard');
+        $response->assertRedirect(route('gig-worker.onboarding', absolute: false));
         $this->assertDatabaseHas('users', [
             'email' => 'freelancer@test.com',
-            'user_type' => 'freelancer',
+            'user_type' => 'gig_worker',
         ]);
     }
 
     public function test_user_can_register_as_client(): void
     {
-        // Set the session to simulate role selection
-        session(['selected_user_type' => 'client']);
+        session(['selected_user_type' => 'employer']);
 
         $response = $this->post('/register', [
-            'name' => 'Test Client',
+            'first_name' => 'Test',
+            'last_name' => 'Client',
             'email' => 'client@test.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Password1!',
+            'password_confirmation' => 'Password1!',
+            'user_type' => 'employer',
+            'terms_agreed' => true,
         ]);
 
-        $response->assertRedirect('/dashboard');
+        $response->assertRedirect(route('employer.onboarding', absolute: false));
         $this->assertDatabaseHas('users', [
             'email' => 'client@test.com',
-            'user_type' => 'client',
+            'user_type' => 'employer',
         ]);
     }
 

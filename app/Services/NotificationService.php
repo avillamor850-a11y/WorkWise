@@ -152,6 +152,47 @@ class NotificationService
     }
 
     /**
+     * Create notification when gig worker marks project as complete (employer should approve)
+     */
+    public function createProjectCompletionNotification(User $employer, array $data): Notification
+    {
+        $jobTitle = $data['project_title'] ?? 'the project';
+        return $this->create([
+            'user_id' => $employer->id,
+            'type' => 'project_completion_pending_approval',
+            'title' => '✅ Work submitted for approval',
+            'message' => "The gig worker marked '{$jobTitle}' as complete. Please review and approve to release payment.",
+            'data' => $data,
+            'action_url' => route('projects.show', $data['project_id'] ?? '#'),
+            'icon' => 'check-circle'
+        ]);
+    }
+
+    /**
+     * Create notification when payment is auto-released (employer did not approve in time)
+     */
+    public function createAutoReleaseNotification(User $user, array $data): Notification
+    {
+        $jobTitle = $data['project_title'] ?? 'the project';
+        $isEmployer = $data['recipient_role'] === 'employer';
+        $title = $isEmployer
+            ? '⏰ Payment auto-released'
+            : '✅ Payment released';
+        $message = $isEmployer
+            ? "Payment for '{$jobTitle}' was automatically released to the gig worker after the approval period ended."
+            : "Payment for '{$jobTitle}' was released to you (auto-release after employer did not respond in time).";
+        return $this->create([
+            'user_id' => $user->id,
+            'type' => 'payment_auto_released',
+            'title' => $title,
+            'message' => $message,
+            'data' => $data,
+            'action_url' => route('projects.show', $data['project_id'] ?? '#'),
+            'icon' => 'currency-dollar'
+        ]);
+    }
+
+    /**
      * Get notifications by type for a user
      */
     public function getNotificationsByType(User $user, string $type, int $limit = 10): \Illuminate\Support\Collection

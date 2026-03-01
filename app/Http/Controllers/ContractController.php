@@ -209,8 +209,28 @@ class ContractController extends Controller
         $canSign = $contract->canUserSign($user->id);
         $nextSigner = $contract->getNextSigner();
 
+        // Explicitly pass party data so name/email always display (avoids serialization key issues)
+        $employer = $contract->employer ? [
+            'id' => $contract->employer->id,
+            'first_name' => $contract->employer->first_name,
+            'last_name' => $contract->employer->last_name,
+            'email' => $contract->employer->email,
+            'phone' => $contract->employer->phone,
+            'location' => $contract->employer->location ?? $contract->employer->barangay,
+        ] : null;
+        $gigWorker = $contract->gigWorker ? [
+            'id' => $contract->gigWorker->id,
+            'first_name' => $contract->gigWorker->first_name,
+            'last_name' => $contract->gigWorker->last_name,
+            'email' => $contract->gigWorker->email,
+            'phone' => $contract->gigWorker->phone,
+            'location' => $contract->gigWorker->location ?? $contract->gigWorker->barangay,
+        ] : null;
+
         return Inertia::render('Contracts/Show', [
             'contract' => $contract,
+            'employer' => $employer,
+            'gigWorker' => $gigWorker,
             'userRole' => $userRole,
             'canSign' => $canSign,
             'nextSigner' => $nextSigner,

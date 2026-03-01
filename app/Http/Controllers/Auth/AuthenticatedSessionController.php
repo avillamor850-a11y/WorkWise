@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Notifications\VerifyEmailReminder;
+use App\Services\FraudDetectionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,6 +36,13 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
+
+        // Philippines-only: if login IP is not from Philippines, record Country Mismatch (does not block login)
+        try {
+            app(FraudDetectionService::class)->recordLoginGeographicCheck($user, $request);
+        } catch (\Throwable $e) {
+            // Do not block login on fraud check failure
+        }
 
         // Notify unverified users to verify email via in-app notification
         if ($user && ! $user->hasVerifiedEmail()) {

@@ -8,6 +8,7 @@ import CsrfSync from '@/Components/CsrfSync';
 import useToast from '@/Hooks/useToast';
 import { ToastContainer } from '@/Components/Toast';
 import ErrorModal from '@/Components/ErrorModal';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 function safeRoute(name, fallback = '/') {
     try {
@@ -925,23 +926,20 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                                 {/* User Avatar */}
                                                                 <div className="flex-shrink-0 relative">
                                                                     <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm transition-all duration-200 group-hover:scale-105">
-                                                                        {conversation.user.profile_picture ? (
-                                                                            <img
-                                                                                src={conversation.user.profile_picture}
-                                                                                alt={`${conversation.user.first_name} ${conversation.user.last_name}`}
-                                                                                className="w-full h-full object-cover"
-                                                                            />
-                                                                        ) : conversation.user.profile_photo ? (
-                                                                            <img
-                                                                                src={`/storage/${conversation.user.profile_photo}`}
-                                                                                alt={`${conversation.user.first_name} ${conversation.user.last_name}`}
-                                                                                className="w-full h-full object-cover"
-                                                                            />
-                                                                        ) : (
-                                                                            <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
-                                                                                {conversation.user.first_name ? conversation.user.first_name.charAt(0).toUpperCase() : conversation.user.name.charAt(0).toUpperCase()}
-                                                                            </div>
-                                                                        )}
+                                                                        {(() => {
+                                                                            const src = resolveProfileImageUrl(conversation.user.profile_picture ?? conversation.user.profile_photo ?? conversation.user.avatar);
+                                                                            return src ? (
+                                                                                <img
+                                                                                    src={src}
+                                                                                    alt={`${conversation.user.first_name} ${conversation.user.last_name}`}
+                                                                                    className="w-full h-full object-cover"
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+                                                                                    {conversation.user.first_name ? conversation.user.first_name.charAt(0).toUpperCase() : conversation.user.name.charAt(0).toUpperCase()}
+                                                                                </div>
+                                                                            );
+                                                                        })()}
                                                                     </div>
                                                                     {conversation.unread_count > 0 && (
                                                                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></div>
@@ -1012,30 +1010,33 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                 <Dropdown dark={pageTheme === 'dark'}>
                                     <Dropdown.Trigger>
                                         <button className="flex items-center space-x-2 text-sm font-medium text-white/90 hover:text-white transition-colors duration-200">
-                                            {(user.profile_photo || user.profile_picture) ? (
-                                                isGigWorker ? (
-                                                    <Link
-                                                        href={route('gig-worker.profile')}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
+                                            {(() => {
+                                                const avatarSrc = resolveProfileImageUrl(user.profile_photo ?? user.profile_picture ?? user.avatar);
+                                                return avatarSrc ? (
+                                                    isGigWorker ? (
+                                                        <Link
+                                                            href={route('gig-worker.profile')}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <img
+                                                                src={avatarSrc}
+                                                                alt={user.first_name || user.name}
+                                                                className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
+                                                            />
+                                                        </Link>
+                                                    ) : (
                                                         <img
-                                                            src={user.profile_photo || user.profile_picture}
+                                                            src={avatarSrc}
                                                             alt={user.first_name || user.name}
                                                             className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
                                                         />
-                                                    </Link>
+                                                    )
                                                 ) : (
-                                                    <img
-                                                        src={user.profile_photo || user.profile_picture}
-                                                        alt={user.first_name || user.name}
-                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
-                                                    />
-                                                )
-                                            ) : (
-                                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                                    {user.first_name ? user.first_name.charAt(0).toUpperCase() : user.name.charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
+                                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                        {user.first_name ? user.first_name.charAt(0).toUpperCase() : user.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                );
+                                            })()}
                                             <span className="hidden md:block text-white">{user.first_name || user.name}</span>
                                             <svg className="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1189,23 +1190,20 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
 
                     <div className="border-t border-white/10 px-4 py-3">
                         <div className="flex items-center space-x-3">
-                            {user.profile_photo ? (
-                                <img
-                                    src={user.profile_photo}
-                                    alt={user.first_name || user.name}
-                                    className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
-                                />
-                            ) : user.profile_picture ? (
-                                <img
-                                    src={user.profile_picture}
-                                    alt={user.first_name || user.name}
-                                    className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
-                                />
-                            ) : (
-                                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                                    {user.first_name ? user.first_name.charAt(0).toUpperCase() : user.name.charAt(0).toUpperCase()}
-                                </div>
-                            )}
+                            {(() => {
+                                const avatarSrc = resolveProfileImageUrl(user.profile_photo ?? user.profile_picture ?? user.avatar);
+                                return avatarSrc ? (
+                                    <img
+                                        src={avatarSrc}
+                                        alt={user.first_name || user.name}
+                                        className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
+                                    />
+                                ) : (
+                                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                                        {user.first_name ? user.first_name.charAt(0).toUpperCase() : user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                );
+                            })()}
                             <div>
                                 <div className="text-sm font-medium text-white">{user.first_name ? `${user.first_name} ${user.last_name}` : user.name}</div>
                                 <div className="text-xs text-white/50 capitalize">{user.user_type}</div>

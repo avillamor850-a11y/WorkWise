@@ -35,7 +35,7 @@ class ProfileUpdateRequest extends FormRequest
             'bio' => ['sometimes', 'nullable', 'string', 'max:1000'],
             
             // Address fields
-            'country' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'country' => ['sometimes', 'nullable', 'string', 'max:100', Rule::in(['Philippines'])],
             'city' => ['sometimes', 'nullable', 'string', 'max:100'],
             'street_address' => ['sometimes', 'nullable', 'string', 'max:255'],
             'postal_code' => ['sometimes', 'nullable', 'string', 'max:20'],

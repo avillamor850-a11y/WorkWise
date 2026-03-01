@@ -68,6 +68,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'onboarding_step',
         // Location hierarchy fields
         'country',
+        'registration_ip_country',
         'city',
         'street_address',
         'postal_code',

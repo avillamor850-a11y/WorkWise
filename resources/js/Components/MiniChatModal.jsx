@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import axios from 'axios';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId = null, onUserIdProcessed = null }, ref) => {
     const [conversations, setConversations] = useState([]);
@@ -160,26 +161,15 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
 
     // Get user avatar
     const getUserAvatar = (user, size = 'w-8 h-8') => {
-        // Check for Cloudinary profile picture first
-        if (user?.profile_picture) {
+        const avatarSrc = resolveProfileImageUrl(user?.profile_picture ?? user?.profile_photo ?? user?.avatar);
+        if (avatarSrc) {
             return (
                 <div 
                     className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full ${size} shrink-0`}
-                    style={{ backgroundImage: `url(${user.profile_picture})` }}
+                    style={{ backgroundImage: `url(${avatarSrc})` }}
                 />
             );
         }
-        
-        // Fallback to legacy avatar
-        if (user?.avatar) {
-            return (
-                <div 
-                    className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full ${size} shrink-0`}
-                    style={{ backgroundImage: `url(${user.avatar})` }}
-                />
-            );
-        }
-        
         const displayName = user?.first_name ? `${user.first_name} ${user.last_name}` : (user?.name || 'U');
         return (
             <div className={`bg-blue-600 rounded-full ${size} flex items-center justify-center text-white text-sm font-medium shrink-0`}>

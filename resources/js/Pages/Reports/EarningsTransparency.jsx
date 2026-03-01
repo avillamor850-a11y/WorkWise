@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import InputLabel from '@/Components/InputLabel';
-import { Calendar, Download, FileText, TrendingUp, Users, DollarSign, Filter, RefreshCw } from 'lucide-react';
+import { Calendar, Download, FileText, DollarSign, Filter, Receipt } from 'lucide-react';
 
-export default function TransactionReports({ auth, filters, user, transactions, summary }) {
+export default function EarningsTransparency({ auth, filters, user, transactions, summary, error }) {
     const [dateFrom, setDateFrom] = useState(filters?.date_from || '');
     const [dateTo, setDateTo] = useState(filters?.date_to || '');
     const [type, setType] = useState(filters?.type || '');
@@ -14,7 +14,7 @@ export default function TransactionReports({ auth, filters, user, transactions, 
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
             currency: 'PHP'
-        }).format(amount);
+        }).format(amount ?? 0);
     };
 
     const formatDate = (dateString) => {
@@ -26,7 +26,7 @@ export default function TransactionReports({ auth, filters, user, transactions, 
     };
 
     const handleFilter = () => {
-        router.get('/reports/transactions', {
+        router.get('/reports/earnings-transparency', {
             date_from: dateFrom,
             date_to: dateTo,
             type: type,
@@ -40,52 +40,40 @@ export default function TransactionReports({ auth, filters, user, transactions, 
     const handleExport = (format) => {
         try {
             const params = new URLSearchParams();
-            
-            // Only add non-empty filters
             if (dateFrom) params.append('date_from', dateFrom);
             if (dateTo) params.append('date_to', dateTo);
             if (type) params.append('type', type);
             if (status) params.append('status', status);
             params.append('format', format);
-
-            const exportUrl = `/reports/transactions/export?${params.toString()}`;
-            console.log('Exporting to:', exportUrl);
-            
-            // Open in new window
+            const exportUrl = `/reports/earnings-transparency/export?${params.toString()}`;
             const exportWindow = window.open(exportUrl, '_blank');
-            
             if (!exportWindow) {
                 alert('Please allow pop-ups for this site to download the report.');
             }
-        } catch (error) {
-            console.error('Export error:', error);
+        } catch (err) {
+            console.error('Export error:', err);
             alert('Failed to export report. Please try again.');
         }
     };
 
-    const getStatusBadge = (status) => {
+    const getStatusBadge = (statusVal) => {
         const badges = {
             completed: 'bg-green-100 text-green-800',
             pending: 'bg-yellow-100 text-yellow-800',
             failed: 'bg-red-100 text-red-800',
             cancelled: 'bg-gray-100 text-gray-800'
         };
-        return badges[status] || 'bg-gray-100 text-gray-800';
+        return badges[statusVal] || 'bg-gray-100 text-gray-800';
     };
 
-    const getTypeIcon = (type) => {
+    const getTypeIcon = (typeVal) => {
         const icons = {
             escrow: '💰',
             release: '💸',
             refund: '↩️',
             fee: '⚙️'
         };
-        return icons[type] || '💳';
-    };
-
-    const getUserTypeLabel = () => {
-        if (user.is_admin) return 'Admin';
-        return user.user_type === 'gig_worker' ? 'Gig Worker' : 'Employer';
+        return icons[typeVal] || '💳';
     };
 
     return (
@@ -100,20 +88,20 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                             ← Back to Reports
                         </Link>
                         <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            Transaction Reports - {getUserTypeLabel()}
+                            Earnings Transparency (Gross vs. Net)
                         </h2>
                     </div>
                     <div className="flex space-x-2">
                         <button
                             onClick={() => handleExport('pdf')}
-                            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm flex items-center"
+                            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm flex items-center"
                         >
                             <Download className="w-4 h-4 mr-2" />
                             Export PDF
                         </button>
                         <button
                             onClick={() => handleExport('excel')}
-                            className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm flex items-center"
+                            className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm flex items-center"
                         >
                             <FileText className="w-4 h-4 mr-2" />
                             Export Excel
@@ -122,18 +110,56 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                 </div>
             }
         >
-            <Head title="Transaction Reports" />
+            <Head title="Earnings Transparency (Gross vs. Net)" />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
             <div className="relative py-12 bg-white overflow-hidden">
-                {/* Animated Background Shapes */}
-                <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+                <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
 
                 <div className="relative z-20 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+                    {error && (
+                        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl">
+                            {error}
+                        </div>
+                    )}
 
-                    {/* Summary Cards */}
+                    {/* Gross vs Net Summary */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                            <div className="p-6">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                            <Receipt className="w-4 h-4 text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="ml-4">
+                                        <div className="text-sm font-medium text-gray-500">Total amount (client paid)</div>
+                                        <div className="text-2xl font-bold text-gray-900">
+                                            {formatCurrency(summary?.total_gross)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                            <div className="p-6">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                                            <DollarSign className="w-4 h-4 text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="ml-4">
+                                        <div className="text-sm font-medium text-gray-500">Total platform fee</div>
+                                        <div className="text-2xl font-bold text-red-600">
+                                            -{formatCurrency(summary?.total_platform_fee)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
                             <div className="p-6">
                                 <div className="flex items-center">
@@ -143,102 +169,32 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                         </div>
                                     </div>
                                     <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-500">Total Volume</div>
-                                        <div className="text-2xl font-bold text-gray-900">
-                                            {formatCurrency(summary.total_volume)}
+                                        <div className="text-sm font-medium text-gray-500">Net amount (you received)</div>
+                                        <div className="text-2xl font-bold text-green-700">
+                                            {formatCurrency(summary?.total_net)}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
-                            <div className="p-6">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                                            <TrendingUp className="w-4 h-4 text-white" />
-                                        </div>
-                                    </div>
-                                    <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-500">Total Transactions</div>
-                                        <div className="text-2xl font-bold text-gray-900">
-                                            {summary.total_transactions}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
                             <div className="p-6">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
                                         <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                                            <Users className="w-4 h-4 text-white" />
-                                        </div>
-                                    </div>
-                                    <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-500">Success Rate</div>
-                                        <div className="text-2xl font-bold text-gray-900">
-                                            {summary.success_rate}%
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
-                            <div className="p-6">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
                                             <Calendar className="w-4 h-4 text-white" />
                                         </div>
                                     </div>
                                     <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-500">Avg. Amount</div>
+                                        <div className="text-sm font-medium text-gray-500">Transactions</div>
                                         <div className="text-2xl font-bold text-gray-900">
-                                            {formatCurrency(summary.average_amount)}
+                                            {summary?.total_transactions ?? 0}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* Export Section
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="text-lg font-medium text-gray-900">Export Report</h3>
-                                    <p className="text-sm text-gray-600 mt-1">Download your transaction report in PDF or Excel format</p>
-                                </div>
-                                <div className="flex space-x-3">
-                                    <button
-                                        onClick={() => handleExport('pdf')}
-                                        className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out flex items-center space-x-2"
-                                    >
-                                        <Download className="w-5 h-5" />
-                                        <span>Download PDF</span>
-                                    </button>
-                                    <button
-                                        onClick={() => handleExport('excel')}
-                                        className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out flex items-center space-x-2"
-                                    >
-                                        <FileText className="w-5 h-5" />
-                                        <span>Download Excel</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="text-sm text-gray-500">
-                                <p>• PDF format is best for printing and sharing</p>
-                                <p>• Excel format is best for data analysis</p>
-                                <p>• Applied filters: {dateFrom && `From ${dateFrom}`} {dateTo && `To ${dateTo}`} {type && `Type: ${type}`} {status && `Status: ${status}`}</p>
-                            </div>
-                        </div>
-                    </div> */}
 
                     {/* Filters */}
                     <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
@@ -247,7 +203,6 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                 <Filter className="w-5 h-5 text-gray-500 mr-2" />
                                 <h3 className="text-lg font-medium text-gray-900">Filters</h3>
                             </div>
-
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
                                     <label htmlFor="date_from" className="block text-sm font-medium text-gray-700">From Date</label>
@@ -259,7 +214,6 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                         className="mt-1 block w-full rounded-xl border-gray-300 shadow-lg focus:border-blue-500 focus:ring-blue-500"
                                     />
                                 </div>
-
                                 <div>
                                     <label htmlFor="date_to" className="block text-sm font-medium text-gray-700">To Date</label>
                                     <input
@@ -270,7 +224,6 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                         className="mt-1 block w-full rounded-xl border-gray-300 shadow-lg focus:border-blue-500 focus:ring-blue-500"
                                     />
                                 </div>
-
                                 <div>
                                     <InputLabel htmlFor="type" value="Transaction Type" />
                                     <select
@@ -286,7 +239,6 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                         <option value="fee">Fee</option>
                                     </select>
                                 </div>
-
                                 <div>
                                     <InputLabel htmlFor="status" value="Status" />
                                     <select
@@ -303,18 +255,17 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                     </select>
                                 </div>
                             </div>
-
                             <div className="flex justify-end space-x-2 mt-4">
-                            <button
-                                        onClick={() => handleExport('pdf')}
-                                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-2"
-                                    >
-                                        <Download className="w-5 h-5" />
-                                        <span>Download PDF</span>
-                                    </button>
+                                <button
+                                    onClick={() => handleExport('pdf')}
+                                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
+                                >
+                                    <Download className="w-5 h-5" />
+                                    <span>Download PDF</span>
+                                </button>
                                 <button
                                     onClick={handleFilter}
-                                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm flex items-center"
+                                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm flex items-center"
                                 >
                                     <Filter className="w-4 h-4 mr-2" />
                                     Apply Filters
@@ -326,34 +277,23 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                     {/* Transactions Table */}
                     <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
                         <div className="p-8">
-                            <h3 className="text-lg font-medium text-gray-900 mb-6">Transaction History</h3>
+                            <h3 className="text-lg font-medium text-gray-900 mb-6">Transaction details</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Amount (client paid) is what the client paid. Platform fee is deducted. Net amount (you received) is what you receive after the fee.
+                            </p>
 
-                            {transactions.data.length > 0 ? (
+                            {transactions?.data?.length > 0 ? (
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Date
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Type
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Description
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Amount
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Fee
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Net Amount
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Status
-                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (client paid)</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform fee</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Net amount (you received)</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -365,9 +305,7 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="flex items-center">
                                                             <span className="text-lg mr-2">{getTypeIcon(transaction.type)}</span>
-                                                            <span className="text-sm font-medium text-gray-900 capitalize">
-                                                                {transaction.type}
-                                                            </span>
+                                                            <span className="text-sm font-medium text-gray-900 capitalize">{transaction.type}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-sm text-gray-900">
@@ -377,10 +315,10 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                                         {formatCurrency(transaction.amount)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
-                                                        -{formatCurrency(transaction.platform_fee || 0)}
+                                                        -{formatCurrency(transaction.platform_fee)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                                                        {formatCurrency(transaction.net_amount || transaction.amount)}
+                                                        {formatCurrency(transaction.net_amount ?? transaction.amount)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`inline-flex items-center px-3 py-1 rounded-xl text-sm font-semibold shadow-md ${getStatusBadge(transaction.status)}`}>
@@ -396,14 +334,11 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                 <div className="text-center py-8">
                                     <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
                                     <h3 className="mt-2 text-sm font-medium text-gray-900">No transactions found</h3>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        No transactions match your current filters.
-                                    </p>
+                                    <p className="mt-1 text-sm text-gray-500">No transactions match your current filters.</p>
                                 </div>
                             )}
 
-                            {/* Pagination */}
-                            {transactions.links && transactions.links.length > 3 && (
+                            {transactions?.links && transactions.links.length > 3 && (
                                 <div className="mt-6 flex justify-between items-center">
                                     <div className="text-sm text-gray-700">
                                         Showing {transactions.from} to {transactions.to} of {transactions.total} results
@@ -414,10 +349,8 @@ export default function TransactionReports({ auth, filters, user, transactions, 
                                                 key={index}
                                                 href={link.url || '#'}
                                                 className={`px-3 py-2 text-sm rounded-md ${
-                                                    link.active
-                                                        ? 'bg-blue-500 text-white'
-                                                        : link.url
-                                                        ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                                    link.active ? 'bg-blue-500 text-white'
+                                                        : link.url ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                 }`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
@@ -432,11 +365,7 @@ export default function TransactionReports({ auth, filters, user, transactions, 
             </div>
 
             <style>{`
-                body {
-                    background: white;
-                    color: #333;
-                    font-family: 'Inter', sans-serif;
-                }
+                body { background: white; color: #333; font-family: 'Inter', sans-serif; }
             `}</style>
         </AuthenticatedLayout>
     );

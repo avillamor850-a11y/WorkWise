@@ -16,6 +16,7 @@ use App\Http\Controllers\EmployerOnboardingController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\AIRecommendationController;
 use App\Http\Controllers\ClientWalletController;
+use App\Http\Controllers\GigWorkerWalletController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\AnalyticsController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminTransactionReportsController;
 use App\Http\Controllers\Admin\AdminAnalyticsController;
+use App\Http\Controllers\Admin\AdminDepositsController;
 use App\Http\Controllers\AdminVerificationController;
 use App\Http\Controllers\AdminIdVerificationController;
 use App\Http\Controllers\AdminSettingsController;
@@ -367,11 +369,19 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
-    Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
 
-    // Transaction reports routes
+    // Transaction and financial reports (specific paths before {report})
     Route::get('/reports/transactions', [ReportController::class, 'transactions'])->name('reports.transactions');
     Route::get('/reports/transactions/export', [ReportController::class, 'exportTransactions'])->name('reports.transactions.export');
+    Route::get('/reports/earnings-transparency', [ReportController::class, 'earningsTransparency'])->name('reports.earnings-transparency');
+    Route::get('/reports/earnings-transparency/export', [ReportController::class, 'exportEarningsTransparency'])->name('reports.earnings-transparency.export');
+    Route::get('/reports/pending-accrued-income', [ReportController::class, 'pendingAccruedIncome'])->name('reports.pending-accrued-income');
+    Route::get('/reports/budget-utilization', [ReportController::class, 'budgetUtilization'])->name('reports.budget-utilization');
+    Route::get('/reports/budget-utilization/export', [ReportController::class, 'exportBudgetUtilization'])->name('reports.budget-utilization.export');
+    Route::get('/reports/vat-invoices', [ReportController::class, 'vatInvoices'])->name('reports.vat-invoices');
+    Route::get('/reports/vat-invoices/{transaction}/pdf', [ReportController::class, 'vatInvoicePdf'])->name('reports.vat-invoices.pdf');
+
+    Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show')->where('report', '[0-9]+');
 
     // Bid management routes - mixed permissions
     Route::get('/bids/{bid}', [BidController::class, 'show'])->name('bids.show');
@@ -395,6 +405,7 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::post('/projects/{project}/complete', [ProjectController::class, 'complete'])->name('projects.complete');
+    Route::post('/projects/{project}/request-admin-review', [ProjectController::class, 'requestAdminReview'])->name('projects.requestAdminReview');
     Route::post('/projects/{project}/review', [ProjectController::class, 'review'])->name('projects.review');
 
     // Employer-only project actions
@@ -469,6 +480,11 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
         Route::post('/create-intent', [ClientWalletController::class, 'createIntent'])->name('create-intent');
     });
 
+    // Gig worker earnings / wallet
+    Route::middleware(['gig_worker'])->prefix('gig-worker/wallet')->name('gig-worker.wallet.')->group(function () {
+        Route::get('/', [GigWorkerWalletController::class, 'index'])->name('index');
+    });
+
 
     // Legacy deposits route - redirect to appropriate wallet based on role
     Route::get('/deposits', function () {
@@ -541,11 +557,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Projects management
     Route::get('/projects', [AdminController::class, 'projects'])->name('projects');
     Route::get('/projects/{project}', [AdminController::class, 'showProject'])->name('projects.show');
+    Route::post('/projects/{project}/approve-and-release', [AdminController::class, 'approveAndReleasePayment'])->name('projects.approveAndRelease');
     Route::get('/projects/export', [AdminController::class, 'exportProjects'])->name('projects.export');
 
     // Payments management
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
     Route::get('/payments/export', [AdminController::class, 'exportPayments'])->name('payments.export');
+    Route::get('/deposits', [AdminDepositsController::class, 'index'])->name('deposits.index');
 
     // Report management
     Route::get('/reports/transactions', [AdminTransactionReportsController::class, 'index'])->name('reports.transactions');

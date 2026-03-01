@@ -1,9 +1,11 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function ReportsIndex({ reports = { data: [] } }) {
+    const { auth } = usePage().props;
+
     const getStatusBadge = (status) => {
         const badges = {
             pending: 'bg-yellow-100 text-yellow-800',
@@ -111,6 +113,114 @@ export default function ReportsIndex({ reports = { data: [] } }) {
                             </div>
                         </div>
                     </div>
+
+                    {/* Employer only: Project Budget Utilization */}
+                    {auth?.user?.user_type === 'employer' && (
+                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200 mb-8">
+                            <div className="p-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="text-2xl">📊</div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                Project Budget Utilization
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                Compare job budget to actual release amounts; track over/under across gigs
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        href="/reports/budget-utilization"
+                                        className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        View Report
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Employer only: VAT/Tax Invoices */}
+                    {auth?.user?.user_type === 'employer' && (
+                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200 mb-8">
+                            <div className="p-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="text-2xl">📄</div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                VAT/Tax Invoices (PDF)
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                Formal invoice for release transactions for business accounting (Philippines)
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        href="/reports/vat-invoices"
+                                        className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        View Invoices
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Gig worker only: Earnings Transparency */}
+                    {auth?.user?.user_type === 'gig_worker' && (
+                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200 mb-8">
+                            <div className="p-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="text-2xl">📊</div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                Earnings Transparency (Gross vs. Net)
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                See what the client paid vs. what you received after platform fee
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        href="/reports/earnings-transparency"
+                                        className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        View Report
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Gig worker only: Pending / Accrued Income */}
+                    {auth?.user?.user_type === 'gig_worker' && (
+                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200 mb-8">
+                            <div className="p-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="text-2xl">⏳</div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                Pending / Accrued Income
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                Money in the pipeline — not yet withdrawable
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        href="/reports/pending-accrued-income"
+                                        className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                                    >
+                                        View Report
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {!reports?.data?.length ? (
                         <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">

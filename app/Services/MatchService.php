@@ -678,6 +678,8 @@ class MatchService
 
         if ($randomize) {
             $query->inRandomOrder();
+        } else {
+            $query->latest();
         }
 
         $jobs = $query->limit(10) // Process max 10 jobs for AI analysis

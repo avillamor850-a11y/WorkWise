@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\FraudDetectionAlert;
+use App\Models\FraudDetectionCase;
+use App\Services\FraudDetectionService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -72,6 +75,35 @@ class RegisteredUserController extends Controller
         ];
 
         $user = User::create($userData);
+
+        // Set registration IP country for Philippines-only fraud checks
+        $fraudService = app(FraudDetectionService::class);
+        $ipCountry = $fraudService->getIPCountry($request->ip());
+        $user->update(['registration_ip_country' => $ipCountry]);
+
+        if ($ipCountry !== 'Philippines') {
+            try {
+                FraudDetectionAlert::create([
+                    'user_id' => $user->id,
+                    'alert_type' => 'system_detected',
+                    'rule_name' => 'Country Mismatch',
+                    'alert_message' => 'Country Mismatch: Registration from outside Philippines (IP country: ' . $ipCountry . ')',
+                    'alert_data' => ['ip_country' => $ipCountry, 'ip' => $request->ip()],
+                    'risk_score' => 75,
+                    'severity' => 'high',
+                    'status' => 'active',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent() ? ['user_agent' => $request->userAgent()] : null,
+                ]);
+                $analysis = $fraudService->analyzeUserFraud($user, $request);
+                $fraudService->createFraudCase($user, $analysis, 'country_mismatch');
+            } catch (\Throwable $e) {
+                \Log::warning('Failed to create Country Mismatch alert/case on registration', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         // Auto-verify address using IP geolocation - defer to async job
         // to prevent timeout during registration

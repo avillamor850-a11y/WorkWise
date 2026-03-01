@@ -9,8 +9,10 @@ use App\Models\Transaction;
 use App\Models\Bid;
 use App\Models\Contract;
 use App\Models\ImmutableAuditLog;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -589,19 +591,30 @@ class AdminController extends Controller
             });
         }
 
+        // Filter: awaiting admin review (completed, payment not released, gig worker requested review)
+        if ($request->filled('requested_review') && $request->requested_review == '1') {
+            $query->where('status', 'completed')
+                ->where('payment_released', false)
+                ->whereNotNull('admin_review_requested_at');
+        }
+
         $projects = $query->orderBy('created_at', 'desc')->paginate(15);
 
         $stats = [
             'total_projects' => Project::count(),
             'active_projects' => Project::whereIn('status', ['active', 'in_progress'])->count(),
             'completed_projects' => Project::where('status', 'completed')->count(),
+            'awaiting_admin_review' => Project::where('status', 'completed')
+                ->where('payment_released', false)
+                ->whereNotNull('admin_review_requested_at')
+                ->count(),
             'average_value' => Project::avg('agreed_amount') ?? 0,
         ];
 
         return Inertia::render('Admin/Projects/EnhancedIndex', [
             'projects' => $projects,
             'stats' => $stats,
-            'filters' => $request->only(['status', 'employer_id', 'gig_worker_id', 'search']),
+            'filters' => $request->only(['status', 'employer_id', 'gig_worker_id', 'search', 'requested_review']),
             'url' => request()->path(),
         ]);
     }
@@ -616,6 +629,44 @@ class AdminController extends Controller
         return Inertia::render('Admin/Projects/Show', [
             'project' => $project,
         ]);
+    }
+
+    /**
+     * Admin: approve completion and release payment (when employer has not approved).
+     */
+    public function approveAndReleasePayment(Project $project)
+    {
+        if ($project->status !== 'completed') {
+            return back()->with('error', 'Project must be completed before payment can be released.');
+        }
+        if ($project->payment_released) {
+            return back()->with('error', 'Payment has already been released for this project.');
+        }
+
+        try {
+            $project->update([
+                'employer_approved' => true,
+                'approved_at' => now(),
+            ]);
+            $paymentService = app(PaymentService::class);
+            $result = $paymentService->releasePayment($project);
+
+            Log::info('Admin approved and released payment', [
+                'project_id' => $project->id,
+                'admin_id' => auth()->id(),
+            ]);
+
+            if ($result['success']) {
+                return back()->with('success', 'Completion approved and payment released to gig worker.');
+            }
+            return back()->with('error', $result['error'] ?? 'Payment release failed.');
+        } catch (\Exception $e) {
+            Log::error('Admin approve-and-release failed', [
+                'project_id' => $project->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Failed to release payment. Please try again.');
+        }
     }
 
     /**
