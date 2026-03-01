@@ -15,13 +15,8 @@ return new class extends Migration
             // Make required_skills nullable (deprecated in favor of skills_requirements)
             $table->json('required_skills')->nullable()->change();
             
-            // Make project_category optional
-            $table->string('project_category')->nullable()->change();
-            
-            // Make job_complexity optional
-            $table->enum('job_complexity', ['simple', 'moderate', 'complex', 'expert'])
-                  ->nullable()
-                  ->change();
+            // Note: project_category and job_complexity are already nullable from previous migrations.
+            // Calling ->change() on them here causes syntax errors in PostgreSQL/Supabase.
         });
     }
 

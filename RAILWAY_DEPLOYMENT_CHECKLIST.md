@@ -120,7 +120,7 @@ railway run php artisan migrate:status
 
 ### ✅ Railway Configuration
 
-- [ ] `nixpacks.toml` exists (created above)
+- [ ] `nixpacks.toml` exists and is optimized (no manual `start` command; Nixpacks will leverage Nginx + PHP-FPM for Laravel automatically).
 - [ ] Build logs show no errors
 - [ ] Deploy logs show no errors
 - [ ] Health check passes (if configured)

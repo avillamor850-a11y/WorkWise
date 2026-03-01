@@ -132,7 +132,7 @@ class WorkWiseDatabaseSeeder extends Seeder
                 'email'              => 'creative.agency@workwise.ph',
                 'company_name'       => 'Creative Minds Agency',
                 'industry'           => 'Marketing & Advertising',
-                'company_size'       => '6-10',
+                'company_size'       => '2-10',
                 'company_description'=> 'A boutique creative agency specializing in brand identity and social media strategy.',
                 'primary_hiring_needs' => json_encode(['Graphic Design', 'UI/UX Design', 'Video Editing']),
                 'country'        => 'Philippines',

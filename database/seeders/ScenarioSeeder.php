@@ -154,7 +154,7 @@ class ScenarioSeeder extends Seeder
                 'title' => "Past Project $i for Architect",
                 'description' => 'Description for past project.',
                 'skills_requirements' => [['skill' => 'Laravel', 'importance' => 'required']],
-                'status' => 'completed',
+                'status' => 'closed',
                 'budget_type' => 'fixed',
                 'budget_min' => 5000 * $i,
                 'budget_max' => 6000 * $i,

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import useSkillPipeline from '@/hooks/useSkillPipeline';
+import useSkillPipeline from '@/Hooks/useSkillPipeline.js';
 import FuzzySkillPrompt from '@/Components/FuzzySkillPrompt';
 
 // Skill color palette based on initials

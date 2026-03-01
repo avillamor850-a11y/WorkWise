@@ -8,7 +8,7 @@ cmds = [
 
 [phases.build]
 cmds = [
-  'npm ci --legacy-peer-deps',
+  'npm install --legacy-peer-deps',
   'npm run build',
   'php artisan config:clear',
   'php artisan cache:clear'
@@ -26,5 +26,3 @@ cmds = [
   'chmod -R 775 storage bootstrap/cache || true'
 ]
 
-[start]
-cmd = 'php artisan serve --host=0.0.0.0 --port=$PORT'

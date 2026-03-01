@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import useSkillPipeline from '@/hooks/useSkillPipeline';
+import useSkillPipeline from '@/Hooks/useSkillPipeline.js';
 import FuzzySkillPrompt from '@/Components/FuzzySkillPrompt';
 
 export default function SkillExperienceSelector({
     label = 'Required Skills',
     description = 'Select the skills and experience levels required for this job',
     skills = [],
-    onChange = () => {},
+    onChange = () => { },
     type = 'required',
     maxSkills = 10,
     showImportance = true,
@@ -154,7 +154,7 @@ export default function SkillExperienceSelector({
                             className={`px-3 py-1 rounded-full text-xs font-medium border transition ${!selectedCategory
                                 ? 'bg-blue-600 text-white border-blue-600'
                                 : isDark ? 'bg-white/5 text-white/70 border-white/10 hover:border-blue-500/50' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
-                            }`}
+                                }`}
                         >
                             All
                         </button>
@@ -166,7 +166,7 @@ export default function SkillExperienceSelector({
                                 className={`px-3 py-1 rounded-full text-xs font-medium border transition ${selectedCategory === cat
                                     ? 'bg-blue-600 text-white border-blue-600'
                                     : isDark ? 'bg-white/5 text-white/70 border-white/10 hover:border-blue-500/50' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
-                                }`}
+                                    }`}
                             >
                                 {cat}
                             </button>
@@ -190,7 +190,7 @@ export default function SkillExperienceSelector({
                                             className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition ${isAdded
                                                 ? isDark ? 'bg-green-500/20 text-green-300 border-green-500/30 cursor-default' : 'bg-green-50 text-green-700 border-green-200 cursor-default'
                                                 : isDark ? 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:bg-blue-500/20' : 'bg-indigo-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                                            }`}
+                                                }`}
                                         >
                                             {isAdded ? '✓ ' : '+ '}{skillStr}
                                         </button>

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import useSkillPipeline from '@/hooks/useSkillPipeline';
+import useSkillPipeline from '@/Hooks/useSkillPipeline.js';
 import FuzzySkillPrompt from '@/Components/FuzzySkillPrompt';
 
 // ─── Step 3: Company Bio & Website ───────────────────────────────────────────
@@ -170,7 +170,7 @@ function EmployerStep4Preferences({ data, setData, errors, serviceCategories, on
                                     className={`px-4 py-3 rounded-xl border-2 text-xs font-medium transition-all flex items-center justify-between gap-2 overflow-hidden ${(data.primary_hiring_needs || []).includes(category)
                                         ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
                                         : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                    }`}
+                                        }`}
                                 >
                                     <span className="truncate">{category}</span>
                                     {(data.primary_hiring_needs || []).includes(category) && (
