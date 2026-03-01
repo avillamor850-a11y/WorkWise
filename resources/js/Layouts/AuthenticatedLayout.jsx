@@ -1055,7 +1055,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                         <Dropdown.Link href="/messages">
                                             Messages
                                         </Dropdown.Link>
-                                        <Dropdown.Link href={isEmployer ? '/employer/wallet' : '/gig-worker/wallet'}>
+                                        <Dropdown.Link href={isEmployer ? route('employer.wallet.index') : route('gig-worker.wallet.index')}>
                                             {isEmployer ? 'Wallet' : 'Earnings'}
                                         </Dropdown.Link>
                                         <Dropdown.Link href="/analytics">

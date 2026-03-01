@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-const SuccessModal = ({ isOpen, onClose, message = 'Success!', duration = 3000, showProcessing = true }) => {
+const SuccessModal = ({ isOpen, onClose, message = 'Success!', duration = 3000, showProcessing = true, isPaymentSuccess }) => {
     useEffect(() => {
         if (isOpen) {
             const timer = setTimeout(() => {
@@ -13,8 +13,10 @@ const SuccessModal = ({ isOpen, onClose, message = 'Success!', duration = 3000, 
 
     if (!isOpen) return null;
 
-    // Check if this is a payment-related success message
-    const isPaymentMessage = message.toLowerCase().includes('payment') || message.toLowerCase().includes('sent to');
+    // When isPaymentSuccess is explicitly false, never show payment UI. When undefined, infer from message.
+    const isPaymentMessage = isPaymentSuccess === undefined
+        ? (message.toLowerCase().includes('payment') || message.toLowerCase().includes('sent to'))
+        : isPaymentSuccess;
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">

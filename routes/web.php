@@ -282,6 +282,11 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
     Route::get('/profile/gig-worker/edit', [ProfileController::class, 'editGigWorker'])->name('gig-worker.profile.edit');
     Route::post('/profile/gig-worker/edit', [ProfileController::class, 'updateGigWorker'])->middleware('fraud.detection')->name('gig-worker.profile.update');
 
+    // Gig worker earnings / wallet (must be before /gig-worker/{user} to avoid "wallet" being matched as user id)
+    Route::middleware(['gig_worker'])->prefix('gig-worker/wallet')->name('gig-worker.wallet.')->group(function () {
+        Route::get('/', [GigWorkerWalletController::class, 'index'])->name('index');
+    });
+
     // View another gig worker's profile (RESTful: /gig-worker/{id}, e.g. from AI Match "View Profile")
     Route::get('/gig-worker/{user}/view', [ProfileController::class, 'storeGigWorkerProfileContext'])->name('gig-worker.profile.view-with-context');
     Route::get('/gig-worker/{user}', [ProfileController::class, 'showGigWorker'])->name('gig-worker.profile.show');
@@ -479,12 +484,6 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
         Route::get('/', [ClientWalletController::class, 'index'])->name('index');
         Route::post('/create-intent', [ClientWalletController::class, 'createIntent'])->name('create-intent');
     });
-
-    // Gig worker earnings / wallet
-    Route::middleware(['gig_worker'])->prefix('gig-worker/wallet')->name('gig-worker.wallet.')->group(function () {
-        Route::get('/', [GigWorkerWalletController::class, 'index'])->name('index');
-    });
-
 
     // Legacy deposits route - redirect to appropriate wallet based on role
     Route::get('/deposits', function () {

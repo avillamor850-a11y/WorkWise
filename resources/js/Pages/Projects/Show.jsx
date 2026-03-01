@@ -203,11 +203,11 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
     };
 
     const submitAdminReviewRequest = () => {
-        postAdminReview(`/projects/${project.id}/request-admin-review`, {
+        postAdminReview(route('projects.requestAdminReview', project.id), {
             preserveScroll: true,
             onSuccess: () => {
                 setShowAdminReviewModal(false);
-                setSuccessModal({ isOpen: true, message: 'Admin review requested. An admin will review and can release your payment if appropriate.' });
+                setSuccessModal({ isOpen: true, message: 'Admin review requested. An admin will review and can release your payment if appropriate.', isPaymentSuccess: false });
             }
         });
     };
@@ -865,8 +865,9 @@ export default function ProjectShow({ project, hasPayment, canReview, isEmployer
                 isOpen={successModal.isOpen}
                 onClose={() => setSuccessModal({ isOpen: false, message: '' })}
                 message={successModal.message}
-                duration={successModal.message.toLowerCase().includes('payment') ? 4000 : 2000}
-                showProcessing={!successModal.message.toLowerCase().includes('payment')}
+                duration={successModal.isPaymentSuccess === false ? 2000 : (successModal.message.toLowerCase().includes('payment') ? 4000 : 2000)}
+                showProcessing={successModal.isPaymentSuccess === false ? true : !successModal.message.toLowerCase().includes('payment')}
+                isPaymentSuccess={successModal.isPaymentSuccess}
             />
 
             {/* Request admin review modal (gig worker) */}
