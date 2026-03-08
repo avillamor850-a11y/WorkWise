@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import taxonomy from '../../../../full_freelance_services_taxonomy.json';
 import SkillExperienceSelector from '@/Components/SkillExperienceSelector';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useTheme } from '@/Contexts/ThemeContext';
 import ErrorModal from '@/Components/ErrorModal';
 
 export default function JobCreate() {
@@ -10,6 +11,8 @@ export default function JobCreate() {
     const [suggestedSkills, setSuggestedSkills] = useState([]);
     const [skillSuggestLoading, setSkillSuggestLoading] = useState(false);
     const [fraudModalClosed, setFraudModalClosed] = useState(false);
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     // Emerging skills and innovative roles
     const [emergingSkills, setEmergingSkills] = useState([]);
     const [innovativeRoles, setInnovativeRoles] = useState([]);
@@ -533,13 +536,13 @@ export default function JobCreate() {
 
     return (
         <AuthenticatedLayout
-            pageTheme="dark"
+            pageTheme={isDark ? 'dark' : undefined}
             header={
                 <div>
-                    <h2 className="font-semibold text-xl text-white leading-tight tracking-tight">
+                    <h2 className={`font-semibold text-xl leading-tight tracking-tight ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                         Post a New Job
                     </h2>
-                    <p className="text-sm text-white/60 mt-1">
+                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         Find the perfect gig worker for your project
                     </p>
                 </div>
@@ -556,11 +559,19 @@ export default function JobCreate() {
                 duration={0}
             />
 
-            <div className="relative min-h-screen py-12 bg-[#05070A] overflow-hidden font-sans" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <div className={`relative min-h-screen py-12 overflow-hidden font-sans ${isDark ? 'bg-gray-900' : 'bg-white'}`} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                {isDark && (
                 <div className="fixed inset-0 pointer-events-none overflow-hidden">
                     <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-600/5 rounded-full blur-[120px]" />
                     <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]" />
                 </div>
+                )}
+                {!isDark && (
+                <>
+                    <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+                    <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-700/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+                </>
+                )}
 
                 <div className="relative z-20 max-w-4xl mx-auto sm:px-6 lg:px-8">
                     {/* Progress Steps */}
@@ -570,19 +581,19 @@ export default function JobCreate() {
                                 <div className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full text-sm font-bold shadow-lg shadow-blue-600/25">
                                     1
                                 </div>
-                                <span className="ml-3 text-sm font-semibold text-blue-400">Job Details</span>
+                                <span className={`ml-3 text-sm font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Job Details</span>
                             </div>
-                            <div className="w-16 h-1 bg-white/20 rounded-full"></div>
+                            <div className={`w-16 h-1 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
                             <div className="flex items-center">
-                                <div className="flex items-center justify-center w-10 h-10 bg-white/10 text-white/50 rounded-full text-sm font-bold border border-white/10">
+                                <div className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold border ${isDark ? 'bg-gray-700 text-gray-400 border-gray-700' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                                     2
                                 </div>
-                                <span className="ml-3 text-sm font-semibold text-white/50">Review & Post</span>
+                                <span className={`ml-3 text-sm font-semibold ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>Review & Post</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10">
+                    <div className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700" : "bg-white backdrop-blur-sm overflow-hidden rounded-xl border border-gray-200 shadow-lg"}>
                         <div className="p-8">
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 {/* Error Summary */}
@@ -617,7 +628,7 @@ export default function JobCreate() {
                                 
                                 {/* Job Title */}
                                 <div>
-                                    <label htmlFor="title" className="block text-sm font-medium text-white/90 mb-2">
+                                    <label htmlFor="title" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Job Title *
                                     </label>
                                     <input
@@ -625,11 +636,11 @@ export default function JobCreate() {
                                         id="title"
                                         value={data.title}
                                         onChange={(e) => setData('title', e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50 shadow-sm"
+                                        className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50 shadow-sm" : "w-full bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"}
                                         placeholder="e.g., Build a React.js E-commerce Website"
                                         required
                                     />
-                                    <p className="mt-1 text-sm text-white/50">
+                                    <p className="mt-1 text-sm text-gray-500">
                                         Write a clear, descriptive title that explains what you need done
                                     </p>
                                     {errors.title && <p className="mt-2 text-sm text-red-400">{errors.title}</p>}
@@ -637,7 +648,7 @@ export default function JobCreate() {
 
                                 {/* Job Description */}
                                 <div>
-                                    <label htmlFor="description" className="block text-sm font-medium text-white/90 mb-2">
+                                    <label htmlFor="description" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Job Description *
                                     </label>
                                     <textarea
@@ -645,11 +656,11 @@ export default function JobCreate() {
                                         value={data.description}
                                         onChange={(e) => setData('description', e.target.value)}
                                         rows={6}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50 shadow-sm"
+                                        className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-xl text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50 shadow-sm" : "w-full bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"}
                                         placeholder="Describe your project in detail. Include specific requirements, deliverables, and any important information gig workers should know..."
                                         required
                                     />
-                                    <p className="mt-1 text-sm text-white/50">
+                                    <p className="mt-1 text-sm text-gray-500">
                                         Minimum 100 characters. Be specific about what you need.
                                     </p>
                                     {errors.description && <p className="mt-2 text-sm text-red-400">{errors.description}</p>}
@@ -660,7 +671,7 @@ export default function JobCreate() {
                                     {(skillSuggestLoading || suggestedSkills.length > 0) && (
                                         <div className="mt-4">
                                             <div className="flex items-center mb-2">
-                                                <span className="text-sm font-semibold text-white/90">AI-Suggested Skills</span>
+                                                <span className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>AI-Suggested Skills</span>
                                                 {skillSuggestLoading && (
                                                     <span className="ml-2 text-xs text-blue-400 flex items-center">
                                                         <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400 mr-1"></span>
@@ -672,7 +683,7 @@ export default function JobCreate() {
                                                         type="button"
                                                         onClick={addAllSuggestedSkills}
                                                         disabled={suggestedSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s))}
-                                                        className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border transition ${suggestedSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s)) ? 'bg-white/5 text-white/40 border-white/10 cursor-not-allowed' : 'bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20'}`}
+                                                        className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border transition ${suggestedSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s)) ? (isDark ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed' : 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed') : 'bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20'}`}
                                                         aria-disabled={suggestedSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s))}
                                                         title="Add all suggested skills"
                                                     >
@@ -689,7 +700,7 @@ export default function JobCreate() {
                                                             key={s}
                                                             onClick={() => !isAdded && addSkillFromSuggestion(s)}
                                                             disabled={isAdded}
-                                                            className={`group inline-flex items-center px-3 py-1 rounded-xl text-sm font-medium border transition ${isAdded ? 'bg-green-500/20 text-green-300 border-green-500/30 cursor-default' : 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40'}`}
+                                                            className={`group inline-flex items-center px-3 py-1 rounded-xl text-sm font-medium border transition ${isAdded ? 'bg-green-500/20 text-green-300 border-green-500/30 cursor-default' : isDark ? 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40' : 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200'}`}
                                                             aria-disabled={isAdded}
                                                             title={isAdded ? 'Already added' : 'Add skill'}
                                                         >
@@ -699,7 +710,7 @@ export default function JobCreate() {
                                                     );
                                                 })}
                                                 {!skillSuggestLoading && suggestedSkills.length === 0 && (
-                                                    <span className="text-xs text-white/50">No suggestions yet. Try adding more details to your title or description.</span>
+                                                    <span className="text-xs text-gray-500">No suggestions yet. Try adding more details to your title or description.</span>
                                                 )}
                                             </div>
                                         </div>
@@ -710,12 +721,12 @@ export default function JobCreate() {
                                 {emergingSkills.length > 0 && (
                                     <div className="mt-4">
                                         <div className="flex items-center mb-2">
-                                            <span className="text-sm font-semibold text-white/90">Emerging Skills</span>
+                                            <span className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Emerging Skills</span>
                                             <button
                                                 type="button"
                                                 onClick={addAllEmergingSkills}
                                                 disabled={emergingSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s))}
-                                                className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border transition ${emergingSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s)) ? 'bg-white/5 text-white/40 border-white/10 cursor-not-allowed' : 'bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20'}`}
+                                                className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border transition ${emergingSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s)) ? (isDark ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed' : 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed') : 'bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20'}`}
                                                 aria-disabled={emergingSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s))}
                                                 title="Add all emerging skills"
                                             >
@@ -731,7 +742,7 @@ export default function JobCreate() {
                                                         key={s}
                                                         onClick={() => !isAdded && addEmergingSkill(s)}
                                                         disabled={isAdded}
-                                                        className={`group inline-flex items-center px-3 py-1 rounded-xl text-sm font-medium border transition ${isAdded ? 'bg-green-500/20 text-green-300 border-green-500/30 cursor-default' : 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40'}`}
+                                                        className={`group inline-flex items-center px-3 py-1 rounded-xl text-sm font-medium border transition ${isAdded ? 'bg-green-500/20 text-green-300 border-green-500/30 cursor-default' : isDark ? 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40' : 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200'}`}
                                                         aria-disabled={isAdded}
                                                         title={isAdded ? 'Already added' : 'Add emerging skill'}
                                                     >
@@ -748,7 +759,7 @@ export default function JobCreate() {
                                 {innovativeRoles.length > 0 && (
                                     <div className="mt-4">
                                         <div className="flex items-center mb-2">
-                                            <span className="text-sm font-semibold text-white/90">Innovative Roles</span>
+                                            <span className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Innovative Roles</span>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
                                             {innovativeRoles.map((r) => (
@@ -769,7 +780,7 @@ export default function JobCreate() {
 
                                 {/* Budget */}
                                 <div>
-                                    <label className="block text-sm font-medium text-white/90 mb-4">
+                                    <label className="block text-sm font-medium text-gray-200 mb-4">
                                         Budget *
                                     </label>
                                     <div className="space-y-4">
@@ -783,7 +794,7 @@ export default function JobCreate() {
                                                     onChange={(e) => setData('budget_type', e.target.value)}
                                                     className="text-blue-500 focus:ring-blue-500"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-white/80">Fixed Price</span>
+                                                <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Fixed Price</span>
                                             </label>
                                             <label className="flex items-center">
                                                 <input
@@ -794,22 +805,22 @@ export default function JobCreate() {
                                                     onChange={(e) => setData('budget_type', e.target.value)}
                                                     className="text-blue-500 focus:ring-blue-500"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-white/80">Hourly Rate</span>
+                                                <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Hourly Rate</span>
                                             </label>
                                         </div>
                                         
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm text-white/60 mb-1">
+                                                <label className={`block text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                     {data.budget_type === 'fixed' ? 'Minimum Budget' : 'Minimum Rate/Hour'}
                                                 </label>
                                                 <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50">₱</span>
+                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                                                     <input
                                                         type="number"
                                                         value={data.budget_min}
                                                         onChange={(e) => setData('budget_min', e.target.value)}
-                                                        className="w-full pl-8 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50"
+                                                        className={isDark ? "w-full pl-8 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full pl-8 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
                                                         placeholder="0"
                                                         min="0"
                                                         step="0.01"
@@ -818,16 +829,16 @@ export default function JobCreate() {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="block text-sm text-white/60 mb-1">
+                                                <label className={`block text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                     {data.budget_type === 'fixed' ? 'Maximum Budget' : 'Maximum Rate/Hour'}
                                                 </label>
                                                 <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50">₱</span>
+                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                                                     <input
                                                         type="number"
                                                         value={data.budget_max}
                                                         onChange={(e) => setData('budget_max', e.target.value)}
-                                                        className="w-full pl-8 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50"
+                                                        className={isDark ? "w-full pl-8 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full pl-8 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
                                                         placeholder="0"
                                                         min="0"
                                                         step="0.01"
@@ -844,7 +855,7 @@ export default function JobCreate() {
                                 {/* Experience Level & Duration */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label htmlFor="experience_level" className="block text-sm font-medium text-white/90 mb-2">
+                                        <label htmlFor="experience_level" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                             Experience Level *
                                         </label>
                                         <select
@@ -858,18 +869,18 @@ export default function JobCreate() {
                                                     setData('skills_requirements', valid.map(s => ({ ...s, experience_level: value })));
                                                 }
                                             }}
-                                            className="w-full bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50"
+                                            className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
                                             required
                                         >
-                                            <option value="beginner" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Beginner (0-1 years)</option>
-                                            <option value="intermediate" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Intermediate (2-5 years)</option>
-                                            <option value="expert" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Expert (5+ years)</option>
+                                            <option value="beginner" style={isDark ? { backgroundColor: '#1f2937', color: '#e5e7eb' } : undefined}>Beginner (0-1 years)</option>
+                                            <option value="intermediate" style={isDark ? { backgroundColor: '#1f2937', color: '#e5e7eb' } : undefined}>Intermediate (2-5 years)</option>
+                                            <option value="expert" style={isDark ? { backgroundColor: '#1f2937', color: '#e5e7eb' } : undefined}>Expert (5+ years)</option>
                                         </select>
                                         {errors.experience_level && <p className="mt-2 text-sm text-red-400">{errors.experience_level}</p>}
                                     </div>
 
                                     <div>
-                                        <label htmlFor="estimated_duration_days" className="block text-sm font-medium text-white/90 mb-2">
+                                        <label htmlFor="estimated_duration_days" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                             Estimated Duration (Days) *
                                         </label>
                                         <input
@@ -877,7 +888,7 @@ export default function JobCreate() {
                                             id="estimated_duration_days"
                                             value={data.estimated_duration_days}
                                             onChange={(e) => setData('estimated_duration_days', e.target.value)}
-                                            className="w-full bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50"
+                                            className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
                                             placeholder="e.g., 30"
                                             min="1"
                                             required
@@ -888,21 +899,21 @@ export default function JobCreate() {
 
                                 {/* Project Category (Optional) */}
                                 <div>
-                                    <label htmlFor="project_category" className="block text-sm font-medium text-white/90 mb-2">
+                                    <label htmlFor="project_category" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Project Category (Optional)
                                     </label>
                                     <select
                                         id="project_category"
                                         value={data.project_category}
                                         onChange={(e) => setData('project_category', e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50"
+                                        className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
                                     >
-                                        <option value="" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Select a category</option>
+                                        <option value="">Select a category</option>
                                         {PROJECT_CATEGORIES.map((category) => (
-                                            <option 
-                                                key={category} 
+                                            <option
+                                                key={category}
                                                 value={category}
-                                                style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}
+                                                style={isDark ? { backgroundColor: '#1f2937', color: '#e5e7eb' } : undefined}
                                             >
                                                 {category === suggestedCategory ? `✨ ${category} (Suggested)` : category}
                                             </option>
@@ -927,7 +938,7 @@ export default function JobCreate() {
                                         type="required"
                                         maxSkills={10}
                                         defaultExperienceLevel={data.experience_level}
-                                        variant="dark"
+                                        variant={isDark ? "dark" : "light"}
                                     />
                                     {errors.skills_requirements && (
                                         <p className="mt-2 text-sm text-red-400">{errors.skills_requirements}</p>
@@ -941,7 +952,7 @@ export default function JobCreate() {
 
                                 {/* Location & Remote */}
                                 <div>
-                                    <label className="block text-sm font-medium text-white/90 mb-4">
+                                    <label className={`block text-sm font-medium mb-4 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Work Location
                                     </label>
                                     <div className="space-y-4">
@@ -953,21 +964,17 @@ export default function JobCreate() {
                                                     onChange={(e) => {
                                                         const isRemote = e.target.checked;
                                                         setData('is_remote', isRemote);
-                                                        // Clear location when remote is checked
-                                                        if (isRemote) {
-                                                            setData('location', '');
-                                                        }
+                                                        if (isRemote) setData('location', '');
                                                     }}
                                                     className="text-blue-500 focus:ring-blue-500 rounded"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-white/80">Remote Work</span>
+                                                <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Remote Work</span>
                                             </label>
                                         </div>
                                         
-                                        {/* Conditionally render location field */}
                                         {!data.is_remote && (
                                             <div className="transition-all duration-200 ease-in-out">
-                                                <label htmlFor="location" className="block text-sm text-white/60 mb-1">
+                                                <label htmlFor="location" className={`block text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                     Location *
                                                 </label>
                                                 <input
@@ -975,10 +982,10 @@ export default function JobCreate() {
                                                     id="location"
                                                     value={data.location}
                                                     onChange={(e) => setData('location', e.target.value)}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50"
+                                                    className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
                                                     placeholder="e.g., City, Province"
                                                 />
-                                                <p className="mt-1 text-sm text-white/50">
+                                                <p className="mt-1 text-sm text-gray-500">
                                                     Specify where the work needs to be performed
                                                 </p>
                                             </div>
@@ -995,17 +1002,17 @@ export default function JobCreate() {
                                 </div>
 
                                 {/* Submit Buttons */}
-                                <div className="flex items-center justify-between pt-6 border-t border-white/10">
+                                <div className={`flex items-center justify-between pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                                     <Link
                                         href={route('jobs.index')}
-                                        className="inline-flex items-center px-4 py-2 border border-white/10 shadow-sm text-sm font-medium rounded-xl text-white/90 bg-white/5 hover:bg-white/10 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-[#05070A]"
+                                        className={isDark ? "inline-flex items-center px-4 py-2 border border-gray-700 shadow-sm text-sm font-medium rounded-xl text-gray-200 bg-gray-800 hover:bg-gray-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-900" : "inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-white"}
                                     >
                                         Cancel
                                     </Link>
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-blue-600 hover:bg-blue-500 shadow-blue-600/20 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-[#05070A] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-blue-600 hover:bg-blue-500 shadow-blue-600/20 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {processing ? (
                                             <div className="flex items-center">
@@ -1048,7 +1055,7 @@ export default function JobCreate() {
 
             <style>{`
                 body {
-                    background: #05070A;
+                    background: #111827;
                     color: #e5e7eb;
                     font-family: 'Inter', sans-serif;
                 }

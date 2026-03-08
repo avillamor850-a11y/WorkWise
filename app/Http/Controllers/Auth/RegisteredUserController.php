@@ -76,10 +76,12 @@ class RegisteredUserController extends Controller
 
         $user = User::create($userData);
 
-        // Set registration IP country for Philippines-only fraud checks
+        // Set registration IP country for Philippines-only fraud checks (only if column exists)
         $fraudService = app(FraudDetectionService::class);
         $ipCountry = $fraudService->getIPCountry($request->ip());
-        $user->update(['registration_ip_country' => $ipCountry]);
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'registration_ip_country')) {
+            $user->update(['registration_ip_country' => $ipCountry]);
+        }
 
         if ($ipCountry !== 'Philippines') {
             try {

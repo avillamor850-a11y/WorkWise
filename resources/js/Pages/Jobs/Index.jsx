@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useTheme } from '@/Contexts/ThemeContext';
 import IDVerificationBanner from '@/Components/IDVerificationBanner';
 import { formatDistanceToNow } from 'date-fns';
 import Pagination from '@/Components/Pagination';
@@ -51,7 +52,8 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
     });
 
     const isEmployer = auth.user?.user_type === 'employer';
-    const isDark = true; // Dark theme for both My Jobs (employer) and Find Jobs (gig worker)
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
 
     const experienceOptions = [
         { label: 'All experience levels', value: 'all' },
@@ -296,11 +298,11 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
         const badges = {
             open: 'bg-green-500/20 text-green-300 border border-green-500/30',
             in_progress: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
-            completed: 'bg-white/10 text-white/50 border border-white/10',
+            completed: 'bg-gray-700 text-gray-400 border border-gray-600',
             cancelled: 'bg-red-500/20 text-red-300 border border-red-500/30',
-            closed: 'bg-white/10 text-white/50 border border-white/10'
+            closed: 'bg-gray-700 text-gray-400 border border-gray-600'
         };
-        return badges[status] || 'bg-white/10 text-white/50 border border-white/10';
+        return badges[status] || 'bg-gray-700 text-gray-400 border border-gray-600';
     };
 
     const getExperienceBadgeDark = (level) => {
@@ -309,7 +311,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
             intermediate: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
             expert: 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
         };
-        return badges[level] || 'bg-white/10 text-white/50 border border-white/10';
+        return badges[level] || 'bg-gray-700 text-gray-400 border border-gray-600';
     };
 
     const handleDeleteJob = (jobId) => {
@@ -372,10 +374,10 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
             header={
                 <div className="flex justify-between items-center">
                     <div>
-                        <h2 className={`font-semibold text-xl leading-tight ${isDark ? 'text-white tracking-tight' : 'text-gray-800'}`}>
+                        <h2 className={`font-semibold text-xl leading-tight ${isDark ? 'text-gray-100 tracking-tight' : 'text-gray-800'}`}>
                             {isEmployer ? 'My Posted Jobs' : 'Browse Jobs'}
                         </h2>
-                        <p className={`text-sm mt-1 ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
+                        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                             {isEmployer
                                 ? 'Manage your job postings and review proposals'
                                 : 'Find your next gig work opportunity'
@@ -385,7 +387,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                     {isEmployer && (
                         <Link
                             href={route('jobs.create')}
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest shadow-lg shadow-blue-600/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#05070A] transition ease-in-out duration-150"
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest shadow-lg shadow-blue-600/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition ease-in-out duration-150"
                         >
                             + Post New Job
                         </Link>
@@ -396,7 +398,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
             <Head title={isEmployer ? 'My Jobs' : 'Browse Jobs'} />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-            <div className={`relative py-12 overflow-x-hidden ${isDark ? 'min-h-screen bg-[#05070A] font-sans' : 'bg-white'}`} style={isDark ? { fontFamily: 'Inter, system-ui, sans-serif' } : undefined}>
+            <div className={`relative py-12 overflow-x-hidden ${isDark ? 'min-h-screen bg-gray-900 font-sans' : 'bg-white'}`} style={isDark ? { fontFamily: 'Inter, system-ui, sans-serif' } : undefined}>
                 {/* Animated Background - light theme only */}
                 {!isDark && (
                     <>
@@ -407,8 +409,8 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                 {/* Dark theme ambient glow */}
                 {isDark && (
                     <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                        <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-600/5 rounded-full blur-[120px]" />
-                        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]" />
+                        <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-500/10 rounded-full blur-[120px]" />
+                        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-700/10 rounded-full blur-[100px]" style={{ animationDelay: '2s' }} />
                     </div>
                 )}
 
@@ -426,13 +428,13 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                 />
                             )}
                             {/* Search and filters bar */}
-                            <div className={isDark ? "bg-white/5 border border-white/10 rounded-xl p-4 mb-6 w-full box-border overflow-visible" : "bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6 w-full box-border overflow-visible"}>
+                            <div className={isDark ? "bg-gray-800 border border-gray-700 rounded-xl p-4 mb-6 w-full box-border overflow-visible" : "bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6 w-full box-border overflow-visible"}>
                                 <form
                                     onSubmit={(e) => e.preventDefault()}
                                     className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center"
                                 >
                                     <div className="flex-1 min-w-0 relative">
-                                        <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                                        <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                                             <MagnifyingGlassIcon className="h-5 w-5 flex-shrink-0" />
                                         </div>
                                         <input
@@ -440,17 +442,17 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                             value={search}
                                             onChange={(e) => setSearch(e.target.value)}
                                             placeholder="Title, skills, description..."
-                                            className={isDark ? "block w-full min-w-0 pl-10 pr-3 py-2.5 h-11 border border-white/20 rounded-lg text-sm bg-white/5 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50" : "block w-full min-w-0 pl-10 pr-3 py-2.5 h-11 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
+                                            className={isDark ? "block w-full min-w-0 pl-10 pr-3 py-2.5 h-11 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50" : "block w-full min-w-0 pl-10 pr-3 py-2.5 h-11 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
                                         />
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
                                         <select
                                             value={filters.experience}
                                             onChange={(e) => setFilters((current) => ({ ...current, experience: e.target.value }))}
-                                            className={isDark ? "h-11 rounded-lg border border-white/20 pl-3 pr-8 py-2 text-sm text-white bg-white/5 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[13rem]" : "h-11 rounded-lg border border-gray-300 pl-3 pr-8 py-2 text-sm text-gray-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[13rem]"}
+                                            className={isDark ? "h-11 rounded-lg border border-gray-600 pl-3 pr-8 py-2 text-sm text-gray-100 bg-gray-700 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[13rem]" : "h-11 rounded-lg border border-gray-300 pl-3 pr-8 py-2 text-sm text-gray-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[13rem]"}
                                         >
                                             {experienceOptions.map((option) => (
-                                                <option key={option.value} value={option.value} style={isDark ? { backgroundColor: '#0d1014', color: '#e5e7eb' } : undefined}>
+                                                <option key={option.value} value={option.value} style={isDark ? { backgroundColor: '#1f2937', color: '#f3f4f6' } : undefined}>
                                                     {option.label}
                                                 </option>
                                             ))}
@@ -459,32 +461,32 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                             <button
                                                 type="button"
                                                 onClick={() => setIsSkillDropdownOpen((open) => !open)}
-                                                className={isDark ? "inline-flex items-center h-11 px-3 py-2 border border-white/20 rounded-lg text-sm font-medium text-white bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50 whitespace-nowrap" : "inline-flex items-center h-11 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"}
+                                                className={isDark ? "inline-flex items-center h-11 px-3 py-2 border border-gray-600 rounded-lg text-sm font-medium text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 whitespace-nowrap" : "inline-flex items-center h-11 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"}
                                             >
-                                                <FunnelIcon className={`h-5 w-5 mr-2 flex-shrink-0 ${isDark ? 'text-white/50' : 'text-gray-500'}`} />
+                                                <FunnelIcon className={`h-5 w-5 mr-2 flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                                                 Skills
                                                 {filters.skills.length > 0 && (
                                                     <span className={isDark ? "ml-2 bg-blue-500/30 text-blue-300 text-xs px-2 py-0.5 rounded-full flex-shrink-0" : "ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full flex-shrink-0"}>
                                                         {filters.skills.length}
                                                     </span>
                                                 )}
-                                                <ChevronDownIcon className={`h-4 w-4 ml-2 flex-shrink-0 ${isDark ? 'text-white/40' : 'text-gray-400'}`} />
+                                                <ChevronDownIcon className={`h-4 w-4 ml-2 flex-shrink-0 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                                             </button>
                                             {isSkillDropdownOpen && (
                                                 <>
                                                     <div className="fixed inset-0 z-[55]" onClick={() => setIsSkillDropdownOpen(false)} aria-hidden="true" />
-                                                    <div className={`absolute left-0 top-full mt-1 w-64 max-h-72 overflow-auto rounded-lg border shadow-lg z-[60] py-2 ${isDark ? 'bg-[#0d1014] border-white/20' : 'bg-white border-gray-200'}`}>
+                                                    <div className={`absolute left-0 top-full mt-1 w-64 max-h-72 overflow-auto rounded-lg border shadow-lg z-[60] py-2 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                                                         {filters.skills.length > 0 && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setFilters((current) => ({ ...current, skills: [] }))}
-                                                                className={isDark ? "w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-blue-500/20" : "w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"}
+                                                                className={isDark ? "w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-gray-700" : "w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"}
                                                             >
                                                                 Clear skills
                                                             </button>
                                                         )}
                                                         {availableSkills.length === 0 ? (
-                                                            <p className={isDark ? "px-4 py-2 text-sm text-white/50" : "px-4 py-2 text-sm text-gray-500"}>No skills available yet</p>
+                                                            <p className={isDark ? "px-4 py-2 text-sm text-gray-500" : "px-4 py-2 text-sm text-gray-500"}>No skills available yet</p>
                                                         ) : (
                                                             availableSkills.map((skill) => {
                                                                 const isSelected = filters.skills.some(
@@ -495,7 +497,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                                         key={skill}
                                                                         type="button"
                                                                         onClick={() => toggleSkillSelection(skill)}
-                                                                        className={`w-full text-left px-4 py-2 text-sm flex items-center truncate ${isDark ? (isSelected ? 'bg-blue-500/20 text-blue-300 font-medium' : 'text-white/80 hover:bg-white/10') : (isSelected ? 'bg-blue-50 text-blue-700 font-medium hover:bg-gray-50' : 'text-gray-700 hover:bg-gray-50')}`}
+                                                                        className={`w-full text-left px-4 py-2 text-sm flex items-center truncate ${isDark ? (isSelected ? 'bg-blue-500/20 text-blue-300 font-medium' : 'text-gray-200 hover:bg-gray-700') : (isSelected ? 'bg-blue-50 text-blue-700 font-medium hover:bg-gray-50' : 'text-gray-700 hover:bg-gray-50')}`}
                                                                     >
                                                                         {isSelected && (
                                                                             <span className={`mr-2 flex-shrink-0 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>✓</span>
@@ -513,7 +515,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                             <button
                                                 type="button"
                                                 onClick={clearFilters}
-                                                className={isDark ? "inline-flex items-center h-11 px-3 py-2 border border-white/20 rounded-lg text-sm font-medium text-white bg-white/5 hover:bg-white/10" : "inline-flex items-center h-11 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"}
+                                                className={isDark ? "inline-flex items-center h-11 px-3 py-2 border border-gray-600 rounded-lg text-sm font-medium text-gray-200 bg-gray-700 hover:bg-gray-600" : "inline-flex items-center h-11 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"}
                                             >
                                                 Reset
                                             </button>
@@ -531,17 +533,17 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                             {/* Main content: jobs list */}
                             <div>
                                 {filteredJobs.length === 0 ? (
-                                    <div className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
+                                    <div className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
                                         <div className="p-16 text-center">
                                             <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-gradient-to-br from-blue-100 to-blue-200'}`}>
                                                 <svg className={isDark ? "w-12 h-12 text-blue-400" : "w-12 h-12 text-blue-600"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8zM16 10h.01M12 14h.01M8 14h.01M8 10h.01" />
                                                 </svg>
                                             </div>
-                                            <h3 className={isDark ? "text-2xl font-bold text-white mb-4" : "text-2xl font-bold text-gray-900 mb-4"}>
+                                            <h3 className={isDark ? "text-2xl font-bold text-gray-100 mb-4" : "text-2xl font-bold text-gray-900 mb-4"}>
                                                 No Jobs Found
                                             </h3>
-                                            <p className={isDark ? "text-white/60 text-lg mb-8 max-w-md mx-auto leading-relaxed" : "text-gray-600 text-lg mb-8 max-w-md mx-auto leading-relaxed"}>
+                                            <p className={isDark ? "text-gray-400 text-lg mb-8 max-w-md mx-auto leading-relaxed" : "text-gray-600 text-lg mb-8 max-w-md mx-auto leading-relaxed"}>
                                                 Try adjusting your search criteria or check back later for new opportunities.
                                             </p>
                                         </div>
@@ -557,29 +559,29 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                             const empAvatarSrc = (empAvatarRaw && resolveProfileImageUrl(empAvatarRaw))
                                                 || `https://ui-avatars.com/api/?name=${encodeURIComponent((emp?.first_name || '') + '+' + (emp?.last_name || ''))}&background=6366f1&color=fff`;
                                             return (
-                                            <div key={job.id} className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl hover:border-blue-500/30 transition-all duration-200" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
+                                            <div key={job.id} className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl hover:border-blue-500/30 transition-all duration-200" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
                                                 <div className="p-8">
                                                     {/* Employer block: profile image, name (uppercase), company name */}
-                                                    <div className={`flex items-center gap-3 mb-5 pb-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                                                    <div className={`flex items-center gap-3 mb-5 pb-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                                                         <img
                                                             src={empAvatarSrc}
                                                             alt=""
-                                                            className="w-12 h-12 rounded-full object-cover border-2 border-white/20 shadow-sm"
+                                                            className={`w-12 h-12 rounded-full object-cover border-2 shadow-sm ${isDark ? 'border-gray-600' : 'border-gray-200'}`}
                                                             onError={(e) => {
                                                                 e.target.onerror = null;
                                                                 e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent((emp?.first_name || '') + '+' + (emp?.last_name || ''))}&background=6366f1&color=fff`;
                                                             }}
                                                         />
                                                         <div className="min-w-0">
-                                                            <div className={`font-semibold text-sm uppercase tracking-wide ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                                            <div className={`font-semibold text-sm uppercase tracking-wide ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                                                 {empName}
                                                             </div>
                                                             {emp?.company_name ? (
-                                                                <div className={`text-sm truncate ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
+                                                                <div className={`text-sm truncate ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                                     {emp.company_name}
                                                                 </div>
                                                             ) : (
-                                                                <div className={`text-sm ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                                                                <div className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                                                                     —
                                                                 </div>
                                                             )}
@@ -588,7 +590,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                     <div className="flex items-start justify-between">
                                                         <div className="flex-1">
                                                             <div className="flex items-center space-x-4 mb-4">
-                                                                <h3 className={isDark ? "text-xl font-bold text-white" : "text-xl font-bold text-gray-900"}>
+                                                                <h3 className={isDark ? "text-xl font-bold text-gray-100" : "text-xl font-bold text-gray-900"}>
                                                                     <Link
                                                                         href={`/jobs/${job.id}`}
                                                                         className={isDark ? "hover:text-blue-400 transition-colors duration-300" : "hover:text-blue-600 transition-colors duration-300"}
@@ -601,7 +603,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                                 </span>
                                                             </div>
 
-                                                            <p className={isDark ? "text-white/70 text-lg mb-6 line-clamp-3 break-all leading-relaxed" : "text-gray-700 text-lg mb-6 line-clamp-3 break-all leading-relaxed"}>
+                                                            <p className={isDark ? "text-gray-400 text-lg mb-6 line-clamp-3 break-all leading-relaxed" : "text-gray-700 text-lg mb-6 line-clamp-3 break-all leading-relaxed"}>
                                                                 {job.description}
                                                             </p>
 
@@ -615,7 +617,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                                     </div>
                                                                     <div>
                                                                         <div className={isDark ? "text-sm font-medium text-blue-400 mb-1" : "text-sm font-medium text-blue-600 mb-1"}>Duration</div>
-                                                                        <div className={isDark ? "font-bold text-white text-lg" : "font-bold text-gray-900 text-lg"}>
+                                                                        <div className={isDark ? "font-bold text-gray-100 text-lg" : "font-bold text-gray-900 text-lg"}>
                                                                             {job.estimated_duration_days} days
                                                                         </div>
                                                                     </div>
@@ -628,7 +630,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                                     {(job.is_remote || job.location) && (
                                                                         <div>
                                                                             <div className={isDark ? "text-sm font-medium text-blue-400 mb-1" : "text-sm font-medium text-blue-600 mb-1"}>Location</div>
-                                                                            <div className={isDark ? "font-bold text-white text-lg" : "font-bold text-gray-900 text-lg"}>
+                                                                            <div className={isDark ? "font-bold text-gray-100 text-lg" : "font-bold text-gray-900 text-lg"}>
                                                                                 {job.is_remote ? '🌐 Remote' : `📍 ${job.location}`}
                                                                             </div>
                                                                         </div>
@@ -653,7 +655,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                                                     </div>
                                                                                 ))}
                                                                             {getStructuredSkills(job.skills_requirements).filter(s => s.importance === 'required').length > 5 && (
-                                                                                <span className={isDark ? "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 text-white/60" : "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600"} title={`+${getStructuredSkills(job.skills_requirements).filter(s => s.importance === 'required').length - 5} more skills`}>
+                                                                                <span className={isDark ? "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-400" : "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600"} title={`+${getStructuredSkills(job.skills_requirements).filter(s => s.importance === 'required').length - 5} more skills`}>
                                                                                     +{getStructuredSkills(job.skills_requirements).filter(s => s.importance === 'required').length - 5} more
                                                                                 </span>
                                                                             )}
@@ -669,7 +671,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                             </div>
 
                                                             <div className="flex items-center justify-between">
-                                                                <div className={`flex items-center space-x-4 text-sm ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
+                                                                <div className={`flex items-center space-x-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                                     <span>
                                                                         Posted by:
                                                                         <span className="font-medium ml-1">
@@ -729,17 +731,17 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                         <div className="mb-8">
                             {/* Jobs List */}
                             {jobs.data && jobs.data.length === 0 ? (
-                                <div className="bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10">
+                                <div className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700" : "bg-white backdrop-blur-sm overflow-hidden rounded-xl border border-gray-200 shadow-lg"}>
                                     <div className="p-16 text-center">
-                                        <div className="w-24 h-24 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                                            <svg className="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-100 border border-blue-200'}`}>
+                                            <svg className={isDark ? "w-12 h-12 text-blue-400" : "w-12 h-12 text-blue-600"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8zM16 10h.01M12 14h.01M8 14h.01M8 10h.01" />
                                             </svg>
                                         </div>
-                                        <h3 className="text-2xl font-bold text-white mb-4">
+                                        <h3 className={isDark ? "text-2xl font-bold text-gray-100 mb-4" : "text-2xl font-bold text-gray-900 mb-4"}>
                                             No Jobs Posted Yet
                                         </h3>
-                                        <p className="text-white/60 text-lg mb-8 max-w-md mx-auto leading-relaxed">
+                                        <p className={isDark ? "text-gray-400 text-lg mb-8 max-w-md mx-auto leading-relaxed" : "text-gray-600 text-lg mb-8 max-w-md mx-auto leading-relaxed"}>
                                             Start by posting your first job to find talented gig workers.
                                         </p>
                                         <Link
@@ -756,52 +758,52 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                             ) : (
                                 <div className="space-y-8">
                                     {jobs.data && jobs.data.map((job) => (
-                                        <div key={job.id} className="bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10 hover:border-blue-500/30 transition-all duration-200">
+                                        <div key={job.id} className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700 hover:border-blue-500/30 transition-all duration-200" : "bg-white backdrop-blur-sm overflow-hidden rounded-xl border border-gray-200 shadow-lg hover:border-blue-300 transition-all duration-200"}>
                                             <div className="p-8">
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex-1">
                                                         <div className="flex items-center space-x-4 mb-4">
-                                                            <h3 className="text-xl font-bold text-white">
+                                                            <h3 className={isDark ? "text-xl font-bold text-gray-100" : "text-xl font-bold text-gray-900"}>
                                                                 <Link
                                                                     href={`/jobs/${job.id}`}
-                                                                    className="hover:text-blue-400 transition-colors duration-300"
+                                                                    className={isDark ? "hover:text-blue-400 transition-colors duration-300" : "hover:text-blue-600 transition-colors duration-300"}
                                                                 >
                                                                     {job.title}
                                                                 </Link>
                                                             </h3>
-                                                            <span className={`inline-flex items-center px-3 py-1 rounded-xl text-sm font-semibold ${getStatusBadgeDark(job.status)}`}>
+                                                            <span className={`inline-flex items-center px-3 py-1 rounded-xl text-sm font-semibold ${isDark ? getStatusBadgeDark(job.status) : getStatusBadge(job.status)}`}>
                                                                 {job.status === 'open' ? 'Open' : job.status.replace('_', ' ')}
                                                             </span>
                                                         </div>
 
-                                                        <p className="text-white/60 text-lg mb-6 line-clamp-3 break-all leading-relaxed">
+                                                        <p className={isDark ? "text-gray-400 text-lg mb-6 line-clamp-3 break-all leading-relaxed" : "text-gray-700 text-lg mb-6 line-clamp-3 break-all leading-relaxed"}>
                                                             {job.description}
                                                         </p>
 
-                                                        <div className="bg-blue-500/10 p-6 rounded-xl border border-blue-500/20 mb-6">
+                                                        <div className={isDark ? "bg-blue-500/10 p-6 rounded-xl border border-blue-500/20 mb-6" : "bg-blue-50 p-6 rounded-xl border border-blue-100 mb-6"}>
                                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                                                 <div>
-                                                                    <div className="text-sm font-medium text-blue-400 mb-1">Budget</div>
-                                                                    <div className="font-bold text-green-400 text-lg">
+                                                                    <div className={isDark ? "text-sm font-medium text-blue-400 mb-1" : "text-sm font-medium text-blue-600 mb-1"}>Budget</div>
+                                                                    <div className={isDark ? "font-bold text-green-400 text-lg" : "font-bold text-green-600 text-lg"}>
                                                                         {getBudgetDisplay(job)}
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <div className="text-sm font-medium text-blue-400 mb-1">Duration</div>
-                                                                    <div className="font-bold text-white text-lg">
+                                                                    <div className={isDark ? "text-sm font-medium text-blue-400 mb-1" : "text-sm font-medium text-blue-600 mb-1"}>Duration</div>
+                                                                    <div className={isDark ? "font-bold text-gray-100 text-lg" : "font-bold text-gray-900 text-lg"}>
                                                                         {job.estimated_duration_days} days
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <div className="text-sm font-medium text-blue-400 mb-1">Experience</div>
-                                                                    <span className={`inline-flex items-center px-3 py-1 rounded-xl text-sm font-semibold ${getExperienceBadgeDark(job.experience_level)}`}>
+                                                                    <div className={isDark ? "text-sm font-medium text-blue-400 mb-1" : "text-sm font-medium text-blue-600 mb-1"}>Experience</div>
+                                                                    <span className={`inline-flex items-center px-3 py-1 rounded-xl text-sm font-semibold ${isDark ? getExperienceBadgeDark(job.experience_level) : getExperienceBadge(job.experience_level)}`}>
                                                                         {job.experience_level}
                                                                     </span>
                                                                 </div>
                                                                 {(job.is_remote || job.location) && (
                                                                     <div>
-                                                                        <div className="text-sm font-medium text-blue-400 mb-1">Location</div>
-                                                                        <div className="font-bold text-white text-lg">
+                                                                        <div className={isDark ? "text-sm font-medium text-blue-400 mb-1" : "text-sm font-medium text-blue-600 mb-1"}>Location</div>
+                                                                        <div className={isDark ? "font-bold text-gray-100 text-lg" : "font-bold text-gray-900 text-lg"}>
                                                                             {job.is_remote ? '🌐 Remote' : `📍 ${job.location}`}
                                                                         </div>
                                                                     </div>
@@ -810,7 +812,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                         </div>
 
                                                         <div className="mb-6">
-                                                            <div className="text-sm font-medium text-blue-400 mb-3">Required Skills</div>
+                                                            <div className={isDark ? "text-sm font-medium text-blue-400 mb-3" : "text-sm font-medium text-blue-600 mb-3"}>Required Skills</div>
                                                             <div className="flex flex-wrap gap-2">
                                                                 {getStructuredSkills(job?.skills_requirements).length > 0 ? (
                                                                     <>
@@ -818,22 +820,22 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                                             .filter(s => s.importance === 'required')
                                                                             .slice(0, 5)
                                                                             .map((skill, index) => (
-                                                                                <div key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                                                                                <div key={index} className={isDark ? "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20" : "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200"}>
                                                                                     <span>{skill.skill}</span>
-                                                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getExperienceBadgeDark(skill.experience_level)}`}>
+                                                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${isDark ? getExperienceBadgeDark(skill.experience_level) : getExperienceBadge(skill.experience_level)}`}>
                                                                                         {skill.experience_level?.charAt(0).toUpperCase() || ''}
                                                                                     </span>
                                                                                 </div>
                                                                             ))}
                                                                         {getStructuredSkills(job.skills_requirements).filter(s => s.importance === 'required').length > 5 && (
-                                                                            <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 text-white/50 border border-white/10" title={`+${getStructuredSkills(job.skills_requirements).filter(s => s.importance === 'required').length - 5} more skills`}>
+                                                                            <span className={isDark ? "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-400 border border-gray-600" : "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600"} title={`+${getStructuredSkills(job.skills_requirements).filter(s => s.importance === 'required').length - 5} more skills`}>
                                                                                 +{getStructuredSkills(job.skills_requirements).filter(s => s.importance === 'required').length - 5} more
                                                                             </span>
                                                                         )}
                                                                     </>
                                                                 ) : (
                                                                     parseSkills(job?.required_skills || []).slice(0, 5).map((skill, index) => (
-                                                                        <span key={index} className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                                                                        <span key={index} className={isDark ? "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20" : "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200"}>
                                                                             {skill}
                                                                         </span>
                                                                     ))
@@ -842,10 +844,10 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                         </div>
 
                                                         <div className="flex items-center justify-between flex-wrap gap-4">
-                                                            <div className="flex items-center space-x-4 text-sm text-white/50">
+                                                            <div className={`flex items-center space-x-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                                 <span>
                                                                     Posted by:
-                                                                    <span className="font-medium ml-1 text-white/70">
+                                                                    <span className={`font-medium ml-1 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
                                                                         {job.employer ? `${job.employer.first_name} ${job.employer.last_name}` : 'Employer'}
                                                                     </span>
                                                                 </span>
@@ -861,28 +863,28 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                             <div className="flex items-center space-x-2 flex-wrap gap-2">
                                                                 <Link
                                                                     href={`/jobs/${job.id}/edit`}
-                                                                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                                                    className={isDark ? "text-sm text-blue-400 hover:text-blue-300 transition-colors" : "text-sm text-blue-600 hover:text-blue-700 transition-colors"}
                                                                 >
                                                                     Edit
                                                                 </Link>
                                                                 {job.status === 'open' && (
                                                                     <button
                                                                         onClick={() => handleCloseJob(job.id)}
-                                                                        className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
+                                                                        className={isDark ? "text-sm text-amber-400 hover:text-amber-300 transition-colors" : "text-sm text-amber-600 hover:text-amber-700 transition-colors"}
                                                                     >
                                                                         Close
                                                                     </button>
                                                                 )}
                                                                 <button
                                                                     onClick={() => handleDeleteJob(job.id)}
-                                                                    className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                                                                    className={isDark ? "text-sm text-red-400 hover:text-red-300 transition-colors" : "text-sm text-red-600 hover:text-red-700 transition-colors"}
                                                                 >
                                                                     Delete
                                                                 </button>
                                                                 {job.status === 'open' && (
                                                                     <Link
                                                                         href={`/aimatch/employer?job_id=${job.id}`}
-                                                                        className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-400 hover:text-blue-300 border border-blue-500/30 hover:border-blue-500/50 bg-blue-500/10 hover:bg-blue-500/20 py-2 px-4 rounded-xl transition-all duration-200"
+                                                                        className={isDark ? "inline-flex items-center gap-1.5 text-sm font-medium text-blue-400 hover:text-blue-300 border border-blue-500/30 hover:border-blue-500/50 bg-blue-500/10 hover:bg-blue-500/20 py-2 px-4 rounded-xl transition-all duration-200" : "inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 bg-blue-50 hover:bg-blue-100 py-2 px-4 rounded-xl transition-all duration-200"}
                                                                     >
                                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                                                         AI Match
@@ -902,14 +904,14 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                         </div>
                                     ))}
 
-                                    {/* Pagination - employer dark */}
+                                    {/* Pagination - employer */}
                                     {jobs.links && jobs.links.length > 3 && (
-                                        <div className="bg-white/5 backdrop-blur-sm px-6 py-4 flex items-center justify-between border border-white/10 rounded-xl">
+                                        <div className={isDark ? "bg-gray-800 backdrop-blur-sm px-6 py-4 flex items-center justify-between border border-gray-700 rounded-xl" : "bg-white backdrop-blur-sm px-6 py-4 flex items-center justify-between border border-gray-200 rounded-xl shadow-lg"}>
                                             <div className="flex-1 flex justify-between sm:hidden gap-2">
                                                 {jobs.prev_page_url && (
                                                     <Link
                                                         href={jobs.prev_page_url}
-                                                        className="inline-flex items-center px-4 py-2 bg-white/5 border border-white/10 text-sm font-medium rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                                                        className={isDark ? "inline-flex items-center px-4 py-2 bg-gray-800 border border-gray-700 text-sm font-medium rounded-lg text-gray-200 hover:text-gray-100 hover:bg-gray-700 transition-colors" : "inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"}
                                                     >
                                                         Previous
                                                     </Link>
@@ -925,21 +927,21 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                             </div>
                                             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                                 <div>
-                                                    <p className="text-sm text-white/50">
-                                                        Showing <span className="font-medium text-white/70">{jobs.from}</span> to{' '}
-                                                        <span className="font-medium text-white/70">{jobs.to}</span> of{' '}
-                                                        <span className="font-medium text-white/70">{jobs.total}</span> results
+                                                    <p className={isDark ? "text-sm text-gray-400" : "text-sm text-gray-600"}>
+                                                        Showing <span className={isDark ? "font-medium text-gray-200" : "font-medium text-gray-900"}>{jobs.from}</span> to{' '}
+                                                        <span className={isDark ? "font-medium text-gray-200" : "font-medium text-gray-900"}>{jobs.to}</span> of{' '}
+                                                        <span className={isDark ? "font-medium text-gray-200" : "font-medium text-gray-900"}>{jobs.total}</span> results
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <nav className="relative z-0 inline-flex rounded-lg overflow-hidden border border-white/10">
+                                                        <nav className={`relative z-0 inline-flex rounded-lg overflow-hidden border ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
                                                         {jobs.links.map((link, index) => (
                                                             <Link
                                                                 key={index}
                                                                 href={link.url || '#'}
                                                                 className={`relative inline-flex items-center px-4 py-2 text-sm font-medium transition-colors ${link.active
                                                                     ? 'bg-blue-600 text-white'
-                                                                    : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border-r border-white/10 last:border-r-0'
+                                                                    : isDark ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 hover:text-gray-100 border-r border-gray-700 last:border-r-0' : 'bg-white text-gray-700 hover:bg-gray-50 border-r border-gray-300 last:border-r-0'
                                                                     }`}
                                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                                             />
@@ -956,9 +958,9 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
 
                     {/* Quick Stats for Gig Workers */}
                     {!isEmployer && filteredJobs.length > 0 && (
-                        <div className={isDark ? "mt-12 bg-white/5 border border-white/10 rounded-xl p-8" : "mt-12 bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-xl p-8 shadow-lg"}>
-                            <h3 className={isDark ? "text-2xl font-bold text-white mb-6" : "text-2xl font-bold text-blue-900 mb-6"}>Market Insights</h3>
-                            <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${isDark ? 'text-white/80' : 'text-blue-800'}`}>
+                        <div className={isDark ? "mt-12 bg-gray-800 border border-gray-700 rounded-xl p-8" : "mt-12 bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-xl p-8 shadow-lg"}>
+                            <h3 className={isDark ? "text-2xl font-bold text-gray-100 mb-6" : "text-2xl font-bold text-blue-900 mb-6"}>Market Insights</h3>
+                            <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${isDark ? 'text-gray-200' : 'text-blue-800'}`}>
                                 <div className="text-center">
                                     <div className={isDark ? "font-semibold text-blue-400 mb-2" : "font-semibold text-blue-700 mb-2"}>Filtered Jobs</div>
                                     <div className={isDark ? "text-3xl font-bold text-blue-400" : "text-3xl font-bold text-blue-600"}>{filteredJobs.length}</div>
@@ -982,46 +984,46 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                     {/* Footer for Gig Worker Dashboard (same as Welcome page) */}
                     {!isEmployer && (
                         <div className="mt-10 -mx-4 sm:-mx-6 lg:-mx-8">
-                            <div className="bg-[#05070A] px-4 sm:px-6 lg:px-8 py-8">
+                            <div className={isDark ? "bg-gray-900 px-4 sm:px-6 lg:px-8 py-8" : "bg-gray-50 px-4 sm:px-6 lg:px-8 py-8"}>
                                 <div className="max-w-7xl mx-auto">
-                                    <footer className="border-t border-white/5 pt-8">
+                                    <footer className={isDark ? "border-t border-gray-700 pt-8" : "border-t border-gray-200 pt-8"}>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                                             <div>
-                                                <h3 className="text-xl font-black text-white mb-3">WorkWise</h3>
-                                                <p className="text-white/40 text-sm leading-relaxed">
+                                                <h3 className={isDark ? "text-xl font-black text-gray-100 mb-3" : "text-xl font-black text-gray-900 mb-3"}>WorkWise</h3>
+                                                <p className={isDark ? "text-gray-400 text-sm leading-relaxed" : "text-gray-600 text-sm leading-relaxed"}>
                                                     The future of work, powered by elite intelligence and seamless collaboration.
                                                 </p>
                                             </div>
 
                                             <div>
-                                                <h4 className="font-bold text-white mb-3 uppercase tracking-widest text-xs">For Talent</h4>
-                                                <ul className="space-y-2 text-white/40 text-sm">
-                                                    <li><Link href="/jobs" className="hover:text-blue-500 transition-colors">Browse Gigs</Link></li>
-                                                    <li><Link href="/ai/recommendations" className="hover:text-blue-500 transition-colors">AI Recommendations</Link></li>
-                                                    <li><Link href={safeRoute('role.selection')} className="hover:text-blue-500 transition-colors">Join as Expert</Link></li>
+                                                <h4 className={isDark ? "font-bold text-gray-100 mb-3 uppercase tracking-widest text-xs" : "font-bold text-gray-900 mb-3 uppercase tracking-widest text-xs"}>For Talent</h4>
+                                                <ul className={isDark ? "space-y-2 text-gray-400 text-sm" : "space-y-2 text-gray-600 text-sm"}>
+                                                    <li><Link href="/jobs" className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>Browse Gigs</Link></li>
+                                                    <li><Link href="/ai/recommendations" className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>AI Recommendations</Link></li>
+                                                    <li><Link href={safeRoute('role.selection')} className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>Join as Expert</Link></li>
                                                 </ul>
                                             </div>
 
                                             <div>
-                                                <h4 className="font-bold text-white mb-3 uppercase tracking-widest text-xs">For Companies</h4>
-                                                <ul className="space-y-2 text-white/40 text-sm">
-                                                    <li><Link href="/freelancers" className="hover:text-blue-500 transition-colors">Find Experts</Link></li>
-                                                    <li><Link href="/jobs/create" className="hover:text-blue-500 transition-colors">Post a Project</Link></li>
-                                                    <li><Link href={safeRoute('role.selection')} className="hover:text-blue-500 transition-colors">Scale Your Team</Link></li>
+                                                <h4 className={isDark ? "font-bold text-gray-100 mb-3 uppercase tracking-widest text-xs" : "font-bold text-gray-900 mb-3 uppercase tracking-widest text-xs"}>For Companies</h4>
+                                                <ul className={isDark ? "space-y-2 text-gray-400 text-sm" : "space-y-2 text-gray-600 text-sm"}>
+                                                    <li><Link href="/freelancers" className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>Find Experts</Link></li>
+                                                    <li><Link href="/jobs/create" className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>Post a Project</Link></li>
+                                                    <li><Link href={safeRoute('role.selection')} className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>Scale Your Team</Link></li>
                                                 </ul>
                                             </div>
 
                                             <div>
-                                                <h4 className="font-bold text-white mb-3 uppercase tracking-widest text-xs">Platform</h4>
-                                                <ul className="space-y-2 text-white/40 text-sm">
-                                                    <li><Link href="/help" className="hover:text-blue-500 transition-colors">Help Center</Link></li>
-                                                    <li><Link href="/about" className="hover:text-blue-500 transition-colors">Our Vision</Link></li>
-                                                    <li><Link href="/privacy" className="hover:text-blue-500 transition-colors">Privacy</Link></li>
+                                                <h4 className={isDark ? "font-bold text-gray-100 mb-3 uppercase tracking-widest text-xs" : "font-bold text-gray-900 mb-3 uppercase tracking-widest text-xs"}>Platform</h4>
+                                                <ul className={isDark ? "space-y-2 text-gray-400 text-sm" : "space-y-2 text-gray-600 text-sm"}>
+                                                    <li><Link href="/help" className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>Help Center</Link></li>
+                                                    <li><Link href="/about" className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>Our Vision</Link></li>
+                                                    <li><Link href="/privacy" className={isDark ? "hover:text-blue-500 transition-colors" : "hover:text-blue-600 transition-colors"}>Privacy</Link></li>
                                                 </ul>
                                             </div>
                                         </div>
 
-                                        <div className="border-t border-white/5 py-5 text-center text-white/20 text-sm font-medium">
+                                        <div className={`border-t py-5 text-center text-gray-500 text-sm font-medium ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                                             <p>&copy; 2024 WorkWise. Built for the Next Generation.</p>
                                         </div>
                                     </footer>
@@ -1078,7 +1080,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
 
             <style>{`
                 body {
-                    background: ${isDark ? '#05070A' : 'white'};
+                    background: ${isDark ? '#111827' : 'white'};
                     color: ${isDark ? '#e5e7eb' : '#333'};
                     font-family: 'Inter', sans-serif;
                 }

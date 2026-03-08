@@ -295,7 +295,21 @@ class ContractController extends Controller
                 'user_id' => $user->id,
                 'reason' => 'canUserSign returned false'
             ]);
-            abort(403, 'You are not authorized to sign this contract or have already signed it');
+            $contract->load([
+                'employer',
+                'gigWorker',
+                'job',
+                'project',
+                'bid',
+                'signatures'
+            ]);
+            return Inertia::render('Contracts/OptimizedSign', [
+                'contract' => $contract,
+                'userRole' => $userRole,
+                'user' => $user,
+                'signNotAllowed' => true,
+                'signNotAllowedMessage' => 'You are not authorized to sign this contract or have already signed it',
+            ]);
         }
 
         $contract->load([

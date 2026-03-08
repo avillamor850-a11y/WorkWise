@@ -3,8 +3,10 @@ import React, { useMemo, useState } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { useTheme } from "@/Contexts/ThemeContext";
 import Pagination from "@/Components/Pagination";
 import usePagination from "@/Hooks/usePagination";
+import { resolveProfileImageUrl } from "@/utils/avatarUrl.js";
 
 export default function Recommendations({
     recommendations,
@@ -17,8 +19,9 @@ export default function Recommendations({
     openJobs = [],
     singleJobId = null,
 }) {
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
     const isGigWorker = userType === "gig_worker";
-    const isDark = pageTitle === "AI Match" || pageTitle === "AI Recommendations";
     const isAimatchPage = pageTitle === "AI Match";
 
     const effectiveBannerTitle = bannerTitle ?? (isGigWorker ? "AI-Powered Job Recommendations" : "AI-Matched Gig Workers");
@@ -452,7 +455,7 @@ export default function Recommendations({
     const renderFreelancerRecommendations = (items, filtersApplied) => {
         if (!items || items.length === 0) {
             return (
-                <div className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
+                <div className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
                     <div className="p-8 text-center">
                         <div className="text-6xl mb-4">🔍</div>
 
@@ -462,7 +465,7 @@ export default function Recommendations({
                                 : "No Job Matches Found"}
                         </h3>
 
-                        <p className={isDark ? "text-white/60" : "text-gray-600"}>
+                        <p className={isDark ? "text-gray-400" : "text-gray-600"}>
                             {filtersApplied
                                 ? "Try adjusting your filters to see more AI recommendations."
                                 : "We couldn't find any jobs matching your current skills and experience. Try updating your profile with more skills or check back later for new opportunities."}
@@ -479,7 +482,7 @@ export default function Recommendations({
                         <div
                             key={index}
                             className={isDark
-                                ? "bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border-l-4 border-blue-500 border border-white/10 hover:border-blue-500/30 transition-all duration-200"
+                                ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border-l-4 border-blue-500 border border-gray-700 hover:border-blue-500/30 transition-all duration-200"
                                 : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border-l-4 border-blue-500 border border-gray-200"
                             }
                         >
@@ -487,7 +490,7 @@ export default function Recommendations({
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-2xl">💼</span>
+                                            <span className="text-2xl"></span>
 
                                             <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
                                                 <Link
@@ -502,7 +505,7 @@ export default function Recommendations({
                                             </h3>
                                         </div>
 
-                                        <div className={`text-sm flex items-center gap-4 ${isDark ? "text-white/60" : "text-gray-600"}`}>
+                                        <div className={`text-sm flex items-center gap-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                                             <span>
                                                 Posted by:{" "}
                                                 <span className="font-medium">
@@ -512,7 +515,7 @@ export default function Recommendations({
                                             </span>
 
                                             {match.job.experience_level && (
-                                                <span className={isDark ? "px-3 py-1 bg-white/10 text-white/80 rounded-xl text-sm font-medium border border-white/10" : "px-3 py-1 bg-gray-100 rounded-xl text-sm font-medium shadow-md"}>
+                                                <span className={isDark ? "px-3 py-1 bg-gray-700 text-gray-200 rounded-xl text-sm font-medium border border-gray-700" : "px-3 py-1 bg-gray-100 rounded-xl text-sm font-medium shadow-md"}>
                                                     {match.job.experience_level
                                                         .charAt(0)
                                                         .toUpperCase() +
@@ -531,7 +534,7 @@ export default function Recommendations({
                                             {match.score}%
                                         </div>
 
-                                        <div className={isDark ? "text-xs text-white/50 font-medium" : "text-xs text-gray-500 font-medium"}>
+                                        <div className={isDark ? "text-xs text-gray-500 font-medium" : "text-xs text-gray-500 font-medium"}>
                                             {match.score >= 80
                                                 ? "🎯 Excellent"
                                                 : match.score >= 60
@@ -550,7 +553,7 @@ export default function Recommendations({
                                         matches your profile:
                                     </h4>
 
-                                    <p className={isDark ? "text-white/70 leading-relaxed" : "text-gray-700 leading-relaxed"}>
+                                    <p className={isDark ? "text-gray-200 leading-relaxed" : "text-gray-700 leading-relaxed"}>
                                         {match.reason}
                                     </p>
                                 </div>
@@ -558,7 +561,7 @@ export default function Recommendations({
                                 {match.job.required_skills &&
                                     match.job.required_skills.length > 0 && (
                                         <div className="mb-4">
-                                            <h4 className={`text-xs font-medium mb-2 ${isDark ? "text-white/70" : "text-gray-700"}`}>
+                                            <h4 className={`text-xs font-medium mb-2 ${isDark ? "text-gray-200" : "text-gray-700"}`}>
                                                 Required Skills:
                                             </h4>
 
@@ -583,13 +586,13 @@ export default function Recommendations({
                                         </div>
                                     )}
 
-                                <div className={`flex justify-between items-center pt-4 ${isDark ? "border-t border-white/10" : "border-t border-gray-200"}`}>
-                                    <div className={isDark ? "text-sm text-white/60" : "text-sm text-gray-600"}>
+                                <div className={`flex justify-between items-center pt-4 ${isDark ? "border-t border-gray-700" : "border-t border-gray-200"}`}>
+                                    <div className={isDark ? "text-sm text-gray-400" : "text-sm text-gray-600"}>
                                         <span className="font-medium">Budget:</span>{" "}
                                         {match.job.budget_display ||
                                             `₱${match.job.budget_min || 0} - ₱${match.job.budget_max || 0}`}
                                         {match.job.budget_type && (
-                                            <span className={isDark ? "text-xs text-white/50 ml-1" : "text-xs text-gray-500 ml-1"}>
+                                            <span className={isDark ? "text-xs text-gray-500 ml-1" : "text-xs text-gray-500 ml-1"}>
                                                 ({match.job.budget_type})
                                             </span>
                                         )}
@@ -638,7 +641,7 @@ export default function Recommendations({
 
         if (!entries.length || totalMatches === 0) {
             return (
-                <div className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
+                <div className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
                     <div className="p-8 text-center">
                         <div className="text-6xl mb-4">👥</div>
 
@@ -648,7 +651,7 @@ export default function Recommendations({
                                 : "No AI Matches Available"}
                         </h3>
 
-                        <p className={isDark ? "text-white/60" : "text-gray-600"}>
+                        <p className={isDark ? "text-gray-400" : "text-gray-600"}>
                             {filtersApplied
                                 ? "Try expanding your filters to discover more potential gig workers."
                                 : "We could not find gig workers that match your current job postings. Check back soon or adjust your requirements."}
@@ -695,7 +698,7 @@ export default function Recommendations({
                         return (
                             <div
                                 key={jobId}
-                                className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10 hover:border-blue-500/30 transition-all duration-200" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}
+                                className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700 hover:border-blue-500/30 transition-all duration-200" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}
                             >
                                 <div className="p-8">
                                     <h3 className={`text-lg font-semibold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}>
@@ -705,7 +708,7 @@ export default function Recommendations({
 
                                     <div className="space-y-4">
                                         {showEmptyState ? (
-                                            <div className={`text-center py-8 ${isDark ? "text-white/50" : "text-gray-500"}`}>
+                                            <div className={`text-center py-8 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
                                                 <p>
                                                     No matching gig workers found
                                                     for this job.
@@ -747,7 +750,14 @@ export default function Recommendations({
                                                                         <div className="flex justify-between items-start">
                                                                             <div className="flex-1 flex gap-4">
                                                                                 <img
-                                                                                    src={worker.profile_picture ? `/storage/${worker.profile_picture}` : `https://ui-avatars.com/api/?name=${worker.first_name}+${worker.last_name}&background=random`}
+                                                                                    src={(() => {
+                                                                                        const raw = worker.profile_picture;
+                                                                                        const resolved = resolveProfileImageUrl(raw) || `https://ui-avatars.com/api/?name=${worker.first_name}+${worker.last_name}&background=random`;
+                                                                                        // #region agent log
+                                                                                        if (raw && typeof fetch !== 'undefined') fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c62b29'},body:JSON.stringify({sessionId:'c62b29',location:'Recommendations.jsx:profile_img',message:'Profile img URL',data:{raw,resolved:resolved.substring(0,80),noDoubleSlash:!resolved.includes('//')},timestamp:Date.now(),hypothesisId:'H1',runId:'post-fix'})}).catch(()=>{});
+                                                                                        // #endregion
+                                                                                        return resolved;
+                                                                                    })()}
                                                                                     alt={`${worker.first_name} ${worker.last_name}`}
                                                                                     className="w-16 h-16 rounded-full object-cover shadow-sm bg-white"
                                                                                 />
@@ -760,7 +770,7 @@ export default function Recommendations({
                                                                                     <div className={isDark ? "text-sm font-medium text-blue-400 mt-0.5" : "text-sm font-medium text-blue-600 mt-0.5"}>
                                                                                         {worker.professional_title || "Gig Worker"}
                                                                                     </div>
-                                                                                    <div className={isDark ? "text-xs text-white/60 mt-1 flex flex-col gap-1" : "text-xs text-gray-600 mt-1 flex flex-col gap-1"}>
+                                                                                    <div className={isDark ? "text-xs text-gray-400 mt-1 flex flex-col gap-1" : "text-xs text-gray-600 mt-1 flex flex-col gap-1"}>
                                                                                         <div className="flex items-center gap-2 flex-wrap">
                                                                                             <span className="flex items-center gap-1">
                                                                                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -797,7 +807,7 @@ export default function Recommendations({
                                                                                     %
                                                                                 </div>
 
-                                                                                <div className={isDark ? "text-sm text-white/50" : "text-sm text-gray-500"}>
+                                                                                <div className={isDark ? "text-sm text-gray-500" : "text-sm text-gray-500"}>
                                                                                     Match
                                                                                     Score
                                                                                 </div>
@@ -805,7 +815,7 @@ export default function Recommendations({
                                                                         </div>
 
                                                                         <div className={isDark ? "bg-green-500/20 rounded-xl p-4 mt-3 border border-green-500/30" : "bg-green-100 rounded-xl p-4 mt-3 shadow-sm"}>
-                                                                            <p className={isDark ? "text-sm text-white/80" : "text-sm text-gray-700"}>
+                                                                            <p className={isDark ? "text-sm text-gray-200" : "text-sm text-gray-700"}>
                                                                                 {
                                                                                     match.reason
                                                                                 }
@@ -836,7 +846,7 @@ export default function Recommendations({
                                                                 )
                                                             </h4>
 
-                                                            <p className={isDark ? "text-xs text-white/60" : "text-xs text-gray-600"}>
+                                                            <p className={isDark ? "text-xs text-gray-400" : "text-xs text-gray-600"}>
                                                                 These gig workers
                                                                 have relevant skills
                                                                 and could be a good
@@ -859,7 +869,14 @@ export default function Recommendations({
                                                                         <div className="flex justify-between items-start">
                                                                             <div className="flex-1 flex gap-4">
                                                                                 <img
-                                                                                    src={worker.profile_picture ? `/storage/${worker.profile_picture}` : `https://ui-avatars.com/api/?name=${worker.first_name}+${worker.last_name}&background=random`}
+                                                                                    src={(() => {
+                                                                                        const raw = worker.profile_picture;
+                                                                                        const resolved = resolveProfileImageUrl(raw) || `https://ui-avatars.com/api/?name=${worker.first_name}+${worker.last_name}&background=random`;
+                                                                                        // #region agent log
+                                                                                        if (raw && typeof fetch !== 'undefined') fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c62b29'},body:JSON.stringify({sessionId:'c62b29',location:'Recommendations.jsx:profile_img',message:'Profile img URL',data:{raw,resolved:resolved.substring(0,80),noDoubleSlash:!resolved.includes('//')},timestamp:Date.now(),hypothesisId:'H1',runId:'post-fix'})}).catch(()=>{});
+                                                                                        // #endregion
+                                                                                        return resolved;
+                                                                                    })()}
                                                                                     alt={`${worker.first_name} ${worker.last_name}`}
                                                                                     className="w-16 h-16 rounded-full object-cover shadow-sm bg-white"
                                                                                 />
@@ -872,7 +889,7 @@ export default function Recommendations({
                                                                                     <div className={isDark ? "text-sm font-medium text-blue-400 mt-0.5" : "text-sm font-medium text-blue-600 mt-0.5"}>
                                                                                         {worker.professional_title || "Gig Worker"}
                                                                                     </div>
-                                                                                    <div className={isDark ? "text-xs text-white/60 mt-1 flex flex-col gap-1" : "text-xs text-gray-600 mt-1 flex flex-col gap-1"}>
+                                                                                    <div className={isDark ? "text-xs text-gray-400 mt-1 flex flex-col gap-1" : "text-xs text-gray-600 mt-1 flex flex-col gap-1"}>
                                                                                         <div className="flex items-center gap-2 flex-wrap">
                                                                                             <span className="flex items-center gap-1">
                                                                                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -909,7 +926,7 @@ export default function Recommendations({
                                                                                     %
                                                                                 </div>
 
-                                                                                <div className={isDark ? "text-sm text-white/50" : "text-sm text-gray-500"}>
+                                                                                <div className={isDark ? "text-sm text-gray-500" : "text-sm text-gray-500"}>
                                                                                     Match
                                                                                     Score
                                                                                 </div>
@@ -917,7 +934,7 @@ export default function Recommendations({
                                                                         </div>
 
                                                                         <div className={isDark ? "bg-blue-500/20 rounded-xl p-4 mt-3 border border-blue-500/30" : "bg-blue-100 rounded-xl p-4 mt-3 shadow-sm"}>
-                                                                            <p className={isDark ? "text-sm text-white/80" : "text-sm text-gray-700"}>
+                                                                            <p className={isDark ? "text-sm text-gray-200" : "text-sm text-gray-700"}>
                                                                                 {
                                                                                     match.reason
                                                                                 }
@@ -951,7 +968,7 @@ export default function Recommendations({
                                                                 )
                                                             </h4>
 
-                                                            <p className={isDark ? "text-xs text-white/60" : "text-xs text-gray-600"}>
+                                                            <p className={isDark ? "text-xs text-gray-400" : "text-xs text-gray-600"}>
                                                                 These gig workers
                                                                 show some relevant
                                                                 background and could
@@ -974,7 +991,14 @@ export default function Recommendations({
                                                                         <div className="flex justify-between items-start">
                                                                             <div className="flex-1 flex gap-4">
                                                                                 <img
-                                                                                    src={worker.profile_picture ? `/storage/${worker.profile_picture}` : `https://ui-avatars.com/api/?name=${worker.first_name}+${worker.last_name}&background=random`}
+                                                                                    src={(() => {
+                                                                                        const raw = worker.profile_picture;
+                                                                                        const resolved = resolveProfileImageUrl(raw) || `https://ui-avatars.com/api/?name=${worker.first_name}+${worker.last_name}&background=random`;
+                                                                                        // #region agent log
+                                                                                        if (raw && typeof fetch !== 'undefined') fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c62b29'},body:JSON.stringify({sessionId:'c62b29',location:'Recommendations.jsx:profile_img',message:'Profile img URL',data:{raw,resolved:resolved.substring(0,80),noDoubleSlash:!resolved.includes('//')},timestamp:Date.now(),hypothesisId:'H1',runId:'post-fix'})}).catch(()=>{});
+                                                                                        // #endregion
+                                                                                        return resolved;
+                                                                                    })()}
                                                                                     alt={`${worker.first_name} ${worker.last_name}`}
                                                                                     className="w-16 h-16 rounded-full object-cover shadow-sm bg-white"
                                                                                 />
@@ -987,7 +1011,7 @@ export default function Recommendations({
                                                                                     <div className={isDark ? "text-sm font-medium text-blue-400 mt-0.5" : "text-sm font-medium text-blue-600 mt-0.5"}>
                                                                                         {worker.professional_title || "Gig Worker"}
                                                                                     </div>
-                                                                                    <div className={isDark ? "text-xs text-white/60 mt-1 flex flex-col gap-1" : "text-xs text-gray-600 mt-1 flex flex-col gap-1"}>
+                                                                                    <div className={isDark ? "text-xs text-gray-400 mt-1 flex flex-col gap-1" : "text-xs text-gray-600 mt-1 flex flex-col gap-1"}>
                                                                                         <div className="flex items-center gap-2 flex-wrap">
                                                                                             <span className="flex items-center gap-1">
                                                                                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -1007,7 +1031,7 @@ export default function Recommendations({
                                                                                             )}
                                                                                         </div>
                                                                                         {(worker.city || worker.country) && (
-                                                                                            <div className={isDark ? "flex items-center gap-1 mt-0.5 text-white/50" : "flex items-center gap-1 mt-0.5 text-gray-500"}>
+                                                                                            <div className={isDark ? "flex items-center gap-1 mt-0.5 text-gray-500" : "flex items-center gap-1 mt-0.5 text-gray-500"}>
                                                                                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                                                                                 {[worker.city, worker.country].filter(Boolean).join(", ")}
                                                                                             </div>
@@ -1024,7 +1048,7 @@ export default function Recommendations({
                                                                                     %
                                                                                 </div>
 
-                                                                                <div className={isDark ? "text-sm text-white/50" : "text-sm text-gray-500"}>
+                                                                                <div className={isDark ? "text-sm text-gray-500" : "text-sm text-gray-500"}>
                                                                                     Match
                                                                                     Score
                                                                                 </div>
@@ -1032,7 +1056,7 @@ export default function Recommendations({
                                                                         </div>
 
                                                                         <div className={isDark ? "bg-amber-500/20 rounded-xl p-4 mt-3 border border-amber-500/30" : "bg-yellow-100 rounded-xl p-4 mt-3 shadow-sm"}>
-                                                                            <p className={isDark ? "text-sm text-white/80" : "text-sm text-gray-700"}>
+                                                                            <p className={isDark ? "text-sm text-gray-200" : "text-sm text-gray-700"}>
                                                                                 {
                                                                                     match.reason
                                                                                 }
@@ -1093,7 +1117,7 @@ export default function Recommendations({
                 rel="stylesheet"
             />
 
-            <div className={`relative py-12 overflow-hidden ${isDark ? "min-h-screen bg-[#05070A] font-sans" : "bg-white"}`} style={isDark ? { fontFamily: "Inter, system-ui, sans-serif" } : undefined}>
+            <div className={`relative py-12 overflow-hidden ${isDark ? "min-h-screen bg-gray-900 font-sans" : "bg-white"}`} style={isDark ? { fontFamily: "Inter, system-ui, sans-serif" } : undefined}>
                 {isDark ? (
                     <div className="fixed inset-0 pointer-events-none overflow-hidden">
                         <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-600/5 rounded-full blur-[120px]" />
@@ -1111,7 +1135,7 @@ export default function Recommendations({
 
                 <div className="relative z-20 max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className={isDark
-                        ? "bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl mb-8 border border-white/10"
+                        ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl mb-8 border border-gray-700"
                         : "bg-gradient-to-r from-blue-600 to-indigo-600 overflow-hidden shadow-xl sm:rounded-xl mb-8 border border-blue-500"
                     }>
                         <div className={isDark ? "p-8 text-white" : "p-8 text-white"}>
@@ -1126,7 +1150,7 @@ export default function Recommendations({
                                     onClick={handleRefresh}
                                     disabled={isRefreshing}
                                     className={isDark
-                                        ? "ml-auto flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold transition-all border border-white/10"
+                                        ? "ml-auto flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-semibold transition-all border border-gray-700"
                                         : "ml-auto flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-sm font-semibold transition-all"
                                     }
                                     style={isRefreshing ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
@@ -1138,11 +1162,11 @@ export default function Recommendations({
                                 </button>
                             </div>
 
-                            <p className={isDark ? "text-white/70" : "text-blue-100"}>
+                            <p className={isDark ? "text-gray-200" : "text-blue-100"}>
                                 {effectiveBannerDescription}
                             </p>
 
-                            <div className={`mt-4 flex items-center gap-4 text-sm ${isDark ? "text-white/60" : "text-blue-100"}`}>
+                            <div className={`mt-4 flex items-center gap-4 text-sm ${isDark ? "text-gray-400" : "text-blue-100"}`}>
                                 <span className="flex items-center gap-1">
                                     <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                                     80-100%: Excellent Match
@@ -1163,256 +1187,256 @@ export default function Recommendations({
 
                     <div className={isAimatchPage ? "" : "grid gap-6 lg:grid-cols-[320px_1fr]"}>
                         {!isAimatchPage && (
-                        <aside className={isDark
-                            ? "bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 lg:sticky lg:top-24 h-max"
-                            : "bg-white/90 backdrop-blur-md border-2 border-blue-200 rounded-xl shadow-2xl p-6 lg:sticky lg:top-24 h-max ring-1 ring-blue-100"
-                        }>
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
-                                    Filter Recommendations
-                                </h3>
+                            <aside className={isDark
+                                ? "bg-gray-800 backdrop-blur-sm border border-gray-700 rounded-xl p-6 lg:sticky lg:top-24 h-max"
+                                : "bg-white/90 backdrop-blur-md border-2 border-blue-200 rounded-xl shadow-2xl p-6 lg:sticky lg:top-24 h-max ring-1 ring-blue-100"
+                            }>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+                                        Filter Recommendations
+                                    </h3>
 
-                                {hasActiveFilters && (
-                                    <button
-                                        type="button"
-                                        onClick={clearFilters}
-                                        className={isDark ? "text-sm font-medium text-blue-400 hover:text-blue-300" : "text-sm font-medium text-blue-600 hover:text-blue-700"}
-                                    >
-                                        Reset
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="space-y-6">
-                                <div>
-                                    <label className={`block text-sm font-medium mb-2 ${isDark ? "text-white/80" : "text-gray-700"}`}>
-                                        Experience Level
-                                    </label>
-
-                                    <select
-                                        value={filters.experience}
-                                        onChange={(event) =>
-                                            setFilters((current) => ({
-                                                ...current,
-
-                                                experience: event.target.value,
-                                            }))
-                                        }
-                                        className={isDark
-                                            ? "w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            : "w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        }
-                                    >
-                                        {experienceOptions.map((option) => (
-                                            <option
-                                                key={option.value}
-                                                value={option.value}
-                                                {...(isDark && { style: { backgroundColor: "#0d1014", color: "#e5e7eb" } })}
-                                            >
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {hasActiveFilters && (
+                                        <button
+                                            type="button"
+                                            onClick={clearFilters}
+                                            className={isDark ? "text-sm font-medium text-blue-400 hover:text-blue-300" : "text-sm font-medium text-blue-600 hover:text-blue-700"}
+                                        >
+                                            Reset
+                                        </button>
+                                    )}
                                 </div>
 
-                                <div>
-                                    <label className={`block text-sm font-medium mb-2 ${isDark ? "text-white/80" : "text-gray-700"}`}>
-                                        Budget Range{" "}
-                                        {isGigWorker
-                                            ? "(Job)"
-                                            : "(Hourly Rate)"}
-                                    </label>
-
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            placeholder="Min"
-                                            value={filters.budgetMin}
-                                            onChange={handleBudgetChange(
-                                                "budgetMin",
-                                            )}
-                                            className={isDark
-                                                ? "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/40 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                : "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            }
-                                        />
-
-                                        <span className={isDark ? "text-sm text-white/50" : "text-sm text-gray-500"}>
-                                            -
-                                        </span>
-
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            placeholder="Max"
-                                            value={filters.budgetMax}
-                                            onChange={handleBudgetChange(
-                                                "budgetMax",
-                                            )}
-                                            className={isDark
-                                                ? "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/40 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                : "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            }
-                                        />
-                                    </div>
-
-                                    <p className={`mt-2 text-xs ${isDark ? "text-white/50" : "text-gray-500"}`}>
-                                        Set either value to narrow the
-                                        recommendations by{" "}
-                                        {isGigWorker
-                                            ? "job budget"
-                                            : "candidate rate"}
-                                        .
-                                    </p>
-                                </div>
-
-                                <div className="relative">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className={`block text-sm font-medium ${isDark ? "text-white/80" : "text-gray-700"}`}>
-                                            Required Skills
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-200" : "text-gray-700"}`}>
+                                            Experience Level
                                         </label>
-                                        {availableSkills.length > 0 && (
-                                            <span className={isDark ? "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500/30" : "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"}>
-                                                {availableSkills.length} available
-                                            </span>
-                                        )}
+
+                                        <select
+                                            value={filters.experience}
+                                            onChange={(event) =>
+                                                setFilters((current) => ({
+                                                    ...current,
+
+                                                    experience: event.target.value,
+                                                }))
+                                            }
+                                            className={isDark
+                                                ? "w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-100 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                : "w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            }
+                                        >
+                                            {experienceOptions.map((option) => (
+                                                <option
+                                                    key={option.value}
+                                                    value={option.value}
+                                                    {...(isDark && { style: { backgroundColor: "#111827", color: "#e5e7eb" } })}
+                                                >
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setIsSkillDropdownOpen(
-                                                (open) => !open,
-                                            )
-                                        }
-                                        className={isDark
-                                            ? "flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white shadow-sm hover:border-blue-500/50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                                            : "flex w-full items-center justify-between rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-blue-400 hover:shadow-md focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                                        }
-                                    >
-                                        <span>
-                                            {filters.skills.length
-                                                ? `${filters.skills.length} skill${filters.skills.length > 1 ? "s" : ""} selected`
-                                                : "Select skills"}
-                                        </span>
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-200" : "text-gray-700"}`}>
+                                            Budget Range{" "}
+                                            {isGigWorker
+                                                ? "(Job)"
+                                                : "(Hourly Rate)"}
+                                        </label>
 
-                                        <span className={isDark ? "text-xs text-white/50" : "text-xs text-gray-500"}>
-                                            {isSkillDropdownOpen ? "▲" : "▼"}
-                                        </span>
-                                    </button>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                placeholder="Min"
+                                                value={filters.budgetMin}
+                                                onChange={handleBudgetChange(
+                                                    "budgetMin",
+                                                )}
+                                                className={isDark
+                                                    ? "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    : "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                }
+                                            />
 
-                                    {isSkillDropdownOpen && (
-                                        <div className={isDark
-                                            ? "absolute left-0 right-0 z-20 mt-2 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-[#0A0D12] p-3 shadow-xl"
-                                            : "absolute left-0 right-0 z-20 mt-2 max-h-60 overflow-y-auto rounded-xl border-2 border-blue-200 bg-white p-3 shadow-2xl ring-1 ring-blue-100"
-                                        }>
-                                            {availableSkills.length > 0 ? (
-                                                <>
-                                                    <div className={isDark ? "mb-2 pb-2 border-b border-white/10" : "mb-2 pb-2 border-b border-gray-200"}>
-                                                        <p className={`text-xs flex items-center gap-1 ${isDark ? "text-white/50" : "text-gray-500"}`}>
-                                                            <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                            </svg>
-                                                            Skills from AI recommendations
+                                            <span className={isDark ? "text-sm text-gray-500" : "text-sm text-gray-500"}>
+                                                -
+                                            </span>
+
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                placeholder="Max"
+                                                value={filters.budgetMax}
+                                                onChange={handleBudgetChange(
+                                                    "budgetMax",
+                                                )}
+                                                className={isDark
+                                                    ? "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    : "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                }
+                                            />
+                                        </div>
+
+                                        <p className={`mt-2 text-xs ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                                            Set either value to narrow the
+                                            recommendations by{" "}
+                                            {isGigWorker
+                                                ? "job budget"
+                                                : "candidate rate"}
+                                            .
+                                        </p>
+                                    </div>
+
+                                    <div className="relative">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className={`block text-sm font-medium ${isDark ? "text-gray-200" : "text-gray-700"}`}>
+                                                Required Skills
+                                            </label>
+                                            {availableSkills.length > 0 && (
+                                                <span className={isDark ? "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500/30" : "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"}>
+                                                    {availableSkills.length} available
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setIsSkillDropdownOpen(
+                                                    (open) => !open,
+                                                )
+                                            }
+                                            className={isDark
+                                                ? "flex w-full items-center justify-between rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-100 shadow-sm hover:border-blue-500/50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                                : "flex w-full items-center justify-between rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-blue-400 hover:shadow-md focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                            }
+                                        >
+                                            <span>
+                                                {filters.skills.length
+                                                    ? `${filters.skills.length} skill${filters.skills.length > 1 ? "s" : ""} selected`
+                                                    : "Select skills"}
+                                            </span>
+
+                                            <span className={isDark ? "text-xs text-gray-500" : "text-xs text-gray-500"}>
+                                                {isSkillDropdownOpen ? "▲" : "▼"}
+                                            </span>
+                                        </button>
+
+                                        {isSkillDropdownOpen && (
+                                            <div className={isDark
+                                                ? "absolute left-0 right-0 z-20 mt-2 max-h-60 overflow-y-auto rounded-xl border border-gray-700 bg-gray-800 p-3 shadow-xl"
+                                                : "absolute left-0 right-0 z-20 mt-2 max-h-60 overflow-y-auto rounded-xl border-2 border-blue-200 bg-white p-3 shadow-2xl ring-1 ring-blue-100"
+                                            }>
+                                                {availableSkills.length > 0 ? (
+                                                    <>
+                                                        <div className={isDark ? "mb-2 pb-2 border-b border-gray-700" : "mb-2 pb-2 border-b border-gray-200"}>
+                                                            <p className={`text-xs flex items-center gap-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                                                                <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Skills from AI recommendations
+                                                            </p>
+                                                        </div>
+                                                        {availableSkills.map((skill) => {
+                                                            const isSelected =
+                                                                filters.skills.some(
+                                                                    (selectedSkill) =>
+                                                                        selectedSkill.toLowerCase() ===
+                                                                        skill.toLowerCase(),
+                                                                );
+
+                                                            return (
+                                                                <label
+                                                                    key={skill}
+                                                                    className={isDark
+                                                                        ? "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-100 hover:bg-gray-800 cursor-pointer transition-colors duration-150"
+                                                                        : "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
+                                                                    }
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                                        checked={
+                                                                            isSelected
+                                                                        }
+                                                                        onChange={() =>
+                                                                            toggleSkillSelection(
+                                                                                skill,
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    <span className="flex-1">{skill}</span>
+                                                                    {isSelected && (
+                                                                        <svg className={`w-4 h-4 ${isDark ? "text-blue-400" : "text-blue-600"}`} fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                    )}
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </>
+                                                ) : (
+                                                    <div className="text-center py-4">
+                                                        <svg className={`mx-auto h-8 w-8 ${isDark ? "text-gray-500" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                                        </svg>
+                                                        <p className={`mt-2 text-sm ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                                                            No skills available yet
+                                                        </p>
+                                                        <p className={`mt-1 text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                                                            Skills will appear from AI recommendations
                                                         </p>
                                                     </div>
-                                                    {availableSkills.map((skill) => {
-                                                        const isSelected =
-                                                            filters.skills.some(
-                                                                (selectedSkill) =>
-                                                                    selectedSkill.toLowerCase() ===
-                                                                    skill.toLowerCase(),
-                                                            );
+                                                )}
+                                            </div>
+                                        )}
 
-                                                        return (
-                                                            <label
-                                                                key={skill}
-                                                                className={isDark
-                                                                    ? "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/90 hover:bg-white/5 cursor-pointer transition-colors duration-150"
-                                                                    : "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer transition-colors duration-150"
-                                                                }
-                                                            >
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                                                    checked={
-                                                                        isSelected
-                                                                    }
-                                                                    onChange={() =>
-                                                                        toggleSkillSelection(
-                                                                            skill,
-                                                                        )
-                                                                    }
-                                                                />
-                                                                <span className="flex-1">{skill}</span>
-                                                                {isSelected && (
-                                                                    <svg className={`w-4 h-4 ${isDark ? "text-blue-400" : "text-blue-600"}`} fill="currentColor" viewBox="0 0 20 20">
-                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                )}
-                                                            </label>
-                                                        );
-                                                    })}
-                                                </>
-                                            ) : (
-                                                <div className="text-center py-4">
-                                                    <svg className={`mx-auto h-8 w-8 ${isDark ? "text-white/40" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                                    </svg>
-                                                    <p className={`mt-2 text-sm ${isDark ? "text-white/50" : "text-gray-500"}`}>
-                                                        No skills available yet
-                                                    </p>
-                                                    <p className={`mt-1 text-xs ${isDark ? "text-white/40" : "text-gray-400"}`}>
-                                                        Skills will appear from AI recommendations
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                        <p className={`mt-2 text-xs flex items-center gap-1 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                            </svg>
+                                            Filter AI matches by required skills
+                                        </p>
 
-                                    <p className={`mt-2 text-xs flex items-center gap-1 ${isDark ? "text-white/50" : "text-gray-500"}`}>
-                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                        </svg>
-                                        Filter AI matches by required skills
-                                    </p>
-
-                                    {filters.skills.length > 0 && (
-                                        <div className="mt-3 flex flex-wrap gap-2">
-                                            {filters.skills.map((skill) => (
-                                                <span
-                                                    key={skill}
-                                                    className={isDark
-                                                        ? "inline-flex items-center gap-2 rounded-full bg-blue-500/20 border border-blue-500/30 px-3 py-1 text-xs font-medium text-blue-300"
-                                                        : "inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
-                                                    }
-                                                >
-                                                    {skill}
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            toggleSkillSelection(
-                                                                skill,
-                                                            )
+                                        {filters.skills.length > 0 && (
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {filters.skills.map((skill) => (
+                                                    <span
+                                                        key={skill}
+                                                        className={isDark
+                                                            ? "inline-flex items-center gap-2 rounded-full bg-blue-500/20 border border-blue-500/30 px-3 py-1 text-xs font-medium text-blue-300"
+                                                            : "inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
                                                         }
-                                                        className={isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-500 hover:text-blue-700"}
                                                     >
-                                                        x
-                                                    </button>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
+                                                        {skill}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                toggleSkillSelection(
+                                                                    skill,
+                                                                )
+                                                            }
+                                                            className={isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-500 hover:text-blue-700"}
+                                                        >
+                                                            x
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </aside>
+                            </aside>
                         )}
 
                         <div className="space-y-6">
                             {hasError ? (
-                                <div className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
+                                <div className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
                                     <div className="p-8 text-center">
                                         <div className="text-6xl mb-4">:(</div>
 
@@ -1421,7 +1445,7 @@ export default function Recommendations({
                                             Unavailable
                                         </h3>
 
-                                        <p className={isDark ? "text-white/60 mb-4" : "text-gray-600 mb-4"}>
+                                        <p className={isDark ? "text-gray-400 mb-4" : "text-gray-600 mb-4"}>
                                             We're experiencing high demand.
                                             Please try again in a few moments.
                                         </p>
@@ -1440,12 +1464,12 @@ export default function Recommendations({
                                     </div>
                                 </div>
                             ) : employerNeedsToChooseJob ? (
-                                <div className={isDark ? "bg-white/5 backdrop-blur-sm overflow-hidden rounded-xl border border-white/10" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
+                                <div className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700" : "bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200"}>
                                     <div className="p-8">
                                         <h3 className={`text-lg font-semibold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}>
                                             Choose a job to see AI matches
                                         </h3>
-                                        <p className={`text-sm mb-6 ${isDark ? "text-white/60" : "text-gray-600"}`}>
+                                        <p className={`text-sm mb-6 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                                             Select one of your open jobs below to view AI-matched gig workers or AI recommendations for that job.
                                         </p>
                                         <div className="space-y-3">
@@ -1454,12 +1478,12 @@ export default function Recommendations({
                                                     key={job.id}
                                                     href={window.location.pathname + "?job_id=" + job.id}
                                                     className={`flex items-center justify-between w-full rounded-xl border p-4 text-left transition-all ${isDark
-                                                        ? "border-white/10 bg-white/5 hover:border-blue-500/50 hover:bg-white/10"
+                                                        ? "border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-700"
                                                         : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <span className={isDark ? "font-medium text-white" : "font-medium text-gray-900"}>{job.title}</span>
-                                                    <span className={isDark ? "text-sm text-white/50" : "text-sm text-gray-500"}>
+                                                    <span className={isDark ? "text-sm text-gray-500" : "text-sm text-gray-500"}>
                                                         {job.created_at ? new Date(job.created_at).toLocaleDateString() : ""}
                                                     </span>
                                                 </Link>
@@ -1499,7 +1523,7 @@ export default function Recommendations({
 
             <style>{`
                 body {
-                    background: ${isDark ? "#05070A" : "white"};
+                    background: ${isDark ? "#111827" : "white"};
                     color: ${isDark ? "#e5e7eb" : "#333"};
                     font-family: 'Inter', sans-serif;
                 }

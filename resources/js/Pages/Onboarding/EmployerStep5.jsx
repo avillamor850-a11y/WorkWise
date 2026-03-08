@@ -70,7 +70,7 @@ export default function EmployerStep5Review({ data, onSubmit, onBack, submitting
                         {data.company_description && (
                             <div>
                                 <span className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Description</span>
-                                <p className="text-sm text-gray-700 line-clamp-3">{data.company_description}</p>
+                                <p className="text-sm text-gray-700 line-clamp-3 break-all">{data.company_description}</p>
                             </div>
                         )}
                     </div>

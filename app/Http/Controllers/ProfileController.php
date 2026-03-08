@@ -521,7 +521,7 @@ class ProfileController extends Controller
                     'job:id,title',
                     'reviews' => fn ($q) => $q->where('reviewer_id', $user->id)->limit(1),
                 ])
-                ->whereIn('status', ['completed', 'active'])
+                ->where('status', 'completed')
                 ->latest()
                 ->limit(5)
                 ->get(),
@@ -578,6 +578,7 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'company_name' => 'nullable|string|max:255',
             'industry' => 'nullable|string|max:255',
             'company_size' => 'nullable|string|max:255',
@@ -612,6 +613,7 @@ class ProfileController extends Controller
         // Text fields
         $user->first_name = $validated['first_name'];
         $user->last_name = $validated['last_name'];
+        $user->email = $validated['email'];
         $user->company_name = $validated['company_name'] ?? null;
         $user->industry = $validated['industry'] ?? null;
         $user->company_size = $validated['company_size'] ?? null;

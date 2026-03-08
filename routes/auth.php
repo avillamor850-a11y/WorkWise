@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
     // Role selection routes
-    Route::get('join', [RoleSelectionController::class, 'show'])
+    Route::get('role-selection', [RoleSelectionController::class, 'show'])
         ->name('role.selection');
 
-    Route::post('join', [RoleSelectionController::class, 'store'])
+    Route::post('role-selection', [RoleSelectionController::class, 'store'])
         ->withoutMiddleware(['csrf'])
         ->name('role.store');
 

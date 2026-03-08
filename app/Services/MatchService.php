@@ -265,39 +265,45 @@ class MatchService
 
     /**
      * Generate human-readable match explanation from match details
-     * 
+     *
      * @param array $matchResult Result from calculateSkillMatchScore()
      * @param array $jobSkills Result from getJobSkillsForMatching()
+     * @param string $audience 'worker' (you/your) or 'employer' (candidate/they)
      * @return string
      */
-    private function generateMatchExplanation(array $matchResult, array $jobSkills): string
+    private function generateMatchExplanation(array $matchResult, array $jobSkills, string $audience = 'worker'): string
     {
         $explanations = [];
-        
+        $forEmployer = $audience === 'employer';
+
         // Required skills summary
         if ($matchResult['required_total'] > 0) {
             $requiredPercent = round(($matchResult['required_matches'] / $matchResult['required_total']) * 100);
-            
+
             if ($matchResult['required_matches'] === $matchResult['required_total']) {
-                $explanations[] = "Perfect match on all {$matchResult['required_total']} required skills";
+                $explanations[] = $forEmployer
+                    ? "This candidate matches all {$matchResult['required_total']} required skills"
+                    : "Perfect match on all {$matchResult['required_total']} required skills";
             } elseif ($matchResult['required_matches'] > 0) {
                 $explanations[] = "Matches {$matchResult['required_matches']} of {$matchResult['required_total']} required skills ({$requiredPercent}%)";
             } else {
-                $explanations[] = "Missing required skills - consider upskilling";
+                $explanations[] = $forEmployer
+                    ? "Missing required skills; candidate may need to upskill"
+                    : "Missing required skills - consider upskilling";
             }
         }
-        
+
         // Preferred skills summary
         if ($matchResult['preferred_matches'] > 0) {
             $explanations[] = "Bonus: {$matchResult['preferred_matches']} preferred skill(s) matched";
         }
-        
+
         // Specific skill details
         if (!empty($matchResult['details'])) {
             $detailsText = implode(', ', array_slice($matchResult['details'], 0, 5));
             $explanations[] = $detailsText;
         }
-        
+
         // Skill gaps
         $missingRequired = $matchResult['required_total'] - $matchResult['required_matches'];
         if ($missingRequired > 0) {
@@ -314,21 +320,26 @@ class MatchService
                     $missingSkills[] = $requiredSkill['skill'];
                 }
             }
-            
+
             if (!empty($missingSkills)) {
                 $missingList = implode(', ', array_slice($missingSkills, 0, 3));
-                $explanations[] = "Consider learning: {$missingList}";
+                $explanations[] = $forEmployer
+                    ? "Candidate could strengthen profile with: {$missingList}"
+                    : "Consider learning: {$missingList}";
             }
         }
-        
+
         return implode('. ', $explanations);
     }
 
     /**
      * Get match score between a job and a gig worker using keyword matching as fallback
+     *
+     * @param string $audience 'worker' (you/your) or 'employer' (candidate/they)
      */
-    private function getFallbackMatch(GigJob $job, User $gigWorker): array
+    private function getFallbackMatch(GigJob $job, User $gigWorker, string $audience = 'worker'): array
     {
+        $forEmployer = $audience === 'employer';
         // Try to use structured skill matching if available
         $jobSkills = $this->getJobSkillsForMatching($job);
         
@@ -337,7 +348,7 @@ class MatchService
         // If worker has structured skills, use the new matching algorithm
         if (is_array($workerSkills) && !empty($workerSkills) && !empty($jobSkills['all_skill_names'])) {
             $matchResult = $this->calculateSkillMatchScore($jobSkills, $workerSkills);
-            $explanation = $this->generateMatchExplanation($matchResult, $jobSkills);
+            $explanation = $this->generateMatchExplanation($matchResult, $jobSkills, $audience);
             
             return [
                 'score' => (int) round($matchResult['score']),
@@ -355,7 +366,9 @@ class MatchService
         if (empty($workerSkillsLegacy) || empty($jobSkills['all_skill_names'])) {
             return [
                 'score' => 10, // Minimal score for having a profile
-                'reason' => 'Basic profile match - consider for general opportunities',
+                'reason' => $forEmployer
+                    ? 'Basic profile match - consider this candidate for general opportunities'
+                    : 'Basic profile match - consider for general opportunities',
                 'success' => true
             ];
         }
@@ -426,30 +439,35 @@ class MatchService
         // Add bonus for having skills even if not perfect match
         if (count($gigWorkerSkills) > 0 && $score < 30) {
             $score += 20; // Bonus for having any relevant skills
-            $reasons[] = "Shows relevant technical background";
+            $reasons[] = $forEmployer ? "Candidate shows relevant technical background" : "Shows relevant technical background";
         }
 
+        $defaultReason = $forEmployer ? 'Candidate shows potential for this role' : 'Profile shows potential for this role';
         return [
             'score' => (int) min(100, round($score)), // Cap at 100
             'reason' => count($reasons) > 0
                 ? implode('. ', $reasons)
-                : 'Profile shows potential for this role',
+                : $defaultReason,
             'success' => true
         ];
     }
 
     /**
      * Get match score between a job and a gig worker
+     *
+     * @param string $audience 'worker' (you/your) or 'employer' (candidate/they)
      */
-    public function getJobMatch(GigJob $job, User $gigWorker): array
+    public function getJobMatch(GigJob $job, User $gigWorker, string $audience = 'worker'): array
     {
         // If OpenRouter is not configured, use fallback matching
         if (!$this->isConfigured) {
-            return $this->getFallbackMatch($job, $gigWorker);
+            return $this->getFallbackMatch($job, $gigWorker, $audience);
         }
 
-        // Generate cache key
-        $cacheKey = "match_score_{$job->id}_{$gigWorker->id}";
+        // Generate cache key (include audience so employer and worker views are cached separately)
+        $cacheKey = $audience === 'employer'
+            ? "match_score_{$job->id}_{$gigWorker->id}_employer"
+            : "match_score_{$job->id}_{$gigWorker->id}";
 
         // Check cache first
         if (Cache::has($cacheKey)) {
@@ -512,12 +530,20 @@ class MatchService
                     : implode(', ', array_column($legacySkills, 'skill'));
             }
 
-            $gigWorkerText = "Your Profile:\n" .
+            $gigWorkerText = ($audience === 'employer' ? "CANDIDATE PROFILE:\n" : "Your Profile:\n") .
                             "Professional Title: {$professionalTitle}\n" .
                             "Skills: {$workerSkillsText}\n" .
                             "Experience Level: {$experienceLevel}\n" .
                             "Hourly Rate: ₱{$hourlyRate}\n" .
                             "Bio: " . substr($gigWorker->bio ?? 'No bio provided', 0, 150);
+
+            $forEmployer = $audience === 'employer';
+            $systemPrompt = $forEmployer
+                ? 'You are an expert AI career advisor for Philippine freelance job matching. You MUST analyze ONLY skills and experience compatibility. SCORING GUIDELINES: Give 80-100 for excellent skill matches (4+ direct skills), 60-79 for good matches (2-3 direct skills), 40-59 for fair matches (1-2 direct skills or many related skills), 20-39 for weak matches (only related/transferable skills), 0-19 for poor matches (minimal relevance). IMPORTANT: Describe the CANDIDATE (gig worker) for an employer. Use third person only: "This candidate has...", "Their experience...", "They lack...". Do NOT use "you" or "your" for the candidate. Use ₱ for currency. Format: "Score: X\nReason: [Detailed 2-3 sentence explanation with specific skill matches, experience alignment, and gaps]"'
+                : 'You are an expert AI career advisor for Philippine freelance job matching. You MUST analyze ONLY skills and experience compatibility. SCORING GUIDELINES: Give 80-100 for excellent skill matches (4+ direct skills), 60-79 for good matches (2-3 direct skills), 40-59 for fair matches (1-2 direct skills or many related skills), 20-39 for weak matches (only related/transferable skills), 0-19 for poor matches (minimal relevance). IMPORTANT: Be encouraging yet realistic. Focus on: 1) Count exact skill matches, 2) Identify related/complementary skills, 3) Match experience levels (beginner/intermediate/expert), 4) Note skill gaps with learning potential. Address gig worker as "you/your". Use ₱ for currency. Format: "Score: X\nReason: [Detailed 2-3 sentence explanation with specific skill matches, experience alignment, and growth potential]"';
+            $userPrompt = $forEmployer
+                ? "Match Analysis - Focus ONLY on skills & experience:\n\n📋 JOB REQUIREMENTS:\n{$jobText}\n\n👤 {$gigWorkerText}\n\nAnalyze the candidate's fit:\n1. EXACT skill matches (list them)\n2. Related/complementary skills the candidate has\n3. Experience level match (beginner/intermediate/expert)\n4. Skill gaps and learning curve\n5. Overall compatibility score (0-100)\n\nBe specific about which skills match and why. Ignore budget, location, ratings."
+                : "Match Analysis - Focus ONLY on skills & experience:\n\n📋 JOB REQUIREMENTS:\n{$jobText}\n\n👤 YOUR PROFILE:\n{$gigWorkerText}\n\nAnalyze:\n1. EXACT skill matches (list them)\n2. Related/complementary skills you have\n3. Experience level match (beginner/intermediate/expert)\n4. Skill gaps and learning curve\n5. Overall compatibility score (0-100)\n\nBe specific about which skills match and why. Ignore budget, location, ratings.";
 
             // Attempt API call with failover logic
             foreach ($this->models as $index => $modelConfig) {
@@ -532,11 +558,11 @@ class MatchService
                             'messages' => [
                                 [
                                     'role' => 'system',
-                                    'content' => 'You are an expert AI career advisor for Philippine freelance job matching. You MUST analyze ONLY skills and experience compatibility. SCORING GUIDELINES: Give 80-100 for excellent skill matches (4+ direct skills), 60-79 for good matches (2-3 direct skills), 40-59 for fair matches (1-2 direct skills or many related skills), 20-39 for weak matches (only related/transferable skills), 0-19 for poor matches (minimal relevance). IMPORTANT: Be encouraging yet realistic. Focus on: 1) Count exact skill matches, 2) Identify related/complementary skills, 3) Match experience levels (beginner/intermediate/expert), 4) Note skill gaps with learning potential. Address gig worker as "you/your". Use ₱ for currency. Format: "Score: X\nReason: [Detailed 2-3 sentence explanation with specific skill matches, experience alignment, and growth potential]"'
+                                    'content' => $systemPrompt
                                 ],
                                 [
                                     'role' => 'user',
-                                    'content' => "Match Analysis - Focus ONLY on skills & experience:\n\n📋 JOB REQUIREMENTS:\n{$jobText}\n\n👤 YOUR PROFILE:\n{$gigWorkerText}\n\nAnalyze:\n1. EXACT skill matches (list them)\n2. Related/complementary skills you have\n3. Experience level match (beginner/intermediate/expert)\n4. Skill gaps and learning curve\n5. Overall compatibility score (0-100)\n\nBe specific about which skills match and why. Ignore budget, location, ratings."
+                                    'content' => $userPrompt
                                 ]
                             ],
                             'temperature' => $modelConfig['temperature'],
@@ -594,7 +620,7 @@ class MatchService
             ]);
 
             // Use fallback matching if AI fails
-            return $this->getFallbackMatch($job, $gigWorker);
+            return $this->getFallbackMatch($job, $gigWorker, $audience);
         }
     }
 
@@ -629,8 +655,8 @@ class MatchService
                 break;
             }
             
-            // Use AI matching for accurate insights
-            $match = $this->getJobMatch($job, $gigWorker);
+            // Use AI matching for accurate insights (employer view: third-person candidate-focused reason)
+            $match = $this->getJobMatch($job, $gigWorker, 'employer');
             $processedCount++;
             
             if ($match['success'] && $match['score'] > 0) {

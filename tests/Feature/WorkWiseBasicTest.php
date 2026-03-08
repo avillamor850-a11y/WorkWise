@@ -123,23 +123,42 @@ class WorkWiseBasicTest extends TestCase
 
     public function test_role_selection_page_loads(): void
     {
-        $response = $this->get('/join');
+        $response = $this->get('/role-selection');
         $response->assertStatus(200);
     }
 
     public function test_role_selection_redirects_to_register(): void
     {
-        $response = $this->post('/join', [
-            'user_type' => 'freelancer'
+        $response = $this->post('/role-selection', [
+            'user_type' => 'gig_worker'
         ]);
 
         $response->assertRedirect('/register');
-        $this->assertEquals('freelancer', session('selected_user_type'));
+        $this->assertEquals('gig_worker', session('selected_user_type'));
     }
 
     public function test_register_redirects_to_role_selection_without_session(): void
     {
         $response = $this->get('/register');
-        $response->assertRedirect('/join');
+        $response->assertRedirect('/role-selection');
+    }
+
+    /**
+     * Duplicate request handling: repeated join with same user_type in short time
+     * does not create duplicate entries and returns consistent success.
+     */
+    public function test_join_handles_duplicate_request_idempotent(): void
+    {
+        $payload = ['user_type' => 'gig_worker'];
+
+        $first = $this->postJson('/role-selection', $payload);
+        $first->assertStatus(200)
+            ->assertJson(['status' => 'ok', 'user_type' => 'gig_worker']);
+        $this->assertEquals('gig_worker', session('selected_user_type'));
+
+        $second = $this->postJson('/role-selection', $payload);
+        $second->assertStatus(200)
+            ->assertJson(['status' => 'already_selected', 'user_type' => 'gig_worker']);
+        $this->assertEquals('gig_worker', session('selected_user_type'));
     }
 }

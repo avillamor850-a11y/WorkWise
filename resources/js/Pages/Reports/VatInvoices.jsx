@@ -50,66 +50,67 @@ export default function VatInvoices({ auth, transactions, filters, user, error }
             header={
                 <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-4">
-                        <Link href="/reports" className="text-blue-600 hover:text-blue-800">
+                        <Link href="/reports" className="text-blue-400 hover:text-blue-300">
                             ← Back to Reports
                         </Link>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                        <h2 className="text-xl font-semibold leading-tight text-gray-100">
                             VAT / Tax Invoices
                         </h2>
                     </div>
                 </div>
             }
+        pageTheme="dark"
         >
             <Head title="VAT / Tax Invoices" />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-            <div className="relative py-12 bg-white overflow-hidden">
+            <div className="relative py-12 bg-gray-900 overflow-hidden">
                 <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
                 <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
 
                 <div className="relative z-20 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                     {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                        <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-xl">
                             {error}
                         </div>
                     )}
 
-                    <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                    <div className="bg-gray-800 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-700">
                         <div className="p-8">
                             <div className="flex items-center mb-4">
-                                <Filter className="w-5 h-5 text-gray-500 mr-2" />
-                                <h3 className="text-lg font-medium text-gray-900">Filters</h3>
+                                <Filter className="w-5 h-5 text-gray-400 mr-2" />
+                                <h3 className="text-lg font-medium text-gray-100">Filters</h3>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label htmlFor="date_from" className="block text-sm font-medium text-gray-700">From Date</label>
+                                    <label htmlFor="date_from" className="block text-sm font-medium text-gray-400">From Date</label>
                                     <input
                                         id="date_from"
                                         type="date"
                                         value={dateFrom}
                                         onChange={(e) => setDateFrom(e.target.value)}
-                                        className="mt-1 block w-full rounded-xl border-gray-300 shadow-lg focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-xl border-gray-600 bg-gray-700 text-white shadow-lg focus:border-blue-500 focus:ring-blue-500"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="date_to" className="block text-sm font-medium text-gray-700">To Date</label>
+                                    <label htmlFor="date_to" className="block text-sm font-medium text-gray-400">To Date</label>
                                     <input
                                         id="date_to"
                                         type="date"
                                         value={dateTo}
                                         onChange={(e) => setDateTo(e.target.value)}
-                                        className="mt-1 block w-full rounded-xl border-gray-300 shadow-lg focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-xl border-gray-600 bg-gray-700 text-white shadow-lg focus:border-blue-500 focus:ring-blue-500"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="project_id" className="block text-sm font-medium text-gray-700">Project ID (optional)</label>
+                                    <label htmlFor="project_id" className="block text-sm font-medium text-gray-400">Project ID (optional)</label>
                                     <input
                                         id="project_id"
                                         type="text"
                                         value={projectId}
                                         onChange={(e) => setProjectId(e.target.value)}
                                         placeholder="Filter by project ID"
-                                        className="mt-1 block w-full rounded-xl border-gray-300 shadow-lg focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-xl border-gray-600 bg-gray-700 text-white placeholder-gray-500 shadow-lg focus:border-blue-500 focus:ring-blue-500"
                                     />
                                 </div>
                             </div>
@@ -125,39 +126,39 @@ export default function VatInvoices({ auth, transactions, filters, user, error }
                         </div>
                     </div>
 
-                    <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                    <div className="bg-gray-800 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-700">
                         <div className="p-8">
-                            <h3 className="text-lg font-medium text-gray-900 mb-6">Release transactions – download VAT invoice (PDF)</h3>
+                            <h3 className="text-lg font-medium text-gray-100 mb-6">Release transactions – download VAT invoice (PDF)</h3>
                             {list.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-gray-600">
+                                        <thead className="bg-gray-700">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project / Job</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payee</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Project / Job</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Payee</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-gray-800 divide-y divide-gray-600">
                                             {list.map((tx) => (
-                                                <tr key={tx.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                                                <tr key={tx.id} className="hover:bg-gray-700">
+                                                    <td className="px-6 py-4 text-sm text-gray-100 whitespace-nowrap">
                                                         {formatDate(tx.created_at)}
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                                    <td className="px-6 py-4 text-sm text-gray-100">
                                                         {tx.project?.job?.title ?? 'N/A'}
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                                    <td className="px-6 py-4 text-sm text-gray-100">
                                                         {tx.payee ? `${tx.payee.first_name ?? ''} ${tx.payee.last_name ?? ''}`.trim() || tx.payee.email : 'N/A'}
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm text-right font-medium text-gray-900">
+                                                    <td className="px-6 py-4 text-sm text-right font-medium text-gray-100">
                                                         {formatCurrency(tx.amount)}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 capitalize">
+                                                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-700 text-gray-300 capitalize">
                                                             {tx.status}
                                                         </span>
                                                     </td>
@@ -179,8 +180,8 @@ export default function VatInvoices({ auth, transactions, filters, user, error }
                             ) : (
                                 <div className="text-center py-8">
                                     <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No release transactions found</h3>
-                                    <p className="mt-1 text-sm text-gray-500">
+                                    <h3 className="mt-2 text-sm font-medium text-gray-100">No release transactions found</h3>
+                                    <p className="mt-1 text-sm text-gray-400">
                                         Release transactions will appear here. Use filters or complete a payment release to generate VAT invoices.
                                     </p>
                                 </div>
@@ -188,7 +189,7 @@ export default function VatInvoices({ auth, transactions, filters, user, error }
 
                             {transactions?.links && transactions.links.length > 3 && (
                                 <div className="mt-6 flex justify-between items-center">
-                                    <div className="text-sm text-gray-700">
+                                    <div className="text-sm text-gray-400">
                                         Showing {transactions.from} to {transactions.to} of {transactions.total} results
                                     </div>
                                     <div className="flex space-x-1">
@@ -197,9 +198,9 @@ export default function VatInvoices({ auth, transactions, filters, user, error }
                                                 key={index}
                                                 href={link.url || '#'}
                                                 className={`px-3 py-2 text-sm rounded-md ${
-                                                    link.active ? 'bg-blue-500 text-white' :
-                                                    link.url ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50' :
-                                                    'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    link.active ? 'bg-blue-600 text-white' :
+                                                    link.url ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600' :
+                                                    'bg-gray-700 text-gray-500 cursor-not-allowed'
                                                 }`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
@@ -212,7 +213,7 @@ export default function VatInvoices({ auth, transactions, filters, user, error }
                 </div>
             </div>
 
-            <style>{`body { background: white; color: #333; font-family: 'Inter', sans-serif; }`}</style>
+            <style>{`body { background: #111827; color: #e5e7eb; font-family: 'Inter', sans-serif; }`}</style>
         </AuthenticatedLayout>
     );
 }

@@ -9,22 +9,22 @@ import axios from 'axios';
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center p-4">
         <div className="relative">
-            <div className="w-6 h-6 border-2 border-white/20 border-t-blue-500 rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
             <div className="absolute inset-0 w-6 h-6 border-2 border-transparent border-t-blue-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
         </div>
-        <span className="ml-2 text-sm text-white/60">Loading messages...</span>
+        <span className="ml-2 text-sm text-gray-400">Loading messages...</span>
     </div>
 );
 
 const MessageSkeleton = () => (
     <div className="flex space-x-3 animate-pulse mb-4">
-        <div className="w-8 h-8 bg-white/10 rounded-full flex-shrink-0"></div>
+        <div className="w-8 h-8 bg-gray-700 rounded-full flex-shrink-0"></div>
         <div className="flex-1">
-            <div className="bg-white/10 rounded-2xl p-3 max-w-xs">
-                <div className="h-4 bg-white/20 rounded mb-2"></div>
-                <div className="h-4 bg-white/20 rounded w-3/4"></div>
+            <div className="bg-gray-700 rounded-2xl p-3 max-w-xs">
+                <div className="h-4 bg-gray-600 rounded mb-2"></div>
+                <div className="h-4 bg-gray-600 rounded w-3/4"></div>
             </div>
-            <div className="h-3 bg-white/10 rounded w-16 mt-1"></div>
+            <div className="h-3 bg-gray-700 rounded w-16 mt-1"></div>
         </div>
     </div>
 );
@@ -367,7 +367,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                             {/* Reply button */}
                             <button
                                 onClick={() => handleReplyToMessage(message)}
-                                className={`absolute ${isOwnMessage ? 'left-0 -ml-16' : 'right-0 -mr-16'} top-2 p-1 rounded-full hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity`}
+                                className={`absolute ${isOwnMessage ? 'left-0 -ml-16' : 'right-0 -mr-16'} top-2 p-1 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity`}
                                 title="Reply to message"
                             >
                                 <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,11 +378,11 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                             {/* Three-dot menu button */}
                             <button
                                 onClick={() => setOpenMenuId(openMenuId === message.id ? null : message.id)}
-                                className={`absolute ${isOwnMessage ? 'left-0 -ml-8' : 'right-0 -mr-8'} top-2 p-1 rounded-full hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity ${openMenuId === message.id ? 'opacity-100' : ''
+                                className={`absolute ${isOwnMessage ? 'left-0 -ml-8' : 'right-0 -mr-8'} top-2 p-1 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity ${openMenuId === message.id ? 'opacity-100' : ''
                                     }`}
                                 title="Message options"
                             >
-                                <svg className="w-5 h-5 text-white/60" fill="currentColor" viewBox="0 0 20 20">
+                                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                                 </svg>
                             </button>
@@ -391,12 +391,12 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                             {openMenuId === message.id && isOwnMessage && (
                                 <div
                                     ref={menuRef}
-                                    className={`absolute ${isOwnMessage ? 'left-0 -ml-8' : 'right-0 -mr-8'} top-8 mt-1 w-48 bg-[#0d1014] rounded-lg shadow-lg border border-white/10 py-1 z-10`}
+                                    className={`absolute ${isOwnMessage ? 'left-0 -ml-8' : 'right-0 -mr-8'} top-8 mt-1 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-1 z-10`}
                                 >
                                     <button
                                         onClick={() => handleDeleteMessage(message.id)}
                                         disabled={isDeleting}
-                                        className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 flex items-center space-x-2 disabled:opacity-50"
+                                        className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-800 flex items-center space-x-2 disabled:opacity-50"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -408,16 +408,16 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
 
                             <div className={`message-bubble px-4 py-3 rounded-2xl shadow-sm ${isOwnMessage
                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md'
-                                : 'bg-white/10 text-white border border-white/10 rounded-bl-md'
+                                : 'bg-gray-700 text-white border border-gray-700 rounded-bl-md'
                                 } ${isDeleting ? 'opacity-50' : ''}`}>
                                 {/* Replied message preview */}
                                 {repliedMessage && (
-                                    <div className={`mb-2 pb-2 border-l-2 pl-3 ${isOwnMessage ? 'border-white/30' : 'border-blue-400/50'
+                                    <div className={`mb-2 pb-2 border-l-2 pl-3 ${isOwnMessage ? 'border-gray-600' : 'border-blue-400/50'
                                         }`}>
                                         <div className={`text-xs font-medium ${isOwnMessage ? 'text-blue-100' : 'text-blue-400'}`}>
                                             Replying to {repliedMessage.sender.first_name}
                                         </div>
-                                        <div className={`text-xs mt-1 ${isOwnMessage ? 'text-white/70' : 'text-white/60'} truncate`}>
+                                        <div className={`text-xs mt-1 ${isOwnMessage ? 'text-gray-200' : 'text-gray-400'} truncate`}>
                                             {repliedMessage.type === 'file'
                                                 ? `📎 ${repliedMessage.attachment_name}`
                                                 : repliedMessage.message}
@@ -439,7 +439,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                                     className="max-w-xs rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                                                     style={{ maxHeight: '300px', objectFit: 'cover' }}
                                                 />
-                                                <div className="mt-2 text-xs text-white/60 group-hover:underline">
+                                                <div className="mt-2 text-xs text-gray-400 group-hover:underline">
                                                     {message.attachment_name}
                                                 </div>
                                             </a>
@@ -450,14 +450,14 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                     ) : (
                                         <div className="space-y-2">
                                             <div className="flex items-center space-x-3">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isOwnMessage ? 'bg-white/20' : 'bg-white/10'
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isOwnMessage ? 'bg-gray-600' : 'bg-gray-700'
                                                     }`}>
                                                     {getFileIcon(message.attachment_name, 'w-5 h-5', isOwnMessage)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="font-medium text-sm truncate">{message.attachment_name}</div>
                                                     <div className="flex items-center space-x-2">
-                                                        <span className={`text-xs ${isOwnMessage ? 'text-blue-100' : 'text-white/50'}`}>
+                                                        <span className={`text-xs ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
                                                             {getFileExtension(message.attachment_name).toUpperCase()}
                                                         </span>
                                                         <a
@@ -486,8 +486,8 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                                     <p className="whitespace-pre-wrap leading-relaxed">Hi! I'm interested in hiring you for a project. Let's discuss!</p>
                                                     <a href={`/jobs/${jobData.id}`}
                                                         className={`block p-4 rounded-xl border transition-all hover:-translate-y-0.5 shadow-sm ${isOwnMessage
-                                                            ? 'bg-white/10 border-white/20 hover:bg-white/20'
-                                                            : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                                            ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                                                            : 'bg-gray-800 border-gray-700 hover:bg-gray-700'
                                                             }`}>
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <span className={`material-icons text-lg ${isOwnMessage ? 'text-blue-200' : 'text-blue-400'}`}>work</span>
@@ -527,7 +527,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
 
                         <div className={`flex items-center text-xs ${isOwnMessage ? 'justify-end' : 'justify-start'
                             }`}>
-                            <span className="text-white/50 opacity-70">
+                            <span className="text-gray-500 opacity-70">
                                 {formatMessageTime(message.created_at)}
                             </span>
                             {isOwnMessage && message.is_read && (
@@ -555,7 +555,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                     <div className="flex items-center space-x-4">
                         <Link
                             href="/messages"
-                            className="flex items-center text-white/70 hover:text-white transition-colors"
+                            className="flex items-center text-gray-200 hover:text-gray-100 transition-colors"
                         >
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -576,7 +576,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                         {user.user_type === 'employer' ? 'Employer' : 'Gig Worker'}
                                     </span>
                                     {user.professional_title && (
-                                        <span className="text-sm text-white/60">• {user.professional_title}</span>
+                                        <span className="text-sm text-gray-400">• {user.professional_title}</span>
                                     )}
                                 </div>
                             </div>
@@ -586,7 +586,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                         {currentUser.user_type === 'employer' && (
                             <button
                                 onClick={() => setShowPriceModal(true)}
-                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#05070A] focus:ring-green-500 transition-all shadow-sm"
+                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-green-500 transition-all shadow-sm"
                                 title="Confirm Negotiated Price"
                             >
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -598,7 +598,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                         <button
                             onClick={fetchNewMessages}
                             disabled={loading}
-                            className="inline-flex items-center px-3 py-2 border border-white/20 rounded-lg text-sm font-medium text-white/80 bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
+                            className="inline-flex items-center px-3 py-2 border border-gray-600 rounded-lg text-sm font-medium text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
                             title="Refresh messages"
                         >
                             <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -614,21 +614,21 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
             {/* Price Confirmation Modal */}
             {showPriceModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-[#0d1014] rounded-2xl shadow-xl border border-white/10 w-full max-w-md overflow-hidden">
-                        <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center">
+                    <div className="bg-gray-800 rounded-2xl shadow-xl border border-gray-700 w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-white">Confirm Negotiated Price</h3>
-                            <button onClick={() => setShowPriceModal(false)} className="text-white/40 hover:text-white/80">
+                            <button onClick={() => setShowPriceModal(false)} className="text-gray-500 hover:text-gray-200">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
                         <div className="p-6">
-                            <p className="text-sm text-white/60 mb-4">
+                            <p className="text-sm text-gray-400 mb-4">
                                 Enter the final price you have negotiated with {user.first_name}. This will pre-fill the contract creation form.
                             </p>
                             <div>
-                                <label className="block text-sm font-medium text-white/80 mb-1">Final Agreed Price (₱)</label>
+                                <label className="block text-sm font-medium text-gray-200 mb-1">Final Agreed Price (₱)</label>
                                 <input
                                     type="number"
                                     min="0"
@@ -636,15 +636,15 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                     value={negotiatedPrice}
                                     onChange={(e) => setNegotiatedPrice(e.target.value)}
                                     placeholder="e.g. 5000"
-                                    className="w-full px-4 py-2 border border-white/20 rounded-lg bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                    className="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                     autoFocus
                                 />
                             </div>
                         </div>
-                        <div className="px-6 py-4 bg-white/5 flex justify-end gap-3 border-t border-white/10">
+                        <div className="px-6 py-4 bg-gray-800 flex justify-end gap-3 border-t border-gray-700">
                             <button
                                 onClick={() => setShowPriceModal(false)}
-                                className="px-4 py-2 text-sm font-medium text-white/80 bg-white/5 border border-white/20 rounded-lg hover:bg-white/10 transition"
+                                className="px-4 py-2 text-sm font-medium text-gray-200 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 transition"
                             >
                                 Cancel
                             </button>
@@ -664,18 +664,18 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                 </div>
             )}
 
-            <div className="min-h-screen bg-[#05070A] relative">
+            <div className="min-h-screen bg-gray-900 relative">
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-1/4 -left-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
                     <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
                 </div>
                 <div className="py-8 relative z-20">
                     <div className="max-w-5xl mx-auto sm:px-6 lg:px-8">
-                        <div className="bg-white/5 overflow-hidden border border-white/10 sm:rounded-2xl">
+                        <div className="bg-gray-800 overflow-hidden border border-gray-700 sm:rounded-2xl">
                             {/* Messages Area */}
                             <div
                                 ref={messagesContainerRef}
-                                className="messages-container h-[32rem] overflow-y-auto p-6 bg-white/5"
+                                className="messages-container h-[32rem] overflow-y-auto p-6 bg-gray-800"
                             >
                                 {loading && messageList.length === 0 ? (
                                     <div className="space-y-4">
@@ -687,13 +687,13 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                 ) : messageList.length === 0 ? (
                                     <div className="flex items-center justify-center h-full">
                                         <div className="text-center">
-                                            <div className="w-20 h-20 mx-auto mb-6 bg-white/10 rounded-full flex items-center justify-center">
+                                            <div className="w-20 h-20 mx-auto mb-6 bg-gray-700 rounded-full flex items-center justify-center">
                                                 <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                                 </svg>
                                             </div>
                                             <h3 className="text-lg font-semibold text-white mb-2">No messages yet</h3>
-                                            <p className="text-white/60 max-w-sm mx-auto">Start the conversation by sending a message below.</p>
+                                            <p className="text-gray-400 max-w-sm mx-auto">Start the conversation by sending a message below.</p>
                                         </div>
                                     </div>
                                 ) : (
@@ -705,7 +705,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                         </div>
 
                         {/* Enhanced Message Input */}
-                        <div className="p-6 bg-white/5 border-t border-white/10">
+                        <div className="p-6 bg-gray-800 border-t border-gray-700">
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 {/* Reply preview */}
                                 {replyingTo && (
@@ -729,7 +729,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                             <button
                                                 type="button"
                                                 onClick={cancelReply}
-                                                className="text-blue-400 hover:text-blue-300 transition-colors p-1 rounded-lg hover:bg-white/10"
+                                                className="text-blue-400 hover:text-blue-300 transition-colors p-1 rounded-lg hover:bg-gray-700"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -741,19 +741,19 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
 
                                 {/* File attachment preview */}
                                 {attachment && (
-                                    <div className="file-preview bg-white/5 border border-white/10 rounded-xl p-4">
+                                    <div className="file-preview bg-gray-800 border border-gray-700 rounded-xl p-4">
                                         <div className="flex items-center space-x-3">
                                             <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
                                                 {getFileIcon(attachment.name, 'w-5 h-5', false)}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium text-white truncate">{attachment.name}</p>
-                                                <p className="text-xs text-white/50">{formatFileSize(attachment.size)}</p>
+                                                <p className="text-xs text-gray-500">{formatFileSize(attachment.size)}</p>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={removeAttachment}
-                                                className="text-white/40 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-white/10"
+                                                className="text-gray-500 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-gray-700"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -775,7 +775,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="flex-shrink-0 p-3 text-white/50 hover:text-blue-400 hover:bg-white/10 rounded-lg transition-colors"
+                                        className="flex-shrink-0 p-3 text-gray-500 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition-colors"
                                         title="Attach file"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -794,13 +794,13 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                             }}
                                             placeholder="Type your message..."
                                             rows="2"
-                                            className="w-full px-4 py-3 border border-white/20 rounded-xl bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none"
+                                            className="w-full px-4 py-3 border border-gray-600 rounded-xl bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none"
                                         />
                                     </div>
                                     <button
                                         type="submit"
                                         disabled={sending || (!newMessage.trim() && !attachment)}
-                                        className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-[#05070A] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                                        className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                                     >
                                         {sending ? (
                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -811,7 +811,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                         )}
                                     </button>
                                 </div>
-                                <p className="text-xs text-white/50">
+                                <p className="text-xs text-gray-500">
                                     Press Enter to send, Shift+Enter for new line. Max file size: 10MB
                                 </p>
                             </form>

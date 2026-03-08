@@ -12,7 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('registration_ip_country', 100)->nullable()->after('country');
+            if (Schema::hasColumn('users', 'country')) {
+                $table->string('registration_ip_country', 100)->nullable()->after('country');
+            } else {
+                $table->string('registration_ip_country', 100)->nullable();
+            }
         });
     }
 

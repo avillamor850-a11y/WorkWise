@@ -217,15 +217,18 @@ export default function JobShow({ job, canBid }) {
                         // Check if this is an insufficient escrow error
                         if (page.props.errors.error_type === 'insufficient_escrow') {
                             console.log('Setting insufficient escrow error modal');
+                            const required = page.props.errors.required_amount;
+                            const current = page.props.errors.current_balance;
+                            const format = (n) => Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             setErrorModal({
                                 isOpen: true,
                                 title: 'Insufficient Escrow Balance',
-                                message: `You need ₱${page.props.errors.required_amount} to accept this proposal, but your current balance is only ₱${page.props.errors.current_balance}.`,
+                                message: `You need ₱${format(required)} to accept this proposal, but your current balance is only ₱${format(current)}.\n\nHow to add funds:\n1. Click "Add Funds to Escrow" below (or open Wallet from the menu).\n2. Enter the amount you need (at least the required amount).\n3. Complete payment with your card.\n4. Return here and accept the proposal again.`,
                                 actionButton: {
                                     text: 'Add Funds to Escrow',
                                     onClick: () => {
                                         setErrorModal({ ...errorModal, isOpen: false });
-                                        router.visit('/escrow/add-funds');
+                                        router.visit(route('employer.wallet.index'));
                                     }
                                 }
                             });
@@ -244,15 +247,18 @@ export default function JobShow({ job, canBid }) {
                         // Check if this is an insufficient escrow error
                         if (page.props.flash.error_type === 'insufficient_escrow') {
                             console.log('Setting insufficient escrow error modal from flash');
+                            const required = page.props.flash.required_amount;
+                            const current = page.props.flash.current_balance;
+                            const format = (n) => Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             setErrorModal({
                                 isOpen: true,
                                 title: 'Insufficient Escrow Balance',
-                                message: `You need ₱${page.props.flash.required_amount} to accept this proposal, but your current balance is only ₱${page.props.flash.current_balance}.`,
+                                message: `You need ₱${format(required)} to accept this proposal, but your current balance is only ₱${format(current)}.\n\nHow to add funds:\n1. Click "Add Funds to Escrow" below (or open Wallet from the menu).\n2. Enter the amount you need (at least the required amount).\n3. Complete payment with your card.\n4. Return here and accept the proposal again.`,
                                 actionButton: {
                                     text: 'Add Funds to Escrow',
                                     onClick: () => {
                                         setErrorModal({ ...errorModal, isOpen: false });
-                                        router.visit('/escrow/add-funds');
+                                        router.visit(route('employer.wallet.index'));
                                     }
                                 }
                             });
@@ -292,15 +298,18 @@ export default function JobShow({ job, canBid }) {
                     // Check if this is an insufficient escrow error
                     if (errors.error_type === 'insufficient_escrow') {
                         console.log('onError - Setting insufficient escrow error modal');
+                        const required = errors.required_amount;
+                        const current = errors.current_balance;
+                        const format = (n) => Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         setErrorModal({
                             isOpen: true,
                             title: 'Insufficient Escrow Balance',
-                            message: `You need ₱${errors.required_amount} to accept this proposal, but your current balance is only ₱${errors.current_balance}.`,
+                            message: `You need ₱${format(required)} to accept this proposal, but your current balance is only ₱${format(current)}.\n\nHow to add funds:\n1. Click "Add Funds to Escrow" below (or open Wallet from the menu).\n2. Enter the amount you need (at least the required amount).\n3. Complete payment with your card.\n4. Return here and accept the proposal again.`,
                             actionButton: {
                                 text: 'Add Funds to Escrow',
                                 onClick: () => {
                                     setErrorModal({ ...errorModal, isOpen: false });
-                                    router.visit('/escrow/add-funds');
+                                    router.visit(route('employer.wallet.index'));
                                 }
                             }
                         });
@@ -354,7 +363,7 @@ export default function JobShow({ job, canBid }) {
             intermediate: 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
             expert: 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
         };
-        return badges[level] || 'bg-white/10 text-white/80 border border-white/20';
+        return badges[level] || 'bg-gray-700 text-gray-200 border border-gray-600';
     };
 
     const getStatusBadge = (status) => {
@@ -371,10 +380,10 @@ export default function JobShow({ job, canBid }) {
         const badges = {
             open: 'bg-green-500/20 text-green-400 border border-green-500/30',
             in_progress: 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
-            completed: 'bg-white/10 text-white/50 border border-white/10',
+            completed: 'bg-gray-700 text-gray-400 border border-gray-600',
             cancelled: 'bg-red-500/20 text-red-400 border border-red-500/30'
         };
-        return badges[status] || 'bg-white/10 text-white/50 border border-white/10';
+        return badges[status] || 'bg-gray-700 text-gray-400 border border-gray-600';
     };
 
     const isDark = true;
@@ -383,7 +392,7 @@ export default function JobShow({ job, canBid }) {
         // Check if user exists and has required properties
         if (!user || !user.first_name || !user.last_name) {
             return (
-                <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-semibold ${dark ? 'bg-white/20 text-white' : 'bg-gray-400 text-white'}`}>
+                <div className={`h-12 w-12 rounded-full flex items-center justify-center text-lg font-semibold ${dark ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-white'}`}>
                     ?
                 </div>
             );
@@ -395,7 +404,7 @@ export default function JobShow({ job, canBid }) {
                 <img
                     src={photoUrl}
                     alt={`${user.first_name} ${user.last_name}`}
-                    className="h-12 w-12 rounded-full object-cover border border-white/20"
+                    className="h-12 w-12 rounded-full object-cover border border-gray-600"
                 />
             );
         }
@@ -420,14 +429,14 @@ export default function JobShow({ job, canBid }) {
             header={
                 <div className="flex justify-between items-center">
                     <div>
-                        <h2 className="font-semibold text-xl text-white leading-tight tracking-tight">
+                        <h2 className="font-semibold text-xl text-gray-100 leading-tight tracking-tight">
                             {job.title}
                         </h2>
                         <div className="flex items-center space-x-4 mt-1">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeDark(job.status)}`}>
                                 {job.status === 'open' ? 'Open for Proposals' : job.status.replace('_', ' ')}
                             </span>
-                            <span className="text-sm text-white/60">
+                            <span className="text-sm text-gray-400">
                                 Posted {formatDistanceToNow(new Date(job.created_at))} ago
                             </span>
                         </div>
@@ -435,7 +444,7 @@ export default function JobShow({ job, canBid }) {
                     <div className="flex items-center space-x-3">
                         <Link
                             href="/jobs"
-                            className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-medium rounded-md text-white/80 bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            className="inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         >
                             ← Back to Jobs
                         </Link>
@@ -454,20 +463,20 @@ export default function JobShow({ job, canBid }) {
             <Head title={job.title} />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-            <div className="relative min-h-screen py-12 bg-[#05070A] overflow-hidden">
-                <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+            <div className="relative min-h-screen py-12 bg-gray-900 overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-700/10 rounded-full blur-[100px] pointer-events-none" />
 
                 <div className="relative z-20 max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Main Content */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Job Description */}
-                            <div className="bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl">
+                            <div className="bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl">
                                 <div className="p-8">
-                                    <h3 className="text-2xl font-bold text-white mb-6">Job Description</h3>
+                                    <h3 className="text-2xl font-bold text-gray-100 mb-6">Job Description</h3>
                                     <div className="prose max-w-none">
-                                        <p className="text-white/80 whitespace-pre-wrap leading-relaxed text-lg">
+                                        <p className="text-gray-200 whitespace-pre-wrap leading-relaxed text-lg">
                                             {job.description}
                                         </p>
                                     </div>
@@ -476,15 +485,15 @@ export default function JobShow({ job, canBid }) {
 
                             {/* Skills Requirements */}
                             {(job?.skills_requirements?.length > 0 || parseSkills(job?.required_skills || []).length > 0) && (
-                                <div className="bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl">
+                                <div className="bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl">
                                     <div className="p-8">
-                                        <h3 className="text-2xl font-bold text-white mb-6">Skills Requirements</h3>
+                                        <h3 className="text-2xl font-bold text-gray-100 mb-6">Skills Requirements</h3>
                                         
                                         {job?.skills_requirements?.length > 0 ? (
                                             <>
                                                 {job.skills_requirements.filter(s => s.importance === 'required').length > 0 && (
                                                     <div className="mb-6">
-                                                        <h4 className="text-lg font-semibold text-white/90 mb-3">Required Skills</h4>
+                                                        <h4 className="text-lg font-semibold text-gray-200 mb-3">Required Skills</h4>
                                                         <div className="flex flex-wrap gap-3">
                                                             {job.skills_requirements
                                                                 .filter(s => s.importance === 'required')
@@ -502,7 +511,7 @@ export default function JobShow({ job, canBid }) {
 
                                                 {job.skills_requirements.filter(s => s.importance === 'preferred').length > 0 && (
                                                     <div className="mb-6">
-                                                        <h4 className="text-lg font-semibold text-white/90 mb-3">Preferred Skills</h4>
+                                                        <h4 className="text-lg font-semibold text-gray-200 mb-3">Preferred Skills</h4>
                                                         <div className="flex flex-wrap gap-3">
                                                             {job.skills_requirements
                                                                 .filter(s => s.importance === 'preferred')
@@ -520,10 +529,10 @@ export default function JobShow({ job, canBid }) {
 
                                                 {job?.nice_to_have_skills?.length > 0 && (
                                                     <div>
-                                                        <h4 className="text-lg font-semibold text-white/90 mb-3">Nice to Have</h4>
+                                                        <h4 className="text-lg font-semibold text-gray-200 mb-3">Nice to Have</h4>
                                                         <div className="flex flex-wrap gap-3">
                                                             {job.nice_to_have_skills.map((skill, index) => (
-                                                                <div key={index} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-white/10 text-white/80 border border-white/20">
+                                                                <div key={index} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gray-700 text-gray-200 border border-gray-600">
                                                                     <span>{skill.skill}</span>
                                                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getExperienceBadgeDark(skill.experience_level)}`}>
                                                                         {skill.experience_level}
@@ -549,9 +558,9 @@ export default function JobShow({ job, canBid }) {
 
                             {/* Proposals Section */}
                             {job.bids && Array.isArray(job.bids) && job.bids.length > 0 && (isJobOwner || !isEmployer) && (
-                                <div className="bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl">
+                                <div className="bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl">
                                     <div className="p-8">
-                                        <h3 className="text-2xl font-bold text-white mb-6">
+                                        <h3 className="text-2xl font-bold text-gray-100 mb-6">
                                             Proposals ({job.bids.length})
                                         </h3>
                                         <div className="space-y-6">
@@ -561,7 +570,7 @@ export default function JobShow({ job, canBid }) {
                                                         <div className="flex items-center space-x-3">
                                                             {getUserAvatar(bid.gig_worker, isDark)}
                                                             <div>
-                                                                <h4 className="font-medium text-white">
+                                                                <h4 className="font-medium text-gray-100">
                                                                     {bid.gig_worker ? (
                                                                         <a
                                                                             href={`/workers/${bid.gig_worker.id}`}
@@ -573,7 +582,7 @@ export default function JobShow({ job, canBid }) {
                                                                         'Unknown User'
                                                                     )}
                                                                 </h4>
-                                                                <p className="text-sm text-white/60">
+                                                                <p className="text-sm text-gray-400">
                                                                     {bid.gig_worker?.professional_title || 'Gig Worker'}
                                                                 </p>
                                                             </div>
@@ -582,16 +591,16 @@ export default function JobShow({ job, canBid }) {
                                                             <div className="text-lg font-semibold text-green-400">
                                                                 ₱{formatAmount(bid.bid_amount)}
                                                             </div>
-                                                            <div className="text-sm text-white/60">
+                                                            <div className="text-sm text-gray-400">
                                                                 {bid.estimated_days} days
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <p className="text-white/80 mb-3 break-all">
+                                                    <p className="text-gray-200 mb-3 break-all">
                                                         {bid.proposal_message}
                                                     </p>
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-sm text-white/50">
+                                                        <span className="text-sm text-gray-500">
                                                             Submitted {formatDistanceToNow(new Date(bid.created_at))} ago
                                                         </span>
                                                         {isJobOwner && bid.status === 'pending' && (
@@ -645,14 +654,14 @@ export default function JobShow({ job, canBid }) {
 
                             {/* Submit Proposal Form */}
                             {canBid && !isEmployer && (
-                                <div className="bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl transform transition-all duration-500 ease-in-out">
+                                <div className="bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl transform transition-all duration-500 ease-in-out">
                                     <div className="p-8">
                                         {!showBidForm ? (
                                             <div className="text-center transform transition-all duration-300 ease-in-out">
                                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6 mb-6">
                                                     <div className="text-4xl mb-4">💼</div>
-                                                    <h3 className="text-xl font-bold text-white mb-3">Interested in this job?</h3>
-                                                    <p className="text-white/60 mb-6 text-lg">
+                                                    <h3 className="text-xl font-bold text-gray-100 mb-3">Interested in this job?</h3>
+                                                    <p className="text-gray-400 mb-6 text-lg">
                                                         Submit a proposal to get started and showcase your skills
                                                     </p>
                                                 </div>
@@ -668,25 +677,25 @@ export default function JobShow({ job, canBid }) {
                                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6 mb-6">
                                                     <div className="flex items-center gap-3 mb-2">
                                                         <span className="text-2xl">📝</span>
-                                                        <h3 className="text-xl font-bold text-white">Submit Your Proposal</h3>
+                                                        <h3 className="text-xl font-bold text-gray-100">Submit Your Proposal</h3>
                                                     </div>
-                                                    <p className="text-white/60">
+                                                    <p className="text-gray-400">
                                                         Provide your best offer and explain why you're the perfect fit for this project
                                                     </p>
                                                 </div>
                                                 <form onSubmit={handleSubmitBid} className="space-y-6">
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                         <div className="transform transition-all duration-300 ease-in-out">
-                                                            <label className="block text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+                                                            <label className="block text-sm font-semibold text-gray-200 mb-2 flex items-center gap-2">
                                                                 Your Bid Amount *
                                                             </label>
                                                             <div className="relative">
-                                                                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50 font-medium">₱</span>
+                                                                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₱</span>
                                                                 <input
                                                                     type="number"
                                                                     value={data.bid_amount}
                                                                     onChange={(e) => setData('bid_amount', e.target.value)}
-                                                                    className="w-full pl-10 pr-4 py-3 border border-white/20 rounded-xl bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
+                                                                    className="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
                                                                     placeholder="0.00"
                                                                     min="0"
                                                                     step="0.01"
@@ -696,14 +705,14 @@ export default function JobShow({ job, canBid }) {
                                                             {errors.bid_amount && <p className="mt-2 text-sm text-red-400 animate-pulse">{errors.bid_amount}</p>}
                                                         </div>
                                                         <div className="transform transition-all duration-300 ease-in-out">
-                                                            <label className="block text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+                                                            <label className="block text-sm font-semibold text-gray-200 mb-2 flex items-center gap-2">
                                                                 Delivery Time (Days) *
                                                             </label>
                                                             <input
                                                                 type="number"
                                                                 value={data.estimated_days}
                                                                 onChange={(e) => setData('estimated_days', e.target.value)}
-                                                                className="w-full px-4 py-3 border border-white/20 rounded-xl bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
+                                                                className="w-full px-4 py-3 border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
                                                                 placeholder="e.g., 7"
                                                                 min="1"
                                                                 required
@@ -720,26 +729,26 @@ export default function JobShow({ job, canBid }) {
                                                                 value={data.proposal_message}
                                                                 onChange={(e) => setData('proposal_message', e.target.value)}
                                                                 rows={6}
-                                                                className="w-full px-4 py-3 border border-white/20 rounded-xl bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 resize-none"
+                                                                className="w-full px-4 py-3 border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 resize-none"
                                                                 placeholder="Explain why you're the best fit for this job. Include relevant experience, your approach, and any questions you have..."
                                                                 required
                                                             />
-                                                            <div className="absolute bottom-3 right-3 text-xs text-white/40 bg-white/5 px-2 py-1 rounded-md">
+                                                            <div className="absolute bottom-3 right-3 text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded-md">
                                                                 {data.proposal_message?.length || 0} characters
                                                             </div>
                                                         </div>
                                                         <div className="mt-2 flex items-center gap-2">
-                                                            <span className="text-xs text-white/50 bg-blue-500/20 px-3 py-1 rounded-full">
+                                                            <span className="text-xs text-gray-500 bg-blue-500/20 px-3 py-1 rounded-full">
                                                                 💡 Tip: Minimum 50 characters. Be specific about your experience and approach.
                                                             </span>
                                                         </div>
                                                         {errors.proposal_message && <p className="mt-2 text-sm text-red-400 animate-pulse">{errors.proposal_message}</p>}
                                                     </div>
-                                                    <div className="flex items-center justify-between pt-6 border-t border-white/10">
+                                                    <div className="flex items-center justify-between pt-6 border-t border-gray-700">
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowBidForm(false)}
-                                                            className="inline-flex items-center px-6 py-3 border border-white/20 text-sm font-semibold rounded-xl text-white/80 bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300"
+                                                            className="inline-flex items-center px-6 py-3 border border-gray-600 text-sm font-semibold rounded-xl text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300"
                                                         >
                                                             <span className="mr-2">❌</span>
                                                             Cancel
@@ -749,7 +758,7 @@ export default function JobShow({ job, canBid }) {
                                                             disabled={processing}
                                                             className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-bold rounded-xl shadow-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300 ${
                                                                 processing
-                                                                    ? 'bg-white/20 cursor-not-allowed'
+                                                                    ? 'bg-gray-600 cursor-not-allowed'
                                                                     : 'bg-blue-600 hover:bg-blue-500 hover:scale-105'
                                                             }`}
                                                         >
@@ -777,9 +786,9 @@ export default function JobShow({ job, canBid }) {
                         {/* Sidebar */}
                         <div className="space-y-8">
                             {/* Job Details */}
-                            <div className="bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl">
+                            <div className="bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl">
                                 <div className="p-8">
-                                    <h3 className="text-2xl font-bold text-white mb-6">Job Details</h3>
+                                    <h3 className="text-2xl font-bold text-gray-100 mb-6">Job Details</h3>
                                     <div className="space-y-6">
                                         <div className="bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">
                                             <dt className="text-sm font-medium text-blue-400 mb-2">Budget</dt>
@@ -789,7 +798,7 @@ export default function JobShow({ job, canBid }) {
                                         </div>
                                         <div className="bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">
                                             <dt className="text-sm font-medium text-blue-400 mb-2">Project Duration</dt>
-                                            <dd className="text-lg font-semibold text-white">
+                                            <dd className="text-lg font-semibold text-gray-100">
                                                 {job.estimated_duration_days} days
                                             </dd>
                                         </div>
@@ -804,21 +813,21 @@ export default function JobShow({ job, canBid }) {
                                         {(job.is_remote || job.location) && (
                                             <div className="bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">
                                                 <dt className="text-sm font-medium text-blue-400 mb-2">Location</dt>
-                                                <dd className="text-lg font-semibold text-white">
+                                                <dd className="text-lg font-semibold text-gray-100">
                                                     {job.is_remote ? '🌐 Remote Work' : `📍 ${job.location}`}
                                                 </dd>
                                             </div>
                                         )}
                                         {job.deadline && (
                                             <div>
-                                                <dt className="text-sm font-medium text-white/50">Deadline</dt>
-                                                <dd className="mt-1 text-sm text-white">
+                                                <dt className="text-sm font-medium text-gray-500">Deadline</dt>
+                                                <dd className="mt-1 text-sm text-gray-100">
                                                     {new Date(job.deadline).toLocaleDateString()}
                                                 </dd>
                                             </div>
                                         )}
                                         <div>
-                                            <dt className="text-sm font-medium text-white/50">Proposals</dt>
+                                            <dt className="text-sm font-medium text-gray-500">Proposals</dt>
                                             <dd className="mt-1 text-sm text-white">
                                                 {job.bids ? job.bids.length : 0} received
                                             </dd>
@@ -888,7 +897,7 @@ export default function JobShow({ job, canBid }) {
 
             <style>{`
                 body {
-                    background: #05070A;
+                    background: #111827;
                     color: #e5e7eb;
                     font-family: 'Inter', sans-serif;
                 }

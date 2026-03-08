@@ -9,6 +9,7 @@ import useToast from '@/Hooks/useToast';
 import { ToastContainer } from '@/Components/Toast';
 import ErrorModal from '@/Components/ErrorModal';
 import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
+import { useTheme } from '@/Contexts/ThemeContext';
 
 function safeRoute(name, fallback = '/') {
     try {
@@ -71,6 +72,23 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
     const { auth, flash: rawFlash, errors: pageErrors = {} } = usePage().props;
     const flash = rawFlash || {};
     const user = auth.user;
+    const { theme: globalTheme, setTheme } = useTheme();
+    const effectiveTheme = globalTheme ?? pageTheme ?? 'dark';
+
+    // Sync body background/color to effective theme so shell and body match the toggle
+    useEffect(() => {
+        if (effectiveTheme === 'light') {
+            document.body.style.background = '#ffffff';
+            document.body.style.color = '#111827';
+        } else {
+            document.body.style.background = '#111827';
+            document.body.style.color = '#e5e7eb';
+        }
+        return () => {
+            document.body.style.background = '';
+            document.body.style.color = '';
+        };
+    }, [effectiveTheme]);
 
     // Fraud/security modal: show when backend sent fraud_alert error (e.g. high-risk block)
     const fraudAlertMessage = pageErrors?.fraud_alert
@@ -552,9 +570,9 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
     }, []);
 
     return (
-        <div className={`min-h-screen ${pageTheme === 'dark' ? 'bg-[#05070A]' : 'bg-white'}`}>
+        <div className={`min-h-screen ${effectiveTheme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
             <CsrfSync />
-            <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#05070A] shadow-lg shadow-black/20 transition-colors duration-300 ease-out relative">
+            <nav className={`sticky top-0 z-50 border-b shadow-lg shadow-black/20 transition-colors duration-300 ease-out relative ${effectiveTheme === 'dark' ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
 
                 <div
                     className="absolute inset-0 opacity-10 pointer-events-none"
@@ -579,8 +597,8 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                         />
                                     </div>
                                     <div className="flex items-baseline">
-                                        <span className="text-2xl md:text-3xl font-black text-white tracking-tighter">
-                                            <span className="text-blue-500">W</span>orkWise
+                                        <span className={`text-2xl md:text-3xl font-black tracking-tighter ${effectiveTheme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                                            <span className={effectiveTheme === 'dark' ? 'text-blue-500' : 'text-blue-600'}>W</span>orkWise
                                         </span>
                                     </div>
                                 </Link>
@@ -594,7 +612,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                         href={dashboardHref}
                                         className={`text-sm font-medium transition-colors duration-200 ${isDashboardActive
                                             ? 'text-blue-400'
-                                            : 'text-white/70 hover:text-white'
+                                            : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                             }`}
                                     >
                                         {isEmployer ? 'Find Gig Workers' : 'Dashboard'}
@@ -606,7 +624,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                     href="/jobs"
                                     className={`text-sm font-medium transition-colors duration-200 ${window.route.current('jobs.*')
                                         ? 'text-blue-400'
-                                        : 'text-white/70 hover:text-white'
+                                        : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                         }`}
                                 >
                                     {isGigWorker ? 'Find Jobs' : 'My Jobs'}
@@ -619,7 +637,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             href="/bids"
                                             className={`text-sm font-medium transition-colors duration-200 ${window.route.current('bids.*')
                                                 ? 'text-blue-400'
-                                                : 'text-white/70 hover:text-white'
+                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                                 }`}
                                         >
                                             My Proposals
@@ -628,7 +646,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             href={safeRoute('ai.recommendations.gigworker', '/aimatch/gig-worker')}
                                             className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.gigworker') && !window.location.pathname.startsWith('/ai-recommendations')
                                                 ? 'text-blue-400'
-                                                : 'text-white/70 hover:text-white'
+                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                                 }`}
                                         >
                                             AI Match
@@ -637,7 +655,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             href={safeRoute('ai.recommendations.gigworker.quality', '/ai-recommendations/gig-worker')}
                                             className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.gigworker.quality')
                                                 ? 'text-blue-400'
-                                                : 'text-white/70 hover:text-white'
+                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                                 }`}
                                         >
                                             AI Recommendations
@@ -652,7 +670,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             href="/jobs/create"
                                             className={`text-sm font-medium rounded-md transition-colors duration-200 ${window.route.current('jobs.create')
                                                 ? 'text-blue-400'
-                                                : 'text-white/70 hover:text-white'
+                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                                 }`}
                                         >
                                             Post a Job
@@ -661,7 +679,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             href={safeRoute('ai.recommendations.employer', '/aimatch/employer')}
                                             className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.employer') && !window.location.pathname.startsWith('/ai-recommendations')
                                                 ? 'text-blue-400'
-                                                : 'text-white/70 hover:text-white'
+                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                                 }`}
                                         >
                                             AI Match
@@ -670,7 +688,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             href={safeRoute('ai.recommendations.employer.quality', '/ai-recommendations/employer')}
                                             className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.employer.quality')
                                                 ? 'text-blue-400'
-                                                : 'text-white/70 hover:text-white'
+                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                                 }`}
                                         >
                                             AI Recommendations
@@ -683,7 +701,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                     href="/projects"
                                     className={`text-sm font-medium transition-colors duration-200 ${window.route.current('projects.*')
                                         ? 'text-blue-400'
-                                        : 'text-white/70 hover:text-white'
+                                        : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                         }`}
                                 >
                                     Projects
@@ -708,7 +726,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                             <div className="relative">
                                 <button
                                     onClick={handleNotificationButtonClick}
-                                    className="relative p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors duration-200"
+                                    className="relative p-2 text-gray-400 hover:text-gray-100 hover:bg-gray-700 rounded-lg transition-colors duration-200"
                                 >
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM10.5 3.5a6 6 0 0 1 6 6v2l1.5 3h-15l1.5-3v-2a6 6 0 0 1 6-6z" />
@@ -722,11 +740,11 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
 
                                 {/* Simplified Notifications Dropdown */}
                                 {showingNotificationsDropdown && (
-                                    <div className={`notifications-dropdown absolute right-0 mt-2 w-80 rounded-lg shadow-lg overflow-hidden ${pageTheme === 'dark' ? 'bg-[#0f172a] border border-white/10' : 'bg-white border border-gray-200'}`}>
+                                    <div className={`notifications-dropdown absolute right-0 mt-2 w-80 rounded-lg shadow-lg overflow-hidden ${effectiveTheme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
                                         {/* Header */}
-                                        <div className={pageTheme === 'dark' ? 'px-4 py-3 border-b border-white/10' : 'px-4 py-3 border-b border-gray-200'}>
+                                        <div className={effectiveTheme === 'dark' ? 'px-4 py-3 border-b border-gray-700' : 'px-4 py-3 border-b border-gray-200'}>
                                             <div className="flex items-center justify-between">
-                                                <h3 className={`text-sm font-semibold ${pageTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                                <h3 className={`text-sm font-semibold ${effectiveTheme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                                                     Notifications {unreadCount > 0 && `(${unreadCount})`}
                                                 </h3>
                                                 {unreadCount > 0 && (
@@ -735,7 +753,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                             e.stopPropagation();
                                                             markAllAsRead();
                                                         }}
-                                                        className={pageTheme === 'dark' ? 'text-xs text-blue-400 hover:text-blue-300' : 'text-xs text-blue-600 hover:text-blue-700'}
+                                                        className={effectiveTheme === 'dark' ? 'text-xs text-blue-400 hover:text-blue-300' : 'text-xs text-blue-600 hover:text-blue-700'}
                                                     >
                                                         Mark all read
                                                     </button>
@@ -747,17 +765,17 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                         <div className="max-h-96 overflow-y-auto">
                                             {loading ? (
                                                 <div className="p-4 text-center">
-                                                    <div className={`inline-block w-6 h-6 border-2 rounded-full animate-spin ${pageTheme === 'dark' ? 'border-white/20 border-t-blue-400' : 'border-gray-300 border-t-blue-600'}`}></div>
+                                                    <div className={`inline-block w-6 h-6 border-2 rounded-full animate-spin ${effectiveTheme === 'dark' ? 'border-gray-600 border-t-blue-400' : 'border-gray-300 border-t-blue-600'}`}></div>
                                                 </div>
                                             ) : notifications.length === 0 ? (
                                                 <div className="p-8 text-center">
-                                                    <svg className={`w-12 h-12 mx-auto mb-2 ${pageTheme === 'dark' ? 'text-white/20' : 'text-gray-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className={`w-12 h-12 mx-auto mb-2 ${effectiveTheme === 'dark' ? 'text-gray-500' : 'text-gray-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-5 5v-5zM10.5 3.5a6 6 0 0 1 6 6v2l1.5 3h-15l1.5-3v-2a6 6 0 0 1 6-6z" />
                                                     </svg>
-                                                    <p className={`text-sm ${pageTheme === 'dark' ? 'text-white/50' : 'text-gray-500'}`}>No notifications</p>
+                                                    <p className={`text-sm ${effectiveTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>No notifications</p>
                                                 </div>
                                             ) : (
-                                                <div className={pageTheme === 'dark' ? 'divide-y divide-white/10' : 'divide-y divide-gray-100'}>
+                                                <div className={effectiveTheme === 'dark' ? 'divide-y divide-gray-700' : 'divide-y divide-gray-100'}>
                                                     {notifications.map((notification) => {
                                                         const isUnread = !notification.is_read;
 
@@ -765,31 +783,31 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                             <div
                                                                 key={notification.id}
                                                                 onClick={() => handleNotificationClick(notification)}
-                                                                className={`p-3 cursor-pointer ${pageTheme === 'dark'
-                                                                    ? (isUnread ? 'bg-blue-500/10 hover:bg-white/5' : 'hover:bg-white/5')
+                                                                className={`p-3 cursor-pointer ${effectiveTheme === 'dark'
+                                                                    ? (isUnread ? 'bg-blue-500/10 hover:bg-gray-700' : 'hover:bg-gray-700')
                                                                     : `hover:bg-gray-50 ${isUnread ? 'bg-blue-50' : ''}`
                                                                     }`}
                                                             >
                                                                 <div className="flex items-start gap-3">
                                                                     {/* Icon */}
                                                                     <div className="flex-shrink-0 mt-0.5">
-                                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pageTheme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
+                                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${effectiveTheme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
                                                                             <NotificationIcon type={notification.type} icon={notification.icon} />
                                                                         </div>
                                                                     </div>
 
                                                                     {/* Content */}
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className={`text-sm ${pageTheme === 'dark'
-                                                                            ? (isUnread ? 'font-semibold text-white' : 'text-white/80')
+                                                                        <p className={`text-sm ${effectiveTheme === 'dark'
+                                                                            ? (isUnread ? 'font-semibold text-gray-100' : 'text-gray-200')
                                                                             : (isUnread ? 'font-semibold text-gray-900' : 'text-gray-700')
                                                                             }`}>
                                                                             {notification.title}
                                                                         </p>
-                                                                        <p className={`text-xs mt-0.5 line-clamp-2 ${pageTheme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>
+                                                                        <p className={`text-xs mt-0.5 line-clamp-2 ${effectiveTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                                                                             {notification.message}
                                                                         </p>
-                                                                        <p className={`text-xs mt-1 ${pageTheme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>
+                                                                        <p className={`text-xs mt-1 ${effectiveTheme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
                                                                             {new Date(notification.created_at).toLocaleDateString('en-US', {
                                                                                 month: 'short',
                                                                                 day: 'numeric',
@@ -812,7 +830,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                                     <div className="mt-2 ml-11">
                                                                         <button
                                                                             onClick={(e) => handleMessageButtonClick(e, notification)}
-                                                                            className={pageTheme === 'dark' ? 'text-xs text-blue-400 hover:text-blue-300 font-medium' : 'text-xs text-blue-600 hover:text-blue-700 font-medium'}
+                                                                            className={effectiveTheme === 'dark' ? 'text-xs text-blue-400 hover:text-blue-300 font-medium' : 'text-xs text-blue-600 hover:text-blue-700 font-medium'}
                                                                         >
                                                                             Send Message
                                                                         </button>
@@ -827,10 +845,10 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
 
                                         {/* Footer */}
                                         {notifications.length > 0 && (
-                                            <div className={pageTheme === 'dark' ? 'px-4 py-2 bg-white/5 border-t border-white/10' : 'px-4 py-2 bg-gray-50 border-t border-gray-200'}>
+                                            <div className={effectiveTheme === 'dark' ? 'px-4 py-2 bg-gray-700 border-t border-gray-700' : 'px-4 py-2 bg-gray-50 border-t border-gray-200'}>
                                                 <Link
                                                     href="/notifications"
-                                                    className={`block text-center text-xs font-medium ${pageTheme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+                                                    className={`block text-center text-xs font-medium ${effectiveTheme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
                                                     onClick={() => setShowingNotificationsDropdown(false)}
                                                 >
                                                     View all
@@ -840,6 +858,25 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Theme toggle */}
+                            <button
+                                type="button"
+                                onClick={() => setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')}
+                                className={`p-2 rounded-lg transition-colors duration-200 ${effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                                title={effectiveTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                                aria-label={effectiveTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                            >
+                                {effectiveTheme === 'dark' ? (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                    </svg>
+                                )}
+                            </button>
 
                             {/* Enhanced Messages Dropdown */}
                             <div className="relative">
@@ -1007,9 +1044,9 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
 
                             {/* User Dropdown */}
                             <div className="relative">
-                                <Dropdown dark={pageTheme === 'dark'}>
+                                <Dropdown dark={effectiveTheme === 'dark'}>
                                     <Dropdown.Trigger>
-                                        <button className="flex items-center space-x-2 text-sm font-medium text-white/90 hover:text-white transition-colors duration-200">
+                                        <button className={`flex items-center space-x-2 text-sm font-medium transition-colors duration-200 ${effectiveTheme === 'dark' ? 'text-gray-200 hover:text-gray-100' : 'text-gray-700 hover:text-gray-900'}`}>
                                             {(() => {
                                                 const avatarSrc = resolveProfileImageUrl(user.profile_photo ?? user.profile_picture ?? user.avatar);
                                                 return avatarSrc ? (
@@ -1021,14 +1058,14 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                             <img
                                                                 src={avatarSrc}
                                                                 alt={user.first_name || user.name}
-                                                                className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
+                                                                className="w-8 h-8 rounded-full object-cover border-2 border-gray-600"
                                                             />
                                                         </Link>
                                                     ) : (
                                                         <img
                                                             src={avatarSrc}
                                                             alt={user.first_name || user.name}
-                                                            className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
+                                                                className="w-8 h-8 rounded-full object-cover border-2 border-gray-600"
                                                         />
                                                     )
                                                 ) : (
@@ -1037,17 +1074,17 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                     </div>
                                                 );
                                             })()}
-                                            <span className="hidden md:block text-white">{user.first_name || user.name}</span>
-                                            <svg className="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <span className="hidden md:block text-gray-100">{user.first_name || user.name}</span>
+                                            <svg className={`w-4 h-4 ${effectiveTheme === 'dark' ? 'text-gray-200' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                             </svg>
                                         </button>
                                     </Dropdown.Trigger>
 
                                     <Dropdown.Content>
-                                        <div className={pageTheme === 'dark' ? 'px-4 py-2 border-b border-white/10' : 'px-4 py-2 border-b border-gray-100'}>
-                                            <div className={`text-sm font-medium ${pageTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{user.first_name ? `${user.first_name} ${user.last_name}` : user.name}</div>
-                                            <div className={`text-xs capitalize ${pageTheme === 'dark' ? 'text-white/50' : 'text-gray-500'}`}>{user.user_type}</div>
+                                        <div className={effectiveTheme === 'dark' ? 'px-4 py-2 border-b border-gray-700' : 'px-4 py-2 border-b border-gray-100'}>
+                                            <div className={`text-sm font-medium ${effectiveTheme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{user.first_name ? `${user.first_name} ${user.last_name}` : user.name}</div>
+                                            <div className={`text-xs capitalize ${effectiveTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{user.user_type}</div>
                                         </div>
                                         <Dropdown.Link href={isGigWorker ? '/profile/gig-worker' : (isEmployer ? '/profile/employer' : '/profile')}>
                                             Profile Settings
@@ -1067,7 +1104,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                         <Dropdown.Link href="#">
                                             Help & Support
                                         </Dropdown.Link>
-                                        <div className={pageTheme === 'dark' ? 'border-t border-white/10' : 'border-t border-gray-100'}>
+                                        <div className={effectiveTheme === 'dark' ? 'border-t border-gray-700' : 'border-t border-gray-100'}>
                                             <Dropdown.Link
                                                 href={route('logout')}
                                                 method="post"
@@ -1088,7 +1125,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                         (previousState) => !previousState,
                                     )
                                 }
-                                className="p-2 text-white/70 hover:text-white transition-colors duration-200"
+                                className={`p-2 transition-colors duration-200 ${effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900'}`}
                             >
                                 <svg
                                     className="h-6 w-6"
@@ -1125,15 +1162,15 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                 </div>
 
                 {/* Mobile Navigation */}
-                <div className={`${showingNavigationDropdown ? 'block' : 'hidden'} md:hidden border-t border-white/10 bg-[#05070A]/95`}>
+                <div className={`${showingNavigationDropdown ? 'block' : 'hidden'} md:hidden border-t ${effectiveTheme === 'dark' ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
                     <div className="px-4 py-2 space-y-1">
                         {/* Dashboard / Find Gig Workers - shown for employers/admin, not for gig workers */}
                         {!isGigWorker && (
                             <Link
                                 href={dashboardHref}
                                 className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${isDashboardActive
-                                    ? 'text-blue-400 bg-white/10'
-                                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                                    ? 'text-blue-400 bg-gray-700'
+                                    : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                     }`}
                             >
                                 {isEmployer ? 'Find Gig Workers' : 'Dashboard'}
@@ -1143,8 +1180,8 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                         <Link
                             href="/jobs"
                             className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${window.route.current('jobs.*')
-                                ? 'text-blue-400 bg-white/10'
-                                : 'text-white/70 hover:text-white hover:bg-white/5'
+                                ? 'text-blue-400 bg-gray-700'
+                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                 }`}
                         >
                             {isGigWorker ? 'Find Jobs' : 'My Jobs'}
@@ -1155,8 +1192,8 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                             <Link
                                 href="/bids"
                                 className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${window.route.current('bids.*')
-                                    ? 'text-blue-400 bg-white/10'
-                                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                                    ? 'text-blue-400 bg-gray-700'
+                                    : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                     }`}
                             >
                                 My Proposals
@@ -1168,8 +1205,8 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                             <Link
                                 href="/jobs/create"
                                 className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${window.route.current('jobs.create')
-                                    ? 'text-blue-400 bg-white/10'
-                                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                                    ? 'text-blue-400 bg-gray-700'
+                                    : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                     }`}
                             >
                                 Post a Job
@@ -1180,15 +1217,15 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                         <Link
                             href="/projects"
                             className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${window.route.current('projects.*')
-                                ? 'text-blue-400 bg-white/10'
-                                : 'text-white/70 hover:text-white hover:bg-white/5'
+                                ? 'text-blue-400 bg-gray-700'
+                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                 }`}
                         >
                             Projects
                         </Link>
                     </div>
 
-                    <div className="border-t border-white/10 px-4 py-3">
+                    <div className={`border-t px-4 py-3 ${effectiveTheme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                         <div className="flex items-center space-x-3">
                             {(() => {
                                 const avatarSrc = resolveProfileImageUrl(user.profile_photo ?? user.profile_picture ?? user.avatar);
@@ -1196,7 +1233,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                     <img
                                         src={avatarSrc}
                                         alt={user.first_name || user.name}
-                                        className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
+                                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-600"
                                     />
                                 ) : (
                                     <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
@@ -1205,20 +1242,20 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                 );
                             })()}
                             <div>
-                                <div className="text-sm font-medium text-white">{user.first_name ? `${user.first_name} ${user.last_name}` : user.name}</div>
-                                <div className="text-xs text-white/50 capitalize">{user.user_type}</div>
+                                <div className="text-sm font-medium text-gray-100">{user.first_name ? `${user.first_name} ${user.last_name}` : user.name}</div>
+                                <div className={`text-xs capitalize ${effectiveTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{user.user_type}</div>
                             </div>
                         </div>
                         <div className="mt-3 space-y-1">
                             <Link
                                 href={isGigWorker ? '/profile/gig-worker' : (isEmployer ? '/profile/employer' : '/profile')}
-                                className="block px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                                className={`block px-3 py-2 text-sm rounded-md transition-colors ${effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'}`}
                             >
                                 Profile Settings
                             </Link>
                             <Link
                                 href="/messages"
-                                className="block px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                                className={`block px-3 py-2 text-sm rounded-md transition-colors ${effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'}`}
                             >
                                 Messages
                             </Link>
@@ -1226,7 +1263,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                 href={route('logout')}
                                 method="post"
                                 as="button"
-                                className="block w-full text-left px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                                className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'}`}
                             >
                                 Log Out
                             </Link>
@@ -1236,7 +1273,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
             </nav>
 
             {header && (
-                <header className={pageTheme === 'dark' ? 'bg-[#05070A] border-b border-white/10' : 'bg-white border-b border-gray-200'}>
+                <header className={effectiveTheme === 'dark' ? 'bg-gray-900 border-b border-gray-700' : 'bg-white border-b border-gray-200'}>
                     <div className="mx-auto py-6" style={{ paddingLeft: '0.45in', paddingRight: '0.45in' }}>
                         {header}
                     </div>

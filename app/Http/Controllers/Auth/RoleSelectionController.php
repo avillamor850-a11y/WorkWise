@@ -18,7 +18,8 @@ class RoleSelectionController extends Controller
     }
 
     /**
-     * Handle role selection and redirect to registration
+     * Handle role selection and redirect to registration.
+     * Idempotent: repeated same user_type from same session does not create duplicate state.
      */
     public function store(Request $request)
     {
@@ -31,13 +32,22 @@ class RoleSelectionController extends Controller
             'user_type' => 'required|in:gig_worker,employer'
         ]);
 
-        // Store the selected role in session
-        session(['selected_user_type' => $request->user_type]);
+        $isDuplicate = session('selected_user_type') === $request->user_type;
 
-        \Log::info('Role stored in session', [
-            'selected_user_type' => session('selected_user_type'),
-            'session_id' => session()->getId()
-        ]);
+        if (!$isDuplicate) {
+            session(['selected_user_type' => $request->user_type]);
+            \Log::info('Role stored in session', [
+                'selected_user_type' => session('selected_user_type'),
+                'session_id' => session()->getId()
+            ]);
+        }
+
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'status' => $isDuplicate ? 'already_selected' : 'ok',
+                'user_type' => $request->user_type,
+            ], 200);
+        }
 
         return redirect()->route('register');
     }

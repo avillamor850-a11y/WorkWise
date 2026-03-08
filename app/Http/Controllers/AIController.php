@@ -345,8 +345,8 @@ class AIController extends Controller
      */
     private function calculateHiringSuccessRate($user): array
     {
-        $totalProjects = $user->clientProjects()->count();
-        $successfulProjects = $user->clientProjects()->where('status', 'completed')->count();
+        $totalProjects = $user->employerProjects()->count();
+        $successfulProjects = $user->employerProjects()->where('status', 'completed')->count();
 
         $successRate = $totalProjects > 0 ? ($successfulProjects / $totalProjects) * 100 : 0;
 
@@ -364,7 +364,7 @@ class AIController extends Controller
     private function getBudgetOptimization($user): array
     {
         return [
-            'average_project_cost' => $user->clientProjects()->avg('agreed_amount') ?? 0,
+            'average_project_cost' => $user->employerProjects()->avg('agreed_amount') ?? 0,
             'cost_per_successful_project' => 'Calculate based on success rate',
             'optimization_tips' => [
                 'Consider milestone-based payments',

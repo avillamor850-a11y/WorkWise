@@ -53,6 +53,10 @@ class EmployerDashboardController extends Controller
     {
         $user = $request->user();
 
+        // #region agent log
+        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H1,H2,H5','location'=>'EmployerDashboardController::index','message'=>'index entered','data'=>['hasUser'=>!!$user,'user_type'=>$user->user_type ?? null],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+
         if ($user->user_type !== 'employer') {
             return redirect()->route('dashboard');
         }
@@ -126,6 +130,9 @@ class EmployerDashboardController extends Controller
 
         $allSkills = Skill::orderBy('name')->pluck('name')->values()->all();
 
+        // #region agent log
+        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H2','location'=>'EmployerDashboardController::index','message'=>'returning Inertia Employer/Dashboard','data'=>['workersCount'=>$workers->count()],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         return Inertia::render('Employer/Dashboard', [
             'auth' => [
                 'user' => [

@@ -212,23 +212,23 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
     if (!isOpen) return null;
 
     return (
-        <div className={`fixed bottom-4 right-4 bg-white rounded-lg shadow-lg flex flex-col border border-gray-300 transition-all duration-300 z-[9999] ${
+        <div className={`fixed bottom-4 right-4 bg-gray-800 rounded-lg shadow-lg flex flex-col border border-gray-700 transition-all duration-300 z-[9999] ${
             isMinimized ? 'w-12 h-12' : 'w-96 h-[500px]'
         }`}>
             {/* Header */}
             <header 
-                className={`flex items-center gap-3 bg-white px-4 py-3 border-b border-gray-200 cursor-pointer rounded-t-xl ${
+                className={`flex items-center gap-3 bg-gray-800 px-4 py-3 border-b border-gray-700 cursor-pointer rounded-t-xl ${
                     isMinimized ? 'hidden' : ''
                 }`}
                 onClick={toggleMinimize}
             >
                 <div className="flex-1">
-                    <p className="text-[#0e1a13] text-base font-semibold leading-normal">Messages</p>
-                    <p className="text-[#6C757D] text-xs">{selectedConversation ? 'Conversation' : 'Conversations'}</p>
+                    <p className="text-gray-100 text-base font-semibold leading-normal">Messages</p>
+                    <p className="text-gray-400 text-xs">{selectedConversation ? 'Conversation' : 'Conversations'}</p>
                 </div>
                 <button 
                     onClick={toggleMinimize}
-                    className="text-[#6C757D] flex items-center justify-center p-2 rounded-full hover:bg-gray-100"
+                    className="text-gray-400 flex items-center justify-center p-2 rounded-full hover:bg-gray-700"
                 >
                     <svg className={`w-4 h-4 transition-transform duration-300 ${isMinimized ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -241,19 +241,19 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                 {!selectedConversation ? (
                     // Conversations list first
                     <div className="flex flex-col h-full">
-                        <div className="p-3 border-b border-gray-100">
+                        <div className="p-3 border-b border-gray-700">
                             <input
                                 type="text"
                                 placeholder="Search conversations..."
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 text-sm border border-gray-600 rounded-md bg-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                                 onChange={() => {}}
                             />
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {loading ? (
-                                <div className="p-4 text-center text-sm text-gray-500">Loading...</div>
+                                <div className="p-4 text-center text-sm text-gray-400">Loading...</div>
                             ) : conversations.length === 0 ? (
-                                <div className="p-6 text-center text-gray-500">
+                                <div className="p-6 text-center text-gray-400">
                                     <div className="text-3xl mb-2">💬</div>
                                     <p className="text-sm">No conversations yet</p>
                                 </div>
@@ -265,7 +265,7 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                                             setSelectedConversation(conversation);
                                             fetchMessages(conversation.user.id);
                                         }}
-                                        className="p-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                                        className="p-3 cursor-pointer hover:bg-gray-700 transition-colors border-b border-gray-700"
                                     >
                                         <div className="flex items-start space-x-3">
                                             <div className="flex-shrink-0">
@@ -273,7 +273,7 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between">
-                                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                                    <p className="text-sm font-medium text-gray-100 truncate">
                                                         {conversation.user.first_name ? `${conversation.user.first_name} ${conversation.user.last_name}` : conversation.user.name}
                                                     </p>
                                                     {conversation.unread_count > 0 && (
@@ -282,7 +282,7 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-gray-600 mt-1 truncate">
+                                                <p className="text-xs text-gray-400 mt-1 truncate">
                                                     {conversation.latest_message.type === 'file' ? '📎 Attachment' : conversation.latest_message.message}
                                                 </p>
                                             </div>
@@ -295,17 +295,17 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                 ) : (
                     // Messages of selected conversation
                     <div className="flex flex-col h-full">
-                        <div className="p-3 border-b border-gray-200 bg-gray-50 flex items-center space-x-3">
+                        <div className="p-3 border-b border-gray-700 bg-gray-800 flex items-center space-x-3">
                             {getUserAvatar(selectedConversation.user, 'w-8 h-8')}
                             <div>
-                                <p className="text-sm font-medium text-gray-900">
+                                <p className="text-sm font-medium text-gray-100">
                                     {selectedConversation.user.first_name ? `${selectedConversation.user.first_name} ${selectedConversation.user.last_name}` : selectedConversation.user.name}
                                 </p>
-                                <p className="text-xs text-gray-500 capitalize">{selectedConversation.user.user_type}</p>
+                                <p className="text-xs text-gray-400 capitalize">{selectedConversation.user.user_type}</p>
                             </div>
                             <div className="ml-auto">
                                 <button
-                                    className="text-xs text-blue-600 hover:text-blue-800"
+                                    className="text-xs text-blue-400 hover:text-blue-300"
                                     onClick={() => setSelectedConversation(null)}
                                 >
                                     Back
@@ -314,7 +314,7 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {loading && messages.length === 0 ? (
-                                <div className="text-center text-gray-500 py-8">Loading messages...</div>
+                                <div className="text-center text-gray-400 py-8">Loading messages...</div>
                             ) : (
                                 messages.map((message) => {
                                     const isOwnMessage = message.sender_id !== selectedConversation.user.id;
@@ -323,18 +323,18 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                                             {!isOwnMessage && getUserAvatar(selectedConversation.user)}
                                             <div className={`flex flex-1 flex-col gap-1 ${isOwnMessage ? 'items-end' : 'items-start'}`}>
                                                 {message.type === 'file' ? (
-                                                    <div className="flex items-center gap-2 p-2 rounded-lg border border-gray-200 bg-white w-full max-w-[280px]">
-                                                        <svg className="w-4 h-4 text-[#007BFF]" fill="currentColor" viewBox="0 0 20 20">
+                                                    <div className="flex items-center gap-2 p-2 rounded-lg border border-gray-600 bg-gray-700 w-full max-w-[280px]">
+                                                        <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                                                         </svg>
                                                         <div className="flex-1">
-                                                            <p className="text-xs font-medium text-[#0e1a13]">{message.attachment_name}</p>
+                                                            <p className="text-xs font-medium text-gray-100">{message.attachment_name}</p>
                                                         </div>
                                                         <a
                                                             href={`/storage/${message.attachment_path}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="p-1 text-[#6C757D] hover:text-[#007BFF]"
+                                                            className="p-1 text-gray-400 hover:text-blue-400"
                                                         >
                                                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -344,13 +344,13 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                                                 ) : (
                                                     <p className={`text-sm font-normal leading-normal flex max-w-[280px] rounded-lg px-3 py-2 ${
                                                         isOwnMessage 
-                                                            ? 'bg-[#007BFF] text-white rounded-br-none'
-                                                            : 'bg-gray-100 text-[#0e1a13] rounded-tl-none'
+                                                            ? 'bg-blue-600 text-white rounded-br-none'
+                                                            : 'bg-gray-700 text-gray-100 rounded-tl-none'
                                                     }`}>
                                                         {message.message}
                                                     </p>
                                                 )}
-                                                <p className="text-gray-500 text-xs">
+                                                <p className="text-gray-400 text-xs">
                                                     {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
@@ -361,14 +361,14 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                             <div ref={messagesEndRef} />
                         </div>
                         {/* Message Input */}
-                        <div className="bg-white p-3 border-t border-gray-200 rounded-b-xl">
+                        <div className="bg-gray-800 p-3 border-t border-gray-700 rounded-b-xl">
                             <form onSubmit={sendMessage} className="flex items-center gap-2">
                                 <div className="flex-1 relative">
                                     <input
                                         type="text"
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
-                                        className="form-input w-full rounded-full bg-gray-100 border-transparent focus:ring-1 focus:ring-[#007BFF] focus:bg-white text-sm px-4 py-2 pr-10"
+                                        className="form-input w-full rounded-full bg-gray-700 border border-gray-600 text-white placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm px-4 py-2 pr-10"
                                         placeholder="Type a message..."
                                         disabled={sending}
                                     />
@@ -381,7 +381,7 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-[#007BFF]"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-blue-400"
                                     >
                                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                             <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
@@ -391,7 +391,7 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                                 <button
                                     type="submit"
                                     disabled={(!newMessage.trim() && !attachment) || sending}
-                                    className="flex-shrink-0 cursor-pointer items-center justify-center rounded-full h-9 w-9 bg-[#007BFF] hover:bg-blue-600 text-white transition-colors flex disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-shrink-0 cursor-pointer items-center justify-center rounded-full h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white transition-colors flex disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {sending ? (
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -403,15 +403,15 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
                                 </button>
                             </form>
                             {attachment && (
-                                <div className="mt-2 p-2 bg-gray-100 rounded flex items-center justify-between">
-                                    <span className="text-xs text-gray-600">📎 {attachment.name}</span>
+                                <div className="mt-2 p-2 bg-gray-700 rounded flex items-center justify-between">
+                                    <span className="text-xs text-gray-400">📎 {attachment.name}</span>
                                     <button
                                         type="button"
                                         onClick={() => {
                                             setAttachment(null);
                                             if (fileInputRef.current) fileInputRef.current.value = '';
                                         }}
-                                        className="text-red-500 hover:text-red-700 text-xs"
+                                        className="text-red-400 hover:text-red-300 text-xs"
                                     >
                                         ✕
                                     </button>
@@ -485,15 +485,15 @@ const MiniChatModal = forwardRef(({ isOpen = true, unreadCount = 0, targetUserId
             {/* Minimized View */}
             {isMinimized && (
                 <div
-                    className="w-full h-full flex items-center justify-center cursor-pointer rounded-lg hover:bg-gray-50 transition-colors"
+                    className="w-full h-full flex items-center justify-center cursor-pointer rounded-lg hover:bg-gray-700 transition-colors"
                     onClick={toggleMinimize}
                 >
                     <div className="relative">
-                        <svg className="w-5 h-5 text-gray-500 hover:text-gray-700 transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-5 h-5 text-gray-400 hover:text-gray-300 transition-colors" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
                         </svg>
                         {unreadCount > 0 && (
-                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></div>
+                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-gray-800"></div>
                         )}
                     </div>
                 </div>

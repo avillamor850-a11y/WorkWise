@@ -28,7 +28,7 @@ class EmployerOnboardingController extends Controller
     /**
      * Show the employer onboarding page
      */
-    public function show(): Response|RedirectResponse
+    public function show(Request $request): Response|RedirectResponse
     {
         $user = auth()->user();
 
@@ -46,9 +46,12 @@ class EmployerOnboardingController extends Controller
         $industries = $this->getIndustries();
         $serviceCategories = $this->getServiceCategories();
 
+        $currentStep = (int) $request->query('step', $user->onboarding_step ?: 1);
+        $currentStep = max(1, min(5, $currentStep));
+
         return Inertia::render('Onboarding/EmployerOnboarding', [
             'user' => $user,
-            'currentStep' => $user->onboarding_step ?: 1,
+            'currentStep' => $currentStep,
             'industries' => $industries,
             'serviceCategories' => $serviceCategories,
         ]);
@@ -95,7 +98,8 @@ class EmployerOnboardingController extends Controller
             }
 
             // Update onboarding step progress so user returns to the right step on refresh
-            if (!$user->profile_completed && $user->onboarding_step < $step) {
+            $willUpdate = !$user->profile_completed && $user->onboarding_step < $step;
+            if ($willUpdate) {
                 $user->onboarding_step = $step;
                 $user->save();
             }
@@ -103,7 +107,7 @@ class EmployerOnboardingController extends Controller
             return back()->with('success', "Step {$step} saved.");
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e;
+            return redirect()->route('employer.onboarding', ['step' => $step])->withErrors($e->errors());
         } catch (\Exception $e) {
             Log::error('ONBOARDING_STEP_SAVE_FAILED', [
                 'step' => $step,

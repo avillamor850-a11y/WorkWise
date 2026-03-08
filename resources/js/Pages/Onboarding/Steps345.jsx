@@ -457,7 +457,7 @@ function Step5Review({ data, user, onSubmit, onBack, submitting, goToStep }) {
                         {data.bio && (
                             <div>
                                 <span className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Bio</span>
-                                <p className="text-sm text-gray-700 line-clamp-3">{data.bio}</p>
+                                <p className="text-sm text-gray-700 line-clamp-3 break-all">{data.bio}</p>
                             </div>
                         )}
                     </div>

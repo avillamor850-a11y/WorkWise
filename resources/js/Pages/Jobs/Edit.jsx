@@ -130,10 +130,10 @@ export default function JobEdit({ job }) {
             pageTheme="dark"
             header={
                 <div>
-                    <h2 className="font-semibold text-xl text-white leading-tight tracking-tight">
+                    <h2 className="font-semibold text-xl text-gray-100 leading-tight tracking-tight">
                         Edit Job: {job.title}
                     </h2>
-                    <p className="text-sm text-white/60 mt-1">
+                    <p className="text-sm text-gray-400 mt-1">
                         Update your job posting details
                     </p>
                 </div>
@@ -142,17 +142,17 @@ export default function JobEdit({ job }) {
             <Head title={`Edit Job: ${job.title}`} />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-            <div className="relative min-h-screen py-12 bg-[#05070A] overflow-hidden">
-                <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+            <div className="relative min-h-screen py-12 bg-gray-900 overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-700/10 rounded-full blur-[100px] pointer-events-none" />
 
                 <div className="relative z-20 max-w-4xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white/5 backdrop-blur-sm overflow-hidden border border-white/10 rounded-xl">
+                    <div className="bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl">
                         <div className="p-8">
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 {/* Job Title */}
                                 <div>
-                                    <label htmlFor="title" className="block text-sm font-medium text-white/90 mb-2">
+                                    <label htmlFor="title" className="block text-sm font-medium text-gray-200 mb-2">
                                         Job Title *
                                     </label>
                                     <input
@@ -160,11 +160,11 @@ export default function JobEdit({ job }) {
                                         id="title"
                                         value={data.title}
                                         onChange={(e) => setData('title', e.target.value)}
-                                        className="w-full border border-white/20 rounded-xl bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                        className="w-full border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                         placeholder="e.g., Build a React.js E-commerce Website"
                                         required
                                     />
-                                    <p className="mt-1 text-sm text-white/50">
+                                    <p className="mt-1 text-sm text-gray-500">
                                         Write a clear, descriptive title that explains what you need done
                                     </p>
                                     {errors.title && <p className="mt-2 text-sm text-red-400">{errors.title}</p>}
@@ -172,7 +172,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Job Description */}
                                 <div>
-                                    <label htmlFor="description" className="block text-sm font-medium text-white/90 mb-2">
+                                    <label htmlFor="description" className="block text-sm font-medium text-gray-200 mb-2">
                                         Job Description *
                                     </label>
                                     <textarea
@@ -180,11 +180,11 @@ export default function JobEdit({ job }) {
                                         value={data.description}
                                         onChange={(e) => setData('description', e.target.value)}
                                         rows={6}
-                                        className="w-full border border-white/20 rounded-xl bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none"
+                                        className="w-full border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none"
                                         placeholder="Describe your project in detail. Include specific requirements, deliverables, and any important information gig workers should know..."
                                         required
                                     />
-                                    <p className="mt-1 text-sm text-white/50">
+                                    <p className="mt-1 text-sm text-gray-500">
                                         Minimum 100 characters. Be specific about what you need.
                                     </p>
                                     {errors.description && <p className="mt-2 text-sm text-red-400">{errors.description}</p>}
@@ -192,7 +192,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Required Skills */}
                                 <div>
-                                    <label className="block text-sm font-medium text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-gray-200 mb-2">
                                         Required Skills *
                                     </label>
                                     <div className="flex items-center space-x-2 mb-3">
@@ -201,7 +201,7 @@ export default function JobEdit({ job }) {
                                             value={skillInput}
                                             onChange={(e) => setSkillInput(e.target.value)}
                                             onKeyDown={handleSkillKeyPress}
-                                            className="flex-1 border border-white/20 rounded-xl bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                            className="flex-1 border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                             placeholder="Type a skill and press Enter"
                                         />
                                         <button
@@ -229,7 +229,7 @@ export default function JobEdit({ job }) {
                                             </span>
                                         ))}
                                     </div>
-                                    <p className="text-sm text-white/50">
+                                    <p className="text-sm text-gray-500">
                                         Add skills that are essential for this job (e.g., React.js, PHP, Graphic Design)
                                     </p>
                                     {errors.required_skills && <p className="mt-2 text-sm text-red-400">{errors.required_skills}</p>}
@@ -237,14 +237,14 @@ export default function JobEdit({ job }) {
 
                                 {/* Project Category */}
                                 <div>
-                                    <label htmlFor="project_category" className="block text-sm font-medium text-white/90 mb-2">
+                                    <label htmlFor="project_category" className="block text-sm font-medium text-gray-200 mb-2">
                                         Project Category *
                                     </label>
                                     <select
                                         id="project_category"
                                         value={data.project_category}
                                         onChange={(e) => setData('project_category', e.target.value)}
-                                        className="w-full border border-white/20 rounded-lg bg-white/5 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                        className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                         style={{ backgroundColor: '#0d1014' }}
                                     >
                                         <option value="" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Select a category</option>
@@ -262,14 +262,14 @@ export default function JobEdit({ job }) {
 
                                 {/* Job Complexity */}
                                 <div>
-                                    <label htmlFor="job_complexity" className="block text-sm font-medium text-white/90 mb-2">
+                                    <label htmlFor="job_complexity" className="block text-sm font-medium text-gray-200 mb-2">
                                         Job Complexity *
                                     </label>
                                     <select
                                         id="job_complexity"
                                         value={data.job_complexity}
                                         onChange={(e) => setData('job_complexity', e.target.value)}
-                                        className="w-full border border-white/20 rounded-lg bg-white/5 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                        className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                         style={{ backgroundColor: '#0d1014' }}
                                     >
                                         <option value="" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Select complexity</option>
@@ -304,7 +304,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Budget */}
                                 <div>
-                                    <label className="block text-sm font-medium text-white/90 mb-4">
+                                    <label className="block text-sm font-medium text-gray-200 mb-4">
                                         Budget *
                                     </label>
                                     <div className="space-y-4">
@@ -318,7 +318,7 @@ export default function JobEdit({ job }) {
                                                     onChange={(e) => setData('budget_type', e.target.value)}
                                                     className="text-blue-500 focus:ring-blue-500/50"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-white/80">Fixed Price</span>
+                                                <span className="ml-2 text-sm font-medium text-gray-200">Fixed Price</span>
                                             </label>
                                             <label className="flex items-center">
                                                 <input
@@ -329,22 +329,22 @@ export default function JobEdit({ job }) {
                                                     onChange={(e) => setData('budget_type', e.target.value)}
                                                     className="text-blue-500 focus:ring-blue-500/50"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-white/80">Hourly Rate</span>
+                                                <span className="ml-2 text-sm font-medium text-gray-200">Hourly Rate</span>
                                             </label>
                                         </div>
                                         
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm text-white/60 mb-1">
+                                                <label className="block text-sm text-gray-400 mb-1">
                                                     {data.budget_type === 'fixed' ? 'Minimum Budget' : 'Minimum Rate/Hour'}
                                                 </label>
                                                 <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50">₱</span>
+                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                                                     <input
                                                         type="number"
                                                         value={data.budget_min}
                                                         onChange={(e) => setData('budget_min', e.target.value)}
-                                                        className="w-full pl-8 border border-white/20 rounded-lg bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                                        className="w-full pl-8 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                                         placeholder="0"
                                                         min="0"
                                                         step="0.01"
@@ -353,16 +353,16 @@ export default function JobEdit({ job }) {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="block text-sm text-white/60 mb-1">
+                                                <label className="block text-sm text-gray-400 mb-1">
                                                     {data.budget_type === 'fixed' ? 'Maximum Budget' : 'Maximum Rate/Hour'}
                                                 </label>
                                                 <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50">₱</span>
+                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₱</span>
                                                     <input
                                                         type="number"
                                                         value={data.budget_max}
                                                         onChange={(e) => setData('budget_max', e.target.value)}
-                                                        className="w-full pl-8 border border-white/20 rounded-lg bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                                        className="w-full pl-8 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                                         placeholder="0"
                                                         min="0"
                                                         step="0.01"
@@ -379,14 +379,14 @@ export default function JobEdit({ job }) {
                                 {/* Experience Level & Duration */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label htmlFor="experience_level" className="block text-sm font-medium text-white/90 mb-2">
+                                        <label htmlFor="experience_level" className="block text-sm font-medium text-gray-200 mb-2">
                                             Experience Level *
                                         </label>
                                         <select
                                             id="experience_level"
                                             value={data.experience_level}
                                             onChange={(e) => setData('experience_level', e.target.value)}
-                                            className="w-full border border-white/20 rounded-lg bg-white/5 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                            className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                             style={{ backgroundColor: '#0d1014' }}
                                             required
                                         >
@@ -398,7 +398,7 @@ export default function JobEdit({ job }) {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="estimated_duration_days" className="block text-sm font-medium text-white/90 mb-2">
+                                        <label htmlFor="estimated_duration_days" className="block text-sm font-medium text-gray-200 mb-2">
                                             Estimated Duration (Days) *
                                         </label>
                                         <input
@@ -406,7 +406,7 @@ export default function JobEdit({ job }) {
                                             id="estimated_duration_days"
                                             value={data.estimated_duration_days}
                                             onChange={(e) => setData('estimated_duration_days', e.target.value)}
-                                            className="w-full border border-white/20 rounded-lg bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                            className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                             placeholder="e.g., 30"
                                             min="1"
                                             required
@@ -417,7 +417,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Location & Remote */}
                                 <div>
-                                    <label className="block text-sm font-medium text-white/90 mb-4">
+                                    <label className="block text-sm font-medium text-gray-200 mb-4">
                                         Work Location
                                     </label>
                                     <div className="space-y-4">
@@ -429,12 +429,12 @@ export default function JobEdit({ job }) {
                                                     onChange={(e) => setData('is_remote', e.target.checked)}
                                                     className="text-blue-500 focus:ring-blue-500/50 rounded"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-white/80">Remote Work</span>
+                                                <span className="ml-2 text-sm font-medium text-gray-200">Remote Work</span>
                                             </label>
                                         </div>
                                         
                                         <div>
-                                            <label htmlFor="location" className="block text-sm text-white/60 mb-1">
+                                            <label htmlFor="location" className="block text-sm text-gray-400 mb-1">
                                                 Location (Optional)
                                             </label>
                                             <input
@@ -442,10 +442,10 @@ export default function JobEdit({ job }) {
                                                 id="location"
                                                 value={data.location}
                                                 onChange={(e) => setData('location', e.target.value)}
-                                                className="w-full border border-white/20 rounded-lg bg-white/5 text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                                className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                                                 placeholder="e.g., City, Province or leave empty for any location"
                                             />
-                                            <p className="mt-1 text-sm text-white/50">
+                                            <p className="mt-1 text-sm text-gray-500">
                                                 Specify a location if the work requires on-site presence, or leave empty for flexible location
                                             </p>
                                         </div>
@@ -455,7 +455,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Deadline */}
                                 <div>
-                                    <label htmlFor="deadline" className="block text-sm font-medium text-white/90 mb-2">
+                                    <label htmlFor="deadline" className="block text-sm font-medium text-gray-200 mb-2">
                                         Project Deadline (Optional)
                                     </label>
                                     <input
@@ -463,27 +463,27 @@ export default function JobEdit({ job }) {
                                         id="deadline"
                                         value={data.deadline}
                                         onChange={(e) => setData('deadline', e.target.value)}
-                                        className="w-full border border-white/20 rounded-lg bg-white/5 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 [color-scheme:dark]"
+                                        className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 [color-scheme:dark]"
                                         min={new Date().toISOString().split('T')[0]}
                                     />
-                                    <p className="mt-1 text-sm text-white/50">
+                                    <p className="mt-1 text-sm text-gray-500">
                                         When do you need this project completed?
                                     </p>
                                     {errors.deadline && <p className="mt-2 text-sm text-red-400">{errors.deadline}</p>}
                                 </div>
 
                                 {/* Submit Buttons */}
-                                <div className="flex items-center justify-between pt-6 border-t border-white/10">
+                                <div className="flex items-center justify-between pt-6 border-t border-gray-700">
                                     <div className="flex space-x-3">
                                         <Link
                                             href={`/jobs/${job.id}`}
-                                            className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-medium rounded-xl text-white/80 bg-white/5 hover:bg-white/10 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-xl text-gray-200 bg-gray-700 hover:bg-gray-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         >
                                             Cancel
                                         </Link>
                                         <Link
                                             href="/jobs"
-                                            className="inline-flex items-center px-4 py-2 border border-white/20 text-sm font-medium rounded-xl text-white/80 bg-white/5 hover:bg-white/10 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-xl text-gray-200 bg-gray-700 hover:bg-gray-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         >
                                             Back to Jobs
                                         </Link>
@@ -508,9 +508,9 @@ export default function JobEdit({ job }) {
                     </div>
 
                     {/* Job Stats */}
-                    <div className="mt-8 bg-white/5 border border-white/10 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-white mb-4">Job Statistics</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-white/80">
+                    <div className="mt-8 bg-gray-800 border border-gray-700 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-gray-100 mb-4">Job Statistics</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-200">
                             <div>
                                 <div className="font-medium">Total Proposals</div>
                                 <div className="text-2xl font-bold text-blue-400">{job.bids_count || 0}</div>
@@ -532,7 +532,7 @@ export default function JobEdit({ job }) {
 
             <style>{`
                 body {
-                    background: #05070A;
+                    background: #111827;
                     color: #e5e7eb;
                     font-family: 'Inter', sans-serif;
                 }

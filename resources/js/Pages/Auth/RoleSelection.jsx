@@ -1,4 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import WorkWiseNavBrand from '@/Components/WorkWiseNavBrand';
 import { useEffect, useState } from 'react';
 
 export default function RoleSelection() {
@@ -29,7 +30,7 @@ export default function RoleSelection() {
     };
 
     useEffect(() => {
-        // Intersection Observer for animations
+        const targets = document.querySelectorAll('[data-observer-target]');
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -38,13 +39,13 @@ export default function RoleSelection() {
             });
         }, { threshold: 0.1 });
 
-        document.querySelectorAll('[data-observer-target]').forEach(el => {
-            observer.observe(el);
+        targets.forEach(el => observer.observe(el));
+
+        requestAnimationFrame(() => {
+            targets.forEach(el => el.classList.add('is-visible'));
         });
 
-        return () => {
-            observer.disconnect();
-        };
+        return () => observer.disconnect();
     }, []);
 
     const roles = [
@@ -54,7 +55,7 @@ export default function RoleSelection() {
             subtitle: 'I\'m looking for work',
             description: 'I want to find projects and earn money using my skills',
             icon: (
-                <svg className="w-12 h-12 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-12 h-12 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
                 </svg>
             ),
@@ -71,7 +72,7 @@ export default function RoleSelection() {
             subtitle: 'I\'m looking to hire',
             description: 'I want to hire skilled professionals for my projects',
             icon: (
-                <svg className="w-12 h-12 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-12 h-12 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
                 </svg>
             ),
@@ -89,23 +90,23 @@ export default function RoleSelection() {
             <Head title="Join WorkWise" />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-            <div className="relative min-h-screen bg-white">
+            <div className="relative min-h-screen bg-gray-900">
                 {/* Animated Background Shapes */}
-                <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+                <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-700/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
 
                 {/* Header */}
-                <header className="relative z-10 border-b border-gray-200">
+                <header className="relative z-10 border-b border-gray-700">
                     <div className="mx-auto" style={{ paddingLeft: '0.45in', paddingRight: '0.45in' }}>
                         <div className="flex justify-between items-center h-16">
                             <Link href="/" className="flex items-center">
-                                <span className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-all duration-700">WorkWise</span>
+                                <WorkWiseNavBrand />
                             </Link>
                             <div className="flex items-center space-x-4">
-                                <span className="text-sm text-gray-600">Already have an account?</span>
+                                <span className="text-sm text-gray-400">Already have an account?</span>
                                 <Link
                                     href="/login"
-                                    className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-all duration-700"
+                                    className="text-sm text-blue-400 hover:text-blue-300 font-medium transition-all duration-700"
                                 >
                                     Log in
                                 </Link>
@@ -118,10 +119,10 @@ export default function RoleSelection() {
                 <div className="relative z-10 max-w-4xl mx-auto pt-12 pb-16 px-4">
                     {/* Header */}
                     <div className="text-center mb-12" data-observer-target>
-                        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                        <h1 className="text-4xl font-bold text-gray-100 mb-4">
                             Join as a gig worker or employer
                         </h1>
-                        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                        <p className="text-lg text-gray-400 max-w-2xl mx-auto">
                             Choose how you'd like to use WorkWise. You can always switch between roles later.
                         </p>
                     </div>
@@ -132,17 +133,17 @@ export default function RoleSelection() {
                             <div
                                 key={role.type}
                                 onClick={() => handleRoleSelect(role.type)}
-                                className={`relative cursor-pointer bg-white/70 backdrop-blur-sm rounded-xl border border-white/20 p-8 transition-all duration-700 hover:shadow-xl hover:scale-105 ${
+                                className={`relative cursor-pointer bg-gray-800 backdrop-blur-sm rounded-xl border border-gray-700 p-8 transition-all duration-700 hover:shadow-xl hover:scale-105 ${
                                     selectedRole === role.type
-                                        ? 'border-blue-500 bg-blue-50/80 shadow-lg transform scale-105'
-                                        : 'border-gray-200 bg-white/70 hover:border-gray-300'
+                                        ? 'border-blue-500 bg-blue-900/40 shadow-lg transform scale-105'
+                                        : 'hover:border-gray-600'
                                 }`}
                             >
                                 {/* Selection indicator */}
                                 <div className={`absolute top-4 right-4 w-6 h-6 rounded-full border-2 transition-all ${
                                     selectedRole === role.type
                                         ? 'border-blue-500 bg-blue-500'
-                                        : 'border-gray-300'
+                                        : 'border-gray-500'
                                 }`}>
                                     {selectedRole === role.type && (
                                         <svg className="w-4 h-4 text-white absolute top-0.5 left-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -154,7 +155,7 @@ export default function RoleSelection() {
                                 {/* Icon */}
                                 <div className="flex justify-center mb-6">
                                     <div className={`p-4 rounded-full ${
-                                        role.type === 'gig_worker' ? 'bg-blue-100' : 'bg-green-100'
+                                        role.type === 'gig_worker' ? 'bg-blue-900/50' : 'bg-green-900/50'
                                     }`}>
                                         {role.icon}
                                     </div>
@@ -162,13 +163,13 @@ export default function RoleSelection() {
 
                                 {/* Content */}
                                 <div className="text-center mb-6">
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                                    <h3 className="text-2xl font-bold text-gray-100 mb-2">
                                         {role.title}
                                     </h3>
-                                    <p className="text-lg font-medium text-gray-600 mb-3">
+                                    <p className="text-lg font-medium text-gray-400 mb-3">
                                         {role.subtitle}
                                     </p>
-                                    <p className="text-gray-500">
+                                    <p className="text-gray-400">
                                         {role.description}
                                     </p>
                                 </div>
@@ -176,7 +177,7 @@ export default function RoleSelection() {
                                 {/* Features */}
                                 <div className="space-y-3">
                                     {role.features.map((feature, index) => (
-                                        <div key={index} className="flex items-center text-sm text-gray-600">
+                                        <div key={index} className="flex items-center text-sm text-gray-400">
                                             <svg className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                                             </svg>
@@ -196,7 +197,7 @@ export default function RoleSelection() {
                             className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-semibold rounded-lg transition-all duration-700 hover:shadow-lg hover:scale-105 ${
                                 selectedRole && !processing
                                     ? 'text-white bg-blue-600 hover:bg-blue-700'
-                                    : 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                                    : 'text-gray-500 bg-gray-700 cursor-not-allowed'
                             }`}
                         >
                             {processing ? (
@@ -220,9 +221,9 @@ export default function RoleSelection() {
 
                     {/* Footer */}
                     <div className="text-center mt-12" data-observer-target>
-                        <p className="text-gray-500">
+                        <p className="text-gray-400">
                             Already have an account?{' '}
-                            <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium transition-all duration-700">
+                            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium transition-all duration-700">
                                 Log in
                             </Link>
                         </p>
@@ -232,8 +233,8 @@ export default function RoleSelection() {
 
             <style>{`
                 body {
-                    background: white;
-                    color: #333;
+                    background: #111827;
+                    color: #e5e7eb;
                     font-family: 'Inter', sans-serif;
                 }
 

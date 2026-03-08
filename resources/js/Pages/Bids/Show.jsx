@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import SuccessModal from '@/Components/SuccessModal';
+import ErrorModal from '@/Components/ErrorModal';
 import { extractFileName } from '@/utils/fileHelpers';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 // Confirmation Modal Component
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText, confirmColor = 'green', isLoading = false }) => {
@@ -101,6 +103,12 @@ export default function BidShow({ bid }) {
         isOpen: false,
         message: ''
     });
+    const [errorModal, setErrorModal] = useState({
+        isOpen: false,
+        title: 'Error',
+        message: '',
+        actionButton: null
+    });
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString();
@@ -198,6 +206,30 @@ export default function BidShow({ bid }) {
                 setProcessing(false);
                 setConfirmModal({ ...confirmModal, isOpen: false });
 
+                // Check for insufficient escrow (flash or errors)
+                const flash = page.props?.flash || {};
+                const errs = page.props?.errors || {};
+                const isInsufficientEscrow = flash.error_type === 'insufficient_escrow' || errs.error_type === 'insufficient_escrow';
+                const required = flash.required_amount ?? errs.required_amount;
+                const current = flash.current_balance ?? errs.current_balance;
+
+                if (isInsufficientEscrow && action === 'accept') {
+                    const format = (n) => Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    setErrorModal({
+                        isOpen: true,
+                        title: 'Insufficient Escrow Balance',
+                        message: `You need ₱${format(required)} to accept this proposal, but your current balance is only ₱${format(current)}.\n\nHow to add funds:\n1. Click "Add Funds to Escrow" below (or open Wallet from the menu).\n2. Enter the amount you need (at least the required amount).\n3. Complete payment with your card.\n4. Return here and accept the proposal again.`,
+                        actionButton: {
+                            text: 'Add Funds to Escrow',
+                            onClick: () => {
+                                setErrorModal(prev => ({ ...prev, isOpen: false }));
+                                router.visit(route('employer.wallet.index'));
+                            }
+                        }
+                    });
+                    return;
+                }
+
                 if (page.props?.flash?.error) {
                     console.error('Bid action failed:', page.props.flash.error);
                     return;
@@ -237,6 +269,24 @@ export default function BidShow({ bid }) {
                 console.error('Bid action failed:', errors);
                 setProcessing(false);
                 setConfirmModal({ ...confirmModal, isOpen: false });
+
+                if (errors?.error_type === 'insufficient_escrow') {
+                    const required = errors.required_amount;
+                    const current = errors.current_balance;
+                    const format = (n) => Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    setErrorModal({
+                        isOpen: true,
+                        title: 'Insufficient Escrow Balance',
+                        message: `You need ₱${format(required)} to accept this proposal, but your current balance is only ₱${format(current)}.\n\nHow to add funds:\n1. Click "Add Funds to Escrow" below (or open Wallet from the menu).\n2. Enter the amount you need (at least the required amount).\n3. Complete payment with your card.\n4. Return here and accept the proposal again.`,
+                        actionButton: {
+                            text: 'Add Funds to Escrow',
+                            onClick: () => {
+                                setErrorModal(prev => ({ ...prev, isOpen: false }));
+                                router.visit(route('employer.wallet.index'));
+                            }
+                        }
+                    });
+                }
             }
         });
     };
@@ -350,9 +400,12 @@ export default function BidShow({ bid }) {
                                 <h4 className="text-lg font-semibold text-gray-900 mb-4">About the Freelancer</h4>
                                 
                                 <div className="flex items-start space-x-4 mb-6">
-                                    {bid.gig_worker.profile_picture ? (
+                                    {(() => {
+                                        const raw = bid.gig_worker.profile_picture;
+                                        const resolved = raw ? (resolveProfileImageUrl(raw) || raw) : null;
+                                        return resolved ? (
                                         <img
-                                            src={bid.gig_worker.profile_picture}
+                                            src={resolved}
                                             alt={`${bid.gig_worker.first_name} ${bid.gig_worker.last_name}`}
                                             className="w-20 h-20 rounded-full object-cover border-2 border-blue-200"
                                         />
@@ -362,7 +415,8 @@ export default function BidShow({ bid }) {
                                                 {bid.gig_worker.first_name?.[0]}{bid.gig_worker.last_name?.[0]}
                                             </span>
                                         </div>
-                                    )}
+                                    );
+                                    })()}
                                     <div className="flex-1">
                                         <h5 className="text-xl font-bold text-gray-900">
                                             {bid.gig_worker.first_name} {bid.gig_worker.last_name}
@@ -539,6 +593,15 @@ export default function BidShow({ bid }) {
                 onClose={() => setSuccessModal({ isOpen: false, message: '' })}
                 message={successModal.message}
                 duration={1000}
+            />
+
+            {/* Error Modal - insufficient escrow */}
+            <ErrorModal
+                isOpen={errorModal.isOpen}
+                onClose={() => setErrorModal(prev => ({ ...prev, isOpen: false }))}
+                title={errorModal.title}
+                message={errorModal.message}
+                actionButton={errorModal.actionButton}
             />
         </AuthenticatedLayout>
     );

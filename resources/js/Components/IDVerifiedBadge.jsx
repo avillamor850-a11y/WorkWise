@@ -2,15 +2,16 @@ import React from 'react';
 
 /**
  * IDVerifiedBadge Component
- * 
+ *
  * Displays a verification badge for users with verified ID status.
- * 
+ *
  * @param {Object} props
  * @param {string} props.size - Size of the badge: 'sm', 'md', or 'lg' (default: 'md')
  * @param {boolean} props.showText - Whether to show the "ID Verified" text (default: true)
+ * @param {string} props.variant - 'light' or 'dark' for theme (default: 'light')
  * @returns {JSX.Element}
  */
-export default function IDVerifiedBadge({ size = 'md', showText = true }) {
+export default function IDVerifiedBadge({ size = 'md', showText = true, variant = 'light' }) {
     // Icon sizes for different badge sizes
     const iconSizes = {
         sm: 'h-4 w-4',
@@ -32,15 +33,21 @@ export default function IDVerifiedBadge({ size = 'md', showText = true }) {
         lg: 'px-3 py-1.5'
     };
     
+    const isDark = variant === 'dark';
+    const containerClasses = isDark
+        ? 'inline-flex items-center gap-1.5 bg-blue-900/50 text-blue-300 rounded-full border border-blue-700'
+        : 'inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 rounded-full border border-blue-200';
+    const iconClasses = isDark ? 'text-blue-400' : 'text-blue-600';
+
     return (
-        <div 
-            className={`inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 ${paddingSizes[size]} rounded-full border border-blue-200`}
+        <div
+            className={`${containerClasses} ${paddingSizes[size]}`}
             role="status"
             aria-label="ID Verified"
         >
             {/* Verification Icon - Shield with checkmark */}
-            <svg 
-                className={`${iconSizes[size]} text-blue-600 flex-shrink-0`}
+            <svg
+                className={`${iconSizes[size]} ${iconClasses} flex-shrink-0`}
                 fill="currentColor" 
                 viewBox="0 0 20 20"
                 xmlns="http://www.w3.org/2000/svg"

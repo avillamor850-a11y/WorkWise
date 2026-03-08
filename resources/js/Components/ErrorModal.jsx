@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Link } from '@inertiajs/react';
 
 const ErrorModal = ({ 
     isOpen, 
@@ -50,10 +51,10 @@ const ErrorModal = ({
                                     {title}
                                 </h3>
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-500">
+                                    <p className={`text-sm text-gray-500 ${isEscrowError ? 'whitespace-pre-line' : ''}`}>
                                         {message}
                                     </p>
-                                    {isEscrowError && (
+                                    {isEscrowError && !message.includes('How to add funds') && (
                                         <div className="mt-3 p-3 bg-red-50 rounded-md">
                                             <div className="flex items-start">
                                                 <svg className="h-5 w-5 text-red-400 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -64,9 +65,10 @@ const ErrorModal = ({
                                                         To resolve this issue:
                                                     </span>
                                                     <ul className="text-sm text-red-600 mt-1 list-disc list-inside">
-                                                        <li>Add funds to your escrow account</li>
-                                                        <li>Ensure sufficient balance before accepting bids</li>
-                                                        <li>Contact support if you need assistance</li>
+                                                        <li>Click &quot;Add Funds to Escrow&quot; below or open <strong>Wallet</strong> from the menu.</li>
+                                                        <li>Enter the amount you need and complete payment with your card.</li>
+                                                        <li>Return to the job or bid and accept the proposal again.</li>
+                                                        <li>Contact support if you need assistance.</li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -78,7 +80,7 @@ const ErrorModal = ({
                     </div>
                     {showCloseButton && (
                         <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                            {actionButton && (
+                            {actionButton ? (
                                 <button
                                     type="button"
                                     className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
@@ -86,7 +88,14 @@ const ErrorModal = ({
                                 >
                                     {actionButton.text}
                                 </button>
-                            )}
+                            ) : isEscrowError ? (
+                                <Link
+                                    href={typeof route !== 'undefined' ? route('employer.wallet.index') : '/employer/wallet'}
+                                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                >
+                                    Add funds to escrow
+                                </Link>
+                            ) : null}
                             <button
                                 type="button"
                                 className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ErrorModal from '@/Components/ErrorModal';
 import {
     DocumentCheckIcon,
-    ExclamationTriangleIcon,
     CheckCircleIcon,
     ClockIcon,
     UserIcon,
@@ -14,7 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
-export default function OptimizedSign({ auth, contract, userRole, user, waitingForEmployer, employerName }) {
+export default function OptimizedSign({ auth, contract, userRole, user, waitingForEmployer, employerName, signNotAllowed, signNotAllowedMessage }) {
     const { props } = usePage();
     const flashSuccess = props.flash?.success;
 
@@ -27,7 +27,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [hasReadContract, setHasReadContract] = useState(false);
     const [signatureStep, setSignatureStep] = useState(1); // 1: Review, 2: Confirm, 3: Sign
-    
+
     const { data, setData, processing, errors } = useForm({
         full_name: `${user.first_name} ${user.last_name}`,
         browser_info: {
@@ -63,6 +63,19 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
         return () => clearTimeout(t);
     }, [showContractCreatedToast]);
 
+    // #region agent log
+    useEffect(() => {
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab23c8'},body:JSON.stringify({sessionId:'ab23c8',location:'OptimizedSign.jsx:mount',message:'OptimizedSign_mounted',data:{hasContract:!!contract},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+    }, []);
+    // #endregion
+
+    useEffect(() => {
+        if (signNotAllowed && signNotAllowedMessage) {
+            setErrorMessage(signNotAllowedMessage);
+            setShowErrorModal(true);
+        }
+    }, [signNotAllowed, signNotAllowedMessage]);
+
     const handleNextStep = () => {
         if (signatureStep < 3) {
             setSignatureStep(signatureStep + 1);
@@ -77,7 +90,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!agreedToTerms) {
             setErrorMessage('Please agree to the contract terms before signing.');
             setShowErrorModal(true);
@@ -88,7 +101,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
         try {
             const response = await axios.post(route('contracts.processSignature', contract.id), data);
-            
+
             setShowSuccessModal(true);
             setTimeout(() => {
                 const redirectUrl = response.data?.redirect_url || route('contracts.show', contract.id);
@@ -97,6 +110,10 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
         } catch (error) {
             console.error('Contract signing error:', error);
+
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab23c8'},body:JSON.stringify({sessionId:'ab23c8',location:'OptimizedSign.jsx:catch',message:'sign_catch',data:{status:error.response?.status,hasDataMessage:!!error.response?.data?.message},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+            // #endregion
 
             // Check if this is a "waiting for employer" error
             if (error.response?.data?.waiting_for_employer || error.response?.data?.message?.includes('employer signs first')) {
@@ -113,11 +130,14 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
             } else if (error.response?.status === 500) {
                 errorMsg = 'Server error occurred. Please try again or contact support.';
             } else if (error.response?.status === 403) {
-                errorMsg = 'You are not authorized to sign this contract.';
+                errorMsg = error.response?.data?.message || 'You are not authorized to sign this contract.';
             }
 
             setErrorMessage(errorMsg);
             setShowErrorModal(true);
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab23c8'},body:JSON.stringify({sessionId:'ab23c8',location:'OptimizedSign.jsx:setErrorModal',message:'showErrorModal_set',data:{errorMsgLength:errorMsg.length},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+            // #endregion
             setIsSubmitting(false);
         }
     };
@@ -157,11 +177,10 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
         <div className="flex items-center justify-center mb-8">
             {[1, 2, 3].map((step) => (
                 <React.Fragment key={step}>
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                        step <= signatureStep 
-                            ? 'bg-blue-600 border-blue-500 text-white' 
-                            : 'border-white/20 text-white/40'
-                    }`}>
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step <= signatureStep
+                            ? 'bg-blue-600 border-blue-500 text-white'
+                            : 'border-gray-600 text-gray-500'
+                        }`}>
                         {step < signatureStep ? (
                             <CheckCircleIcon className="w-5 h-5" />
                         ) : (
@@ -169,9 +188,8 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                         )}
                     </div>
                     {step < 3 && (
-                        <div className={`w-16 h-0.5 mx-2 ${
-                            step < signatureStep ? 'bg-blue-500' : 'bg-white/20'
-                        }`} />
+                        <div className={`w-16 h-0.5 mx-2 ${step < signatureStep ? 'bg-blue-500' : 'bg-gray-600'
+                            }`} />
                     )}
                 </React.Fragment>
             ))}
@@ -180,13 +198,13 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
     const StepLabels = () => (
         <div className="flex justify-between mb-8 text-sm">
-            <span className={signatureStep >= 1 ? 'text-blue-400 font-medium' : 'text-white/50'}>
+            <span className={signatureStep >= 1 ? 'text-blue-400 font-medium' : 'text-gray-500'}>
                 Review Contract
             </span>
-            <span className={signatureStep >= 2 ? 'text-blue-400 font-medium' : 'text-white/50'}>
+            <span className={signatureStep >= 2 ? 'text-blue-400 font-medium' : 'text-gray-500'}>
                 Confirm Details
             </span>
-            <span className={signatureStep >= 3 ? 'text-blue-400 font-medium' : 'text-white/50'}>
+            <span className={signatureStep >= 3 ? 'text-blue-400 font-medium' : 'text-gray-500'}>
                 Digital Signature
             </span>
         </div>
@@ -194,22 +212,22 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
     if (showWaitingModal) {
         return (
-            <AuthenticatedLayout user={auth.user} pageTheme="dark" header={<h2 className="font-semibold text-xl text-white leading-tight">Contract Signing</h2>}>
+            <AuthenticatedLayout user={auth.user} pageTheme="dark" header={<h2 className="font-semibold text-xl text-gray-100 leading-tight">Contract Signing</h2>}>
                 <Head title="Contract Signing - Waiting" />
-                <div className="min-h-screen bg-[#05070A] relative">
+                <div className="min-h-screen bg-gray-900 relative">
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
                         <div className="absolute top-1/4 -left-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
                         <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
                     </div>
                     <div className="py-12 relative z-20">
                         <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                            <div className="bg-white/5 border border-white/10 overflow-hidden sm:rounded-xl">
+                            <div className="bg-gray-800 border border-gray-700 overflow-hidden sm:rounded-xl">
                                 <div className="p-8 text-center">
                                     <ClockIcon className="w-16 h-16 mx-auto text-amber-400 mb-4" />
-                                    <h2 className="text-2xl font-bold text-white mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-100 mb-4">
                                         Waiting for Employer Signature
                                     </h2>
-                                    <p className="text-white/70 mb-6">
+                                    <p className="text-gray-200 mb-6">
                                         {employerName || 'The employer'} needs to sign the contract first before you can proceed.
                                         You'll receive a notification once they've completed their signature.
                                     </p>
@@ -222,7 +240,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                         </button>
                                         <button
                                             onClick={() => router.visit(route('contracts.index'))}
-                                            className="block w-full text-center border border-white/20 text-white/80 bg-white/5 hover:bg-white/10 px-6 py-2 rounded-lg transition-colors"
+                                            className="block w-full text-center border border-gray-600 text-gray-200 bg-gray-800 hover:bg-gray-700 px-6 py-2 rounded-lg transition-colors"
                                         >
                                             Back to Contracts
                                         </button>
@@ -240,7 +258,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
         <AuthenticatedLayout
             user={auth.user}
             pageTheme="dark"
-            header={<h2 className="font-semibold text-xl text-white leading-tight">Digital Contract Signature</h2>}
+            header={<h2 className="font-semibold text-xl text-gray-100 leading-tight">Digital Contract Signature</h2>}
         >
             <Head title={`Sign Contract - ${contract.contract_id}`} />
 
@@ -253,21 +271,21 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                 </div>
             )}
 
-            <div className="min-h-screen bg-[#05070A] relative">
+            <div className="min-h-screen bg-gray-900 relative">
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-1/4 -left-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
                     <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
                 </div>
                 <div className="py-12 relative z-20">
                     <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                        <div className="bg-white/5 border border-white/10 overflow-hidden sm:rounded-xl">
+                        <div className="bg-gray-800 border border-gray-700 overflow-hidden sm:rounded-xl">
                             <div className="p-8">
                                 <div className="mb-8">
-                                    <h1 className="text-3xl font-bold text-white mb-2">
+                                    <h1 className="text-3xl font-bold text-gray-100 mb-2">
                                         Digital Contract Signature
                                     </h1>
-                                    <p className="text-white/60">
-                                        Contract ID: <span className="font-medium text-white/80">{contract.contract_id}</span>
+                                    <p className="text-gray-400">
+                                        Contract ID: <span className="font-medium text-gray-200">{contract.contract_id}</span>
                                     </p>
                                 </div>
 
@@ -277,15 +295,15 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                 {signatureStep === 1 && (
                                     <div className="space-y-6">
                                         <ContractSummary />
-                                        
+
                                         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Contract Terms & Conditions</h3>
                                             <div className="prose max-w-none text-sm text-gray-700 space-y-4">
                                                 <div>
                                                     <h4 className="font-medium text-gray-900">Scope of Work:</h4>
-                                                    <p className="whitespace-pre-line">{contract.scope_of_work}</p>
+                                                    <p className="whitespace-pre-line break-all">{contract.scope_of_work}</p>
                                                 </div>
-                                                
+
                                                 <div>
                                                     <h4 className="font-medium text-gray-900">Your Responsibilities:</h4>
                                                     <ul className="list-disc list-inside space-y-1">
@@ -309,9 +327,9 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                 id="readContract"
                                                 checked={hasReadContract}
                                                 onChange={(e) => setHasReadContract(e.target.checked)}
-                                                className="rounded border-white/30 bg-white/5 text-blue-500 focus:ring-blue-500/50"
+                                                className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500/50"
                                             />
-                                            <label htmlFor="readContract" className="text-sm text-white/80">
+                                            <label htmlFor="readContract" className="text-sm text-gray-200">
                                                 I have read and understood the contract terms
                                             </label>
                                         </div>
@@ -320,11 +338,10 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                             <button
                                                 onClick={handleNextStep}
                                                 disabled={!hasReadContract}
-                                                className={`px-6 py-2 rounded-lg transition-colors ${
-                                                    hasReadContract
+                                                className={`px-6 py-2 rounded-lg transition-colors ${hasReadContract
                                                         ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                                                        : 'bg-white/10 text-white/40 cursor-not-allowed border border-white/10'
-                                                }`}
+                                                        : 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700'
+                                                    }`}
                                             >
                                                 Continue to Confirmation
                                             </button>
@@ -370,9 +387,9 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                 id="agreeTerms"
                                                 checked={agreedToTerms}
                                                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                                                className="rounded border-white/30 bg-white/5 text-blue-500 focus:ring-blue-500/50"
+                                                className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500/50"
                                             />
-                                            <label htmlFor="agreeTerms" className="text-sm text-white/80">
+                                            <label htmlFor="agreeTerms" className="text-sm text-gray-200">
                                                 I agree to the terms and conditions of this contract
                                             </label>
                                         </div>
@@ -380,18 +397,17 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                         <div className="flex justify-between">
                                             <button
                                                 onClick={handlePrevStep}
-                                                className="px-6 py-2 border border-white/20 text-white/80 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                                                className="px-6 py-2 border border-gray-600 text-gray-200 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
                                             >
                                                 Back to Review
                                             </button>
                                             <button
                                                 onClick={handleNextStep}
                                                 disabled={!agreedToTerms}
-                                                className={`px-6 py-2 rounded-lg transition-colors ${
-                                                    agreedToTerms
+                                                className={`px-6 py-2 rounded-lg transition-colors ${agreedToTerms
                                                         ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                                                        : 'bg-white/10 text-white/40 cursor-not-allowed border border-white/10'
-                                                }`}
+                                                        : 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700'
+                                                    }`}
                                             >
                                                 Proceed to Signature
                                             </button>
@@ -436,18 +452,17 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                             <button
                                                 type="button"
                                                 onClick={handlePrevStep}
-                                                className="px-6 py-2 border border-white/20 text-white/80 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                                                className="px-6 py-2 border border-gray-600 text-gray-200 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
                                             >
                                                 Back to Confirmation
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={isSubmitting || !data.full_name.trim()}
-                                                className={`px-8 py-2 rounded-lg transition-colors flex items-center ${
-                                                    isSubmitting || !data.full_name.trim()
-                                                        ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/10'
+                                                className={`px-8 py-2 rounded-lg transition-colors flex items-center ${isSubmitting || !data.full_name.trim()
+                                                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700'
                                                         : 'bg-green-600 hover:bg-green-500 text-white'
-                                                }`}
+                                                    }`}
                                             >
                                                 {isSubmitting ? (
                                                     <>
@@ -476,17 +491,17 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
             {/* Success Modal */}
             {showSuccessModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative w-full max-w-md p-6 border border-white/10 shadow-xl rounded-xl bg-[#0d1014]">
+                    <div className="relative w-full max-w-md p-6 border border-gray-700 shadow-xl rounded-xl bg-gray-800">
                         <div className="text-center">
                             <CheckCircleIcon className="w-16 h-16 mx-auto text-green-400 mb-4" />
-                            <h3 className="text-lg font-medium text-white mb-2">
+                            <h3 className="text-lg font-medium text-gray-100 mb-2">
                                 Contract Signed Successfully!
                             </h3>
-                            <p className="text-sm text-white/60 mb-4">
+                            <p className="text-sm text-gray-400 mb-4">
                                 Your digital signature has been recorded. Redirecting you now...
                             </p>
                             <div className="flex justify-center">
-                                <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/20 border-t-green-500"></div>
+                                <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-600 border-t-green-500"></div>
                             </div>
                         </div>
                     </div>
@@ -494,27 +509,13 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
             )}
 
             {/* Error Modal */}
-            {showErrorModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative w-full max-w-md p-6 border border-white/10 shadow-xl rounded-xl bg-[#0d1014]">
-                        <div className="text-center">
-                            <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-red-400 mb-4" />
-                            <h3 className="text-lg font-medium text-white mb-2">
-                                Signature Failed
-                            </h3>
-                            <p className="text-sm text-white/60 mb-4">
-                                {errorMessage}
-                            </p>
-                            <button
-                                onClick={() => setShowErrorModal(false)}
-                                className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg transition-colors"
-                            >
-                                Try Again
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ErrorModal
+                isOpen={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                title="Signature failed"
+                message={errorMessage}
+                duration={0}
+            />
         </AuthenticatedLayout>
     );
 }

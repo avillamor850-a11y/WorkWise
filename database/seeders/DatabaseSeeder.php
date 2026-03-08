@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             WorkWiseDatabaseSeeder::class,
             ScenarioSeeder::class,
+            TestSpriteTestUserSeeder::class,
         ]);
     }
 }

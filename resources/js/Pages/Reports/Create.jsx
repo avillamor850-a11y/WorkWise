@@ -4,7 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
 export default function CreateReport({ reportedUser, project, reportTypes }) {
     const [evidenceItems, setEvidenceItems] = useState(['']);
-    
+
     const { data, setData, post, processing, errors, reset } = useForm({
         reported_user_id: reportedUser.id,
         project_id: project?.id || null,
@@ -15,11 +15,11 @@ export default function CreateReport({ reportedUser, project, reportTypes }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+
         // Filter out empty evidence items
         const filteredEvidence = evidenceItems.filter(item => item.trim() !== '');
         setData('evidence', filteredEvidence);
-        
+
         post('/reports', {
             onSuccess: () => {
                 reset();
@@ -54,7 +54,7 @@ export default function CreateReport({ reportedUser, project, reportTypes }) {
                 />
             );
         }
-        
+
         // Fallback to legacy profile photo
         if (user.profile_photo) {
             return (
@@ -65,14 +65,14 @@ export default function CreateReport({ reportedUser, project, reportTypes }) {
                 />
             );
         }
-        
+
         const initials = `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
         const colors = [
-            'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 
+            'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500',
             'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'
         ];
         const colorIndex = user.id % colors.length;
-        
+
         return (
             <div className={`h-16 w-16 rounded-full ${colors[colorIndex]} flex items-center justify-center text-white text-xl font-semibold`}>
                 {initials}
@@ -140,11 +140,10 @@ export default function CreateReport({ reportedUser, project, reportTypes }) {
                                             {reportedUser.first_name} {reportedUser.last_name}
                                         </h4>
                                         <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                                reportedUser.user_type === 'employer'
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${reportedUser.user_type === 'employer'
                                                     ? 'bg-blue-100 text-blue-800'
                                                     : 'bg-green-100 text-green-800'
-                                            }`}>
+                                                }`}>
                                                 {reportedUser.user_type === 'employer' ? '👤 Employer' : '💼 Gig Worker'}
                                             </span>
                                             {reportedUser.professional_title && (
@@ -155,7 +154,7 @@ export default function CreateReport({ reportedUser, project, reportTypes }) {
                                             )}
                                         </div>
                                         {reportedUser.bio && (
-                                            <p className="mt-2 text-sm text-gray-700 line-clamp-2">
+                                            <p className="mt-2 text-sm text-gray-700 line-clamp-2 break-all">
                                                 {reportedUser.bio}
                                             </p>
                                         )}
@@ -194,11 +193,10 @@ export default function CreateReport({ reportedUser, project, reportTypes }) {
                                                     onChange={(e) => setData('type', e.target.value)}
                                                     className="sr-only"
                                                 />
-                                                <div className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                                                    data.type === type
+                                                <div className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${data.type === type
                                                         ? 'border-blue-500 bg-blue-50'
                                                         : 'border-gray-200 hover:border-gray-300'
-                                                }`}>
+                                                    }`}>
                                                     <div className="flex items-center space-x-3">
                                                         <span className="text-2xl">{getReportTypeIcon(type)}</span>
                                                         <div>
@@ -249,7 +247,7 @@ export default function CreateReport({ reportedUser, project, reportTypes }) {
                                     <p className="text-sm text-gray-600 mb-4">
                                         Provide any evidence that supports your report (e.g., "Screenshot of inappropriate message", "Link to fraudulent listing").
                                     </p>
-                                    
+
                                     <div className="space-y-3">
                                         {evidenceItems.map((item, index) => (
                                             <div key={index} className="flex items-center space-x-3">
@@ -274,7 +272,7 @@ export default function CreateReport({ reportedUser, project, reportTypes }) {
                                             </div>
                                         ))}
                                     </div>
-                                    
+
                                     <button
                                         type="button"
                                         onClick={addEvidenceItem}

@@ -43,8 +43,8 @@ const Content = ({
 }) => {
     const { open, setOpen, dark } = useContext(DropDownContext);
 
-    const resolvedContentClasses = contentClasses || (dark ? 'py-1 bg-[#0f172a] border border-white/10 ring-white/10' : 'py-1 bg-white');
-    const ringClasses = dark ? 'ring-white/10' : 'ring-black ring-opacity-5';
+    const resolvedContentClasses = contentClasses || (dark ? 'py-1 bg-gray-800 border border-gray-700 ring-gray-700' : 'py-1 bg-white');
+    const ringClasses = dark ? 'ring-gray-700' : 'ring-black ring-opacity-5';
 
     let alignmentClasses = 'origin-top';
 
@@ -92,7 +92,7 @@ const Content = ({
 const DropdownLink = ({ className = '', children, ...props }) => {
     const { dark } = useContext(DropDownContext);
     const baseClasses = dark
-        ? 'block w-full px-4 py-2 text-start text-sm leading-5 text-white/90 transition duration-150 ease-in-out hover:bg-white/10 focus:bg-white/10 focus:outline-none '
+        ? 'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-200 transition duration-150 ease-in-out hover:bg-gray-700 focus:bg-gray-700 focus:outline-none '
         : 'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ';
     return (
         <Link

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { EmployerStep1Welcome, EmployerStep2Identity } from './EmployerSteps12';
 import { EmployerStep3Bio, EmployerStep4Preferences } from './EmployerSteps34';
 import EmployerStep5Review from './EmployerStep5';
+import CsrfSync from '@/Components/CsrfSync';
 
 const PROGRESS = { 1: 20, 2: 40, 3: 60, 4: 80, 5: 100 };
 
@@ -85,7 +86,9 @@ export default function EmployerOnboarding({ user, industries, serviceCategories
     };
 
     const handleNext = () => {
-        if (!validate(step)) return;
+        if (!validate(step)) {
+            return;
+        }
 
         // Step 1 doesn't need validation/save
         if (step === 1) {
@@ -144,6 +147,7 @@ export default function EmployerOnboarding({ user, industries, serviceCategories
 
     return (
         <>
+            <CsrfSync />
             <Head title={`Onboarding – Step ${step} of 5`} />
 
             <div className="bg-gray-50 min-h-screen flex flex-col font-sans antialiased">

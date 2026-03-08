@@ -64,10 +64,10 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
             header={
                 <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-4">
-                        <Link href="/reports" className="text-blue-600 hover:text-blue-800">
+                        <Link href="/reports" className="text-blue-400 hover:text-blue-300">
                             ← Back to Reports
                         </Link>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                        <h2 className="text-xl font-semibold leading-tight text-gray-100">
                             Project Budget Utilization
                         </h2>
                     </div>
@@ -81,7 +81,7 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                         </button>
                         <button
                             onClick={() => handleExport('excel')}
-                            className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-xl shadow-lg transition-all duration-300 text-sm flex items-center"
+                            className="bg-gray-800 border border-gray-600 hover:bg-gray-700 text-gray-300 font-semibold py-2 px-4 rounded-xl shadow-lg transition-all duration-300 text-sm flex items-center"
                         >
                             <FileText className="w-4 h-4 mr-2" />
                             Export Excel
@@ -89,23 +89,24 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                     </div>
                 </div>
             }
+        pageTheme="dark"
         >
             <Head title="Project Budget Utilization" />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-            <div className="relative py-12 bg-white overflow-hidden">
+            <div className="relative py-12 bg-gray-900 overflow-hidden">
                 <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
                 <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
 
                 <div className="relative z-20 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                     {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                        <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-xl">
                             {error}
                         </div>
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                        <div className="bg-gray-800 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-700">
                             <div className="p-6">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
@@ -114,15 +115,15 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                                         </div>
                                     </div>
                                     <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-500">Total Agreed (Budget)</div>
-                                        <div className="text-2xl font-bold text-gray-900">
+                                        <div className="text-sm font-medium text-gray-400">Total Agreed (Budget)</div>
+                                        <div className="text-2xl font-bold text-gray-100">
                                             {formatCurrency(summaryData.total_agreed)}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                        <div className="bg-gray-800 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-700">
                             <div className="p-6">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
@@ -131,15 +132,15 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                                         </div>
                                     </div>
                                     <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-500">Total Released</div>
-                                        <div className="text-2xl font-bold text-gray-900">
+                                        <div className="text-sm font-medium text-gray-400">Total Released</div>
+                                        <div className="text-2xl font-bold text-gray-100">
                                             {formatCurrency(summaryData.total_released)}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                        <div className="bg-gray-800 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-700">
                             <div className="p-6">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
@@ -148,10 +149,10 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                                         </div>
                                     </div>
                                     <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-500">Total Variance</div>
-                                        <div className={`text-2xl font-bold ${summaryData.total_variance >= 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                        <div className="text-sm font-medium text-gray-400">Total Variance</div>
+                                        <div className={`text-2xl font-bold ${summaryData.total_variance >= 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                                             {formatCurrency(summaryData.total_variance)}
-                                            <span className="text-sm font-normal ml-1">
+                                            <span className="text-sm font-normal ml-1 text-gray-400">
                                                 ({summaryData.total_variance >= 0 ? 'Over' : 'Under'})
                                             </span>
                                         </div>
@@ -159,7 +160,7 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                        <div className="bg-gray-800 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-700">
                             <div className="p-6">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
@@ -168,8 +169,8 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                                         </div>
                                     </div>
                                     <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-500">Projects</div>
-                                        <div className="text-2xl font-bold text-gray-900">
+                                        <div className="text-sm font-medium text-gray-400">Projects</div>
+                                        <div className="text-2xl font-bold text-gray-100">
                                             {summaryData.project_count}
                                         </div>
                                     </div>
@@ -178,40 +179,40 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                         </div>
                     </div>
 
-                    <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                    <div className="bg-gray-800 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-700">
                         <div className="p-8">
                             <div className="flex items-center mb-4">
-                                <Filter className="w-5 h-5 text-gray-500 mr-2" />
-                                <h3 className="text-lg font-medium text-gray-900">Filters</h3>
+                                <Filter className="w-5 h-5 text-gray-400 mr-2" />
+                                <h3 className="text-lg font-medium text-gray-100">Filters</h3>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label htmlFor="date_from" className="block text-sm font-medium text-gray-700">From Date</label>
+                                    <label htmlFor="date_from" className="block text-sm font-medium text-gray-400">From Date</label>
                                     <input
                                         id="date_from"
                                         type="date"
                                         value={dateFrom}
                                         onChange={(e) => setDateFrom(e.target.value)}
-                                        className="mt-1 block w-full rounded-xl border-gray-300 shadow-lg focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-xl border-gray-600 bg-gray-700 text-white shadow-lg focus:border-blue-500 focus:ring-blue-500"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="date_to" className="block text-sm font-medium text-gray-700">To Date</label>
+                                    <label htmlFor="date_to" className="block text-sm font-medium text-gray-400">To Date</label>
                                     <input
                                         id="date_to"
                                         type="date"
                                         value={dateTo}
                                         onChange={(e) => setDateTo(e.target.value)}
-                                        className="mt-1 block w-full rounded-xl border-gray-300 shadow-lg focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-xl border-gray-600 bg-gray-700 text-white shadow-lg focus:border-blue-500 focus:ring-blue-500"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="status" className="block text-sm font-medium text-gray-700">Project Status</label>
+                                    <label htmlFor="status" className="block text-sm font-medium text-gray-400">Project Status</label>
                                     <select
                                         id="status"
                                         value={status}
                                         onChange={(e) => setStatus(e.target.value)}
-                                        className="mt-1 block w-full rounded-xl border-gray-300 shadow-lg focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-xl border-gray-600 bg-gray-700 text-white shadow-lg focus:border-blue-500 focus:ring-blue-500"
                                     >
                                         <option value="">All Statuses</option>
                                         <option value="active">Active</option>
@@ -233,37 +234,37 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                         </div>
                     </div>
 
-                    <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
+                    <div className="bg-gray-800 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-700">
                         <div className="p-8">
-                            <h3 className="text-lg font-medium text-gray-900 mb-6">Budget vs. Actual by Project</h3>
+                            <h3 className="text-lg font-medium text-gray-100 mb-6">Budget vs. Actual by Project</h3>
                             {projectList.length > 0 ? (
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-gray-600">
+                                        <thead className="bg-gray-700">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job / Gig</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Agreed (Budget)</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Released</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Variance</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Started</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Job / Gig</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Agreed (Budget)</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Released</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Variance</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Started</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-gray-800 divide-y divide-gray-600">
                                             {projectList.map((row) => (
-                                                <tr key={row.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{row.job_title}</td>
-                                                    <td className="px-6 py-4 text-sm text-right text-gray-900">{formatCurrency(row.agreed_amount)}</td>
-                                                    <td className="px-6 py-4 text-sm text-right text-green-600 font-medium">{formatCurrency(row.total_released)}</td>
-                                                    <td className={`px-6 py-4 text-sm text-right font-medium ${row.variance >= 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                                <tr key={row.id} className="hover:bg-gray-700">
+                                                    <td className="px-6 py-4 text-sm font-medium text-gray-100">{row.job_title}</td>
+                                                    <td className="px-6 py-4 text-sm text-right text-gray-100">{formatCurrency(row.agreed_amount)}</td>
+                                                    <td className="px-6 py-4 text-sm text-right text-green-400 font-medium">{formatCurrency(row.total_released)}</td>
+                                                    <td className={`px-6 py-4 text-sm text-right font-medium ${row.variance >= 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                                                         {formatCurrency(row.variance)} {row.variance >= 0 ? '(Over)' : '(Under)'}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 capitalize">
+                                                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-700 text-gray-300 capitalize">
                                                             {row.status?.replace('_', ' ') ?? '—'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(row.created_at)}</td>
+                                                    <td className="px-6 py-4 text-sm text-gray-400">{formatDate(row.created_at)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -272,14 +273,14 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                             ) : (
                                 <div className="text-center py-8">
                                     <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900">No projects found</h3>
-                                    <p className="mt-1 text-sm text-gray-500">No projects match your filters or you have no projects yet.</p>
+                                    <h3 className="mt-2 text-sm font-medium text-gray-100">No projects found</h3>
+                                    <p className="mt-1 text-sm text-gray-400">No projects match your filters or you have no projects yet.</p>
                                 </div>
                             )}
 
                             {projects?.links && projects.links.length > 3 && (
                                 <div className="mt-6 flex justify-between items-center">
-                                    <div className="text-sm text-gray-700">
+                                    <div className="text-sm text-gray-400">
                                         Showing {projects.from} to {projects.to} of {projects.total} results
                                     </div>
                                     <div className="flex space-x-1">
@@ -288,9 +289,9 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                                                 key={index}
                                                 href={link.url || '#'}
                                                 className={`px-3 py-2 text-sm rounded-md ${
-                                                    link.active ? 'bg-blue-500 text-white' :
-                                                    link.url ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50' :
-                                                    'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    link.active ? 'bg-blue-600 text-white' :
+                                                    link.url ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600' :
+                                                    'bg-gray-700 text-gray-500 cursor-not-allowed'
                                                 }`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
@@ -303,7 +304,7 @@ export default function BudgetUtilization({ auth, projects, summary, filters, us
                 </div>
             </div>
 
-            <style>{`body { background: white; color: #333; font-family: 'Inter', sans-serif; }`}</style>
+            <style>{`body { background: #111827; color: #e5e7eb; font-family: 'Inter', sans-serif; }`}</style>
         </AuthenticatedLayout>
     );
 }

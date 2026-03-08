@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useTheme } from '@/Contexts/ThemeContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import CheckoutForm from '@/Components/CheckoutForm';
@@ -14,6 +15,8 @@ export default function EmployerWallet({
     stripe_key = null, 
     currency = { symbol: '$', code: 'USD' } 
 }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [showAmountModal, setShowAmountModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [amount, setAmount] = useState('');
@@ -106,13 +109,13 @@ export default function EmployerWallet({
 
     return (
         <AuthenticatedLayout
-            pageTheme="dark"
-            header={<h2 className="font-semibold text-xl text-white leading-tight">Employer Wallet</h2>}
+            pageTheme={isDark ? 'dark' : undefined}
+            header={<h2 className={`font-semibold text-xl leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Employer Wallet</h2>}
         >
             <Head title="Employer Wallet" />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-            <div className="min-h-screen bg-[#05070A] relative">
+            <div className={`min-h-screen relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-1/4 -left-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
                     <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
@@ -131,21 +134,30 @@ export default function EmployerWallet({
                         </div>
                     )}
 
+                    {/* First-time / empty balance blurb */}
+                    {(escrowBalance == null || Number(escrowBalance) === 0) && (
+                        <div className={`mb-6 p-4 rounded-xl border ${isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
+                            <p className={`text-sm ${isDark ? 'text-blue-200' : 'text-blue-800'}`}>
+                                <strong>New to escrow?</strong> Funds you add here are used to accept proposals and pay freelancers. Enter an amount below and complete payment to get started.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Wallet Overview */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         {/* Escrow Balance */}
-                        <div className="bg-white/5 border border-white/10 overflow-hidden sm:rounded-xl p-8">
+                        <div className={`overflow-hidden sm:rounded-xl p-8 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow'}`}>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-white mb-2">Escrow Balance</h3>
+                                    <h3 className={`text-lg font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Escrow Balance</h3>
                                     <div className="text-3xl font-bold text-green-400">
                                         {currency?.symbol || '$'}{formatAmount(escrowBalance ?? 0)}
                                     </div>
-                                    <p className="text-sm text-white/50 mt-1">Available for project payments</p>
+                                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>Available for project payments</p>
                                 </div>
                                 <button
                                     onClick={() => setShowAmountModal(true)}
-                                    className="bg-green-600 hover:bg-green-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:ring-offset-2 focus:ring-offset-[#05070A]"
+                                    className={`bg-green-600 hover:bg-green-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:ring-offset-2 ${isDark ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'}`}
                                 >
                                     Add Funds
                                 </button>
@@ -153,7 +165,7 @@ export default function EmployerWallet({
                         </div>
 
                         {/* Total Spent */}
-                        <div className="bg-white/5 border border-white/10 overflow-hidden sm:rounded-xl p-8">
+                        <div className={`overflow-hidden sm:rounded-xl p-8 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow'}`}>
                             <div className="flex items-center">
                                 <div className="p-3 rounded-full bg-blue-500/20 mr-4">
                                     <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -161,7 +173,7 @@ export default function EmployerWallet({
                                     </svg>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-white/60">Total Spent</p>
+                                    <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Total Spent</p>
                                     <p className="text-2xl font-bold text-blue-400">
                                         {currency?.symbol || '$'}{formatAmount(totalSpent ?? 0)}
                                     </p>
@@ -172,9 +184,9 @@ export default function EmployerWallet({
 
                     {/* Recent Projects */}
                     {paidProjects && Array.isArray(paidProjects) && paidProjects.length > 0 ? (
-                        <div className="bg-white/5 border border-white/10 overflow-hidden sm:rounded-xl mb-8">
+                        <div className={`overflow-hidden sm:rounded-xl mb-8 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow'}`}>
                             <div className="p-8">
-                                <h3 className="text-lg font-medium text-white mb-4">💼 Recent Project Payments</h3>
+                                <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>💼 Recent Project Payments</h3>
                                 <div className="space-y-4">
                                     {paidProjects.map((project) => {
                                         const jobTitle = project?.job?.title || 'Untitled Project';
@@ -188,14 +200,14 @@ export default function EmployerWallet({
                                         const paymentReleased = project?.payment_released ?? false;
 
                                         return (
-                                            <div key={project?.id || Math.random()} className="border border-white/10 rounded-xl p-6 bg-white/5">
+                                            <div key={project?.id || Math.random()} className={`border rounded-xl p-6 ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <h4 className="font-medium text-white">{jobTitle}</h4>
-                                                        <p className="text-sm text-white/60">
+                                                        <h4 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{jobTitle}</h4>
+                                                        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                             Gig Worker: {gigWorkerName}
                                                         </p>
-                                                        <p className="text-sm text-white/50">
+                                                        <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                                                             Status: {projectStatus.charAt(0).toUpperCase() + projectStatus.slice(1)}
                                                         </p>
                                                         {(!project?.job || !project?.gig_worker) && (
@@ -224,26 +236,26 @@ export default function EmployerWallet({
                     ) : null}
 
                     {/* Deposit History */}
-                    <div className="bg-white/5 border border-white/10 overflow-hidden sm:rounded-xl">
+                    <div className={`overflow-hidden sm:rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow'}`}>
                         <div className="p-8">
-                            <h3 className="text-lg font-medium text-white mb-4">💳 Deposit History</h3>
+                            <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>💳 Deposit History</h3>
                             {deposits?.data && Array.isArray(deposits.data) && deposits.data.length > 0 ? (
-                                <div className="overflow-x-auto rounded-lg border border-white/10">
-                                    <table className="min-w-full divide-y divide-white/10">
+                                <div className={`overflow-x-auto rounded-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                                    <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
                                         <thead>
                                             <tr>
-                                                <th className="px-6 py-3 bg-white/5 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
+                                                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-600'}`}>
                                                     Date
                                                 </th>
-                                                <th className="px-6 py-3 bg-white/5 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
+                                                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-600'}`}>
                                                     Amount
                                                 </th>
-                                                <th className="px-6 py-3 bg-white/5 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
+                                                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-600'}`}>
                                                     Status
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white/5 divide-y divide-white/10">
+                                        <tbody className={`divide-y ${isDark ? 'bg-gray-800 divide-gray-700' : 'bg-white divide-gray-200'}`}>
                                             {deposits.data.map((deposit) => {
                                                 const depositDate = deposit?.created_at 
                                                     ? new Date(deposit.created_at).toLocaleDateString() 
@@ -252,11 +264,11 @@ export default function EmployerWallet({
                                                 const depositStatus = deposit?.status || 'unknown';
                                                 
                                                 return (
-                                                    <tr key={deposit?.id || Math.random()} className="hover:bg-white/5">
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white/80">
+                                                    <tr key={deposit?.id || Math.random()} className={isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}>
+                                                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                             {depositDate}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white/90 font-medium">
+                                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                                             {currency?.symbol || '$'}{formatAmount(depositAmount)}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -276,11 +288,11 @@ export default function EmployerWallet({
                                 </div>
                             ) : (
                                 <div className="text-center py-8">
-                                    <svg className="mx-auto h-12 w-12 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className={`mx-auto h-12 w-12 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                     </svg>
-                                    <h3 className="mt-2 text-sm font-medium text-white">No deposits yet</h3>
-                                    <p className="mt-1 text-sm text-white/50">
+                                    <h3 className={`mt-2 text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>No deposits yet</h3>
+                                    <p className={`mt-1 text-sm ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                                         Add funds to your escrow balance to start hiring gig workers.
                                     </p>
                                 </div>
@@ -291,16 +303,16 @@ export default function EmployerWallet({
                     {/* Amount Input Modal */}
                     {showAmountModal && (
                         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                            <div className="bg-[#0d1014] border border-white/10 rounded-xl p-6 max-w-md w-full">
+                            <div className={`rounded-xl p-6 max-w-md w-full border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-xl'}`}>
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-medium text-white">Add Funds to Escrow</h3>
+                                    <h3 className={`text-lg font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Add Funds to Escrow</h3>
                                     <button
                                         onClick={() => {
                                             setShowAmountModal(false);
                                             setAmount('');
                                             setIntentError(null);
                                         }}
-                                        className="text-white/40 hover:text-white/80"
+                                        className={isDark ? 'text-gray-500 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}
                                     >
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -309,12 +321,12 @@ export default function EmployerWallet({
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-medium text-white/80 mb-2">
+                                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Amount to Deposit
                                     </label>
                                     <div className="relative rounded-md">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <span className="text-white/50 sm:text-sm">{currency?.symbol || '$'}</span>
+                                            <span className={isDark ? 'text-gray-500' : 'text-gray-500'}>{currency?.symbol || '$'}</span>
                                         </div>
                                         <input
                                             type="number"
@@ -322,12 +334,12 @@ export default function EmployerWallet({
                                             step="0.01"
                                             value={amount}
                                             onChange={(e) => setAmount(e.target.value)}
-                                            className="focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 block w-full pl-7 pr-12 sm:text-sm border border-white/20 rounded-md bg-white/5 text-white placeholder-white/40"
+                                            className={`focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 block w-full pl-7 pr-12 sm:text-sm border rounded-md ${isDark ? 'border-gray-600 bg-gray-800 text-gray-100 placeholder-gray-400' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'}`}
                                             placeholder="0.00"
                                             autoFocus
                                         />
                                     </div>
-                                    <p className="mt-2 text-sm text-white/50">
+                                    <p className={`mt-2 text-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                                         Minimum deposit: {currency?.symbol || '$'}50.00
                                     </p>
                                 </div>
@@ -347,14 +359,14 @@ export default function EmployerWallet({
                                             setAmount('');
                                             setIntentError(null);
                                         }}
-                                        className="flex-1 bg-white/5 border border-white/20 text-white/80 py-3 px-6 rounded-xl hover:bg-white/10 transition-all duration-200"
+                                        className={`flex-1 border py-3 px-6 rounded-xl transition-all duration-200 ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleDeposit}
                                         disabled={!amount || parseFloat(amount) <= 0 || isCreatingIntent}
-                                        className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0d1014] focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className={`flex-1 bg-green-600 hover:bg-green-500 text-white py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'}`}
                                     >
                                         {isCreatingIntent ? 'Creating...' : 'Continue to Payment'}
                                     </button>
@@ -366,8 +378,8 @@ export default function EmployerWallet({
                     {/* Payment Modal */}
                     {showPaymentModal && (
                         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                            <div className="bg-[#0d1014] border border-white/10 rounded-xl p-6 max-w-md w-full">
-                                <h3 className="text-lg font-medium text-white mb-4">Complete Your Deposit</h3>
+                            <div className={`rounded-xl p-6 max-w-md w-full border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-xl'}`}>
+                                <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Complete Your Deposit</h3>
                                 {(() => {
                                     const isValidClientSecret = clientSecret &&
                                                               typeof clientSecret === 'string' &&
@@ -400,7 +412,7 @@ export default function EmployerWallet({
                                     } else {
                                         return (
                                             <div className="text-center py-4">
-                                                <div className="text-white/70">
+                                                <div className={isDark ? 'text-gray-200' : 'text-gray-700'}>
                                                     {isCreatingIntent ? 'Creating payment...' : 'Loading payment form...'}
                                                 </div>
                                                 {intentError && (
@@ -418,6 +430,7 @@ export default function EmployerWallet({
                 </div>
             </div>
 
+            {isDark && (
             <style>{`
                 body {
                     background: #05070A;
@@ -425,6 +438,7 @@ export default function EmployerWallet({
                     font-family: 'Inter', sans-serif;
                 }
             `}</style>
+            )}
         </AuthenticatedLayout>
     );
 }

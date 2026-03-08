@@ -1,36 +1,37 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useTheme } from '@/Contexts/ThemeContext';
 import { useState, useRef, useCallback } from 'react';
 
 // ─── Field wrapper ────────────────────────────────────────────────────────────
-function Field({ label, hint, children, error, icon }) {
+function Field({ label, hint, children, error, icon, isDark }) {
     return (
         <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{label}</label>
-            {hint && <p className="text-xs text-slate-400 dark:text-slate-500 ml-1">{hint}</p>}
+            <label className={`block text-sm font-bold ml-1 ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>{label}</label>
+            {hint && <p className="text-xs text-gray-500 ml-1">{hint}</p>}
             <div className="relative group">
                 {icon && (
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-primary text-slate-400">
+                    <div className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-primary ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                         <span className="material-symbols-outlined text-lg">{icon}</span>
                     </div>
                 )}
                 {children}
             </div>
-            {error && <p className="text-xs text-red-500 mt-1 ml-1 animate-pulse">{error}</p>}
+            {error && <p className="text-xs text-red-400 mt-1 ml-1 animate-pulse">{error}</p>}
         </div>
     );
 }
 
 // ─── Card section ─────────────────────────────────────────────────────────────
-function Section({ title, icon, colorClass, children }) {
+function Section({ title, icon, colorClass, children, isDark }) {
     return (
-        <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/80 dark:border-white/5 rounded-3xl shadow-soft overflow-hidden transition-all hover:shadow-lg">
-            <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className={`backdrop-blur-md rounded-3xl shadow-soft overflow-hidden transition-all hover:shadow-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow'}`}>
+            <div className={`px-8 py-5 border-b flex items-center justify-between ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colorClass}`}>
                         <span className="material-symbols-outlined text-lg">{icon}</span>
                     </div>
-                    <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.15em]">{title}</h2>
+                    <h2 className={`text-sm font-black uppercase tracking-[0.15em] ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{title}</h2>
                 </div>
             </div>
             <div className="p-8 space-y-6">{children}</div>
@@ -39,11 +40,13 @@ function Section({ title, icon, colorClass, children }) {
 }
 
 const INITIAL_KEYS = [
-    'first_name', 'last_name', 'company_name', 'industry', 'company_size',
+    'first_name', 'last_name', 'email', 'company_name', 'industry', 'company_size',
     'company_website', 'bio', 'company_description', 'country', 'city',
 ];
 
 export default function EmployerEdit({ user, status }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [photoPreview, setPhotoPreview] = useState(user.profile_picture || null);
     const photoRef = useRef(null);
     const [detectingLocation, setDetectingLocation] = useState(false);
@@ -56,6 +59,7 @@ export default function EmployerEdit({ user, status }) {
     const { data, setData, post, processing, errors } = useForm({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
+        email: user.email || '',
         company_name: user.company_name || '',
         industry: user.industry || '',
         company_size: user.company_size || '',
@@ -124,10 +128,11 @@ export default function EmployerEdit({ user, status }) {
     const initials = `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || 'E';
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout pageTheme={isDark ? 'dark' : undefined}>
             <Head title="Edit Employer Profile - WorkWise" />
+            {isDark && <style>{`body { background: #111827; color: #e5e7eb; }`}</style>}
 
-            <div className="min-h-screen pb-16 relative">
+            <div className={`min-h-screen pb-16 relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 {/* Background Decor */}
                 <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 animate-pulse"></div>
 
@@ -136,17 +141,17 @@ export default function EmployerEdit({ user, status }) {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                         <div>
                             <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest mb-3">
-                                <Link href={route('employer.profile')} className="hover:underline">Profile</Link>
-                                <span className="material-symbols-outlined text-sm">chevron_right</span>
-                                <span className="text-slate-400">Edit Mode</span>
+                                <Link href={route('employer.profile')} className={isDark ? 'text-blue-400 hover:text-blue-300 hover:underline' : 'text-blue-600 hover:text-blue-700 hover:underline'}>Profile</Link>
+                                <span className={`material-symbols-outlined text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>chevron_right</span>
+                                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Edit Mode</span>
                             </div>
-                            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Edit Profile</h1>
-                            <p className="text-slate-500 dark:text-slate-400 mt-2">Update your identity and company presence on WorkWise.</p>
+                            <h1 className={`text-3xl font-black tracking-tight ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Edit Profile</h1>
+                            <p className={`mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Update your identity and company presence on WorkWise.</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <Link
                                 href={route('employer.profile')}
-                                className="px-6 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-sm font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                                className={`px-6 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${isDark ? 'border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}
                             >
                                 Cancel
                             </Link>
@@ -165,22 +170,22 @@ export default function EmployerEdit({ user, status }) {
                     </div>
 
                     {status === 'profile-updated' && (
-                        <div className="bg-green-500/10 border border-green-500/20 text-green-600 rounded-2xl p-4 mb-8 flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+                        <div className="bg-green-900/50 border border-green-700 text-green-200 rounded-2xl p-4 mb-8 flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
                             <span className="material-symbols-outlined">check_circle</span>
-                            <span className="text-sm font-bold text-green-700">Profile successfully updated!</span>
+                            <span className="text-sm font-bold">Profile successfully updated!</span>
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-8">
                         {/* ── Personal Info ─────────────────────────────── */}
-                        <Section title="Personal Information" icon="person" colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600">
+                        <Section title="Personal Information" icon="person" colorClass="bg-blue-900/50 text-blue-400" isDark={isDark}>
                             <div className="flex flex-col md:flex-row gap-8 items-start">
                                 <div className="flex flex-col items-center gap-3">
                                     <div
                                         onClick={() => photoRef.current?.click()}
                                         className="relative group cursor-pointer"
                                     >
-                                        <div className="w-32 h-32 rounded-full bg-slate-50 dark:bg-slate-800 shadow-inner border-4 border-white dark:border-slate-800 flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105">
+                                        <div className={`w-32 h-32 rounded-full shadow-inner border-4 flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105 ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-200 border-gray-300'}`}>
                                             {photoPreview ? (
                                                 <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                                             ) : (
@@ -191,35 +196,46 @@ export default function EmployerEdit({ user, status }) {
                                             <span className="material-symbols-outlined text-white text-3xl">photo_camera</span>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Company Logo</span>
+                                    <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Company Logo</span>
                                     <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
                                 </div>
 
                                 <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                                    <Field label="First Name" error={errors.first_name} icon="badge">
+                                    <Field label="First Name" error={errors.first_name} icon="badge" isDark={isDark}>
                                         <input
                                             type="text"
                                             value={data.first_name}
                                             onChange={(e) => setData('first_name', e.target.value)}
-                                            className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner"
+                                            className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                         />
                                     </Field>
-                                    <Field label="Last Name" error={errors.last_name} icon="badge">
+                                    <Field label="Last Name" error={errors.last_name} icon="badge" isDark={isDark}>
                                         <input
                                             type="text"
                                             value={data.last_name}
                                             onChange={(e) => setData('last_name', e.target.value)}
-                                            className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner"
+                                            className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-white placeholder-gray-500 transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                         />
                                     </Field>
                                     <div className="md:col-span-2">
-                                        <Field label="Professional Bio" hint="Keep it short and punchy for your mini-profile." error={errors.bio} icon="description">
+                                        <Field label="Email" error={errors.email} icon="mail" isDark={isDark}>
+                                            <input
+                                                type="email"
+                                                value={data.email}
+                                                onChange={(e) => setData('email', e.target.value)}
+                                                className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
+                                                placeholder="you@example.com"
+                                            />
+                                        </Field>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <Field label="Professional Bio" hint="Keep it short and punchy for your mini-profile." error={errors.bio} icon="description" isDark={isDark}>
                                             <input
                                                 type="text"
                                                 value={data.bio}
                                                 maxLength={100}
                                                 onChange={(e) => setData('bio', e.target.value)}
-                                                className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner"
+                                                className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                                 placeholder="Technical Lead @ TechFlow"
                                             />
                                         </Field>
@@ -229,32 +245,32 @@ export default function EmployerEdit({ user, status }) {
                         </Section>
 
                         {/* ── Company Details ───────────────────────────── */}
-                        <Section title="Company Details" icon="business" colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600">
+                        <Section title="Company Details" icon="business" colorClass="bg-purple-900/50 text-purple-400" isDark={isDark}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="md:col-span-2">
-                                    <Field label="Company Name" error={errors.company_name} icon="corporate_fare">
+                                    <Field label="Company Name" error={errors.company_name} icon="corporate_fare" isDark={isDark}>
                                         <input
                                             type="text"
                                             value={data.company_name}
                                             onChange={(e) => setData('company_name', e.target.value)}
-                                            className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner"
+                                            className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                         />
                                     </Field>
                                 </div>
-                                <Field label="Industry" error={errors.industry} icon="category">
+                                <Field label="Industry" error={errors.industry} icon="category" isDark={isDark}>
                                     <input
                                         type="text"
                                         value={data.industry}
                                         onChange={(e) => setData('industry', e.target.value)}
                                         placeholder="e.g. Software Development"
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner"
+                                        className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                     />
                                 </Field>
-                                <Field label="Company Size" error={errors.company_size} icon="groups">
+                                <Field label="Company Size" error={errors.company_size} icon="groups" isDark={isDark}>
                                     <select
                                         value={data.company_size}
                                         onChange={(e) => setData('company_size', e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner appearance-none cursor-pointer"
+                                        className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner appearance-none cursor-pointer ${isDark ? 'bg-gray-700 border border-gray-600 text-white' : 'bg-white border border-gray-300 text-gray-900'}`}
                                     >
                                         <option value="">Select Size</option>
                                         <option value="1-10">1-10 employees</option>
@@ -265,24 +281,24 @@ export default function EmployerEdit({ user, status }) {
                                     </select>
                                 </Field>
                                 <div className="md:col-span-2">
-                                    <Field label="Company Description" hint="Detailed overview of what your company does and why workers should join." error={errors.company_description}>
+                                    <Field label="Company Description" hint="Detailed overview of what your company does and why workers should join." error={errors.company_description} isDark={isDark}>
                                         <textarea
                                             value={data.company_description}
                                             onChange={(e) => setData('company_description', e.target.value)}
                                             rows={5}
-                                            className="w-full px-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner resize-none"
+                                            className={`w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner resize-none ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                             placeholder="Write about your company's mission and culture..."
                                         />
                                     </Field>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <Field label="Website URL" error={errors.company_website} icon="language">
+                                    <Field label="Website URL" error={errors.company_website} icon="language" isDark={isDark}>
                                         <input
                                             type="url"
                                             value={data.company_website}
                                             onChange={(e) => setData('company_website', e.target.value)}
                                             placeholder="https://example.com"
-                                            className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner"
+                                            className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                         />
                                     </Field>
                                 </div>
@@ -290,15 +306,15 @@ export default function EmployerEdit({ user, status }) {
                         </Section>
 
                         {/* ── Location ──────────────────────────────────── */}
-                        <Section title="Office Location" icon="location_on" colorClass="bg-orange-100 dark:bg-orange-900/30 text-orange-600">
+                        <Section title="Office Location" icon="location_on" colorClass="bg-orange-900/50 text-orange-400" isDark={isDark}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="md:col-span-2 flex items-center justify-between">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Enter your country and city, or use auto-detect.</p>
+                                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Enter your country and city, or use auto-detect.</p>
                                     <button
                                         type="button"
                                         onClick={handleAutoDetectLocation}
                                         disabled={detectingLocation}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${isDark ? 'bg-gray-700 text-orange-400 border-gray-600 hover:bg-gray-600' : 'bg-white text-orange-600 border-gray-300 hover:bg-gray-50'} disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                         <span className={`material-symbols-outlined text-base${detectingLocation ? ' animate-spin' : ''}`}>
                                             {detectingLocation ? 'refresh' : 'my_location'}
@@ -308,28 +324,28 @@ export default function EmployerEdit({ user, status }) {
                                 </div>
                                 {locationError && (
                                     <div className="md:col-span-2">
-                                        <p className="text-xs text-red-500 flex items-center gap-1">
+                                        <p className="text-xs text-red-400 flex items-center gap-1">
                                             <span className="material-symbols-outlined text-sm">error</span>
                                             {locationError}
                                         </p>
                                     </div>
                                 )}
-                                <Field label="Country" error={errors.country} icon="public">
+                                <Field label="Country" error={errors.country} icon="public" isDark={isDark}>
                                     <input
                                         type="text"
                                         value={data.country}
                                         onChange={(e) => setData('country', e.target.value)}
                                         placeholder="e.g. Philippines"
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner"
+                                        className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                     />
                                 </Field>
-                                <Field label="City" error={errors.city} icon="location_city">
+                                <Field label="City" error={errors.city} icon="location_city" isDark={isDark}>
                                     <input
                                         type="text"
                                         value={data.city}
                                         onChange={(e) => setData('city', e.target.value)}
                                         placeholder="e.g. Manila"
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none text-slate-900 dark:text-white transition-all shadow-inner"
+                                        className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                     />
                                 </Field>
                             </div>
@@ -345,12 +361,12 @@ export default function EmployerEdit({ user, status }) {
                                             router.visit(route('employer.profile'));
                                         }
                                     }}
-                                    className="px-8 py-3 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                                    className={`px-8 py-3 rounded-xl border-2 font-bold transition-all ${isDark ? 'border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}
                                 >
                                     Discard Changes
                                 </button>
                             ) : (
-                                <span className="px-8 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-bold bg-white dark:bg-slate-800 cursor-not-allowed opacity-50 select-none">
+                                <span className={`px-8 py-3 rounded-xl border-2 font-bold cursor-not-allowed opacity-50 select-none ${isDark ? 'border-gray-700 text-gray-500 bg-gray-800' : 'border-gray-200 text-gray-400 bg-gray-100'}`}>
                                     Discard Changes
                                 </span>
                             )}

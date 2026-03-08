@@ -97,6 +97,9 @@ Route::get('/dashboard', function () {
 
     // Redirect employers to employer dashboard
     if ($user->user_type === 'employer') {
+        // #region agent log
+        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H1,H4','location'=>'web.php dashboard closure','message'=>'redirect to employer.dashboard','data'=>['user_type'=>'employer'],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         return redirect()->route('employer.dashboard');
     }
 

@@ -130,7 +130,7 @@ class AnalyticsController extends Controller
             ->where('status', 'completed')
             ->sum('amount');
             
-        $completedProjects = $user->clientProjects()
+        $completedProjects = $user->employerProjects()
             ->where('status', 'completed')
             ->count();
             
@@ -138,7 +138,7 @@ class AnalyticsController extends Controller
             ->where('status', 'open')
             ->count();
             
-        $totalFreelancersHired = $user->clientProjects()
+        $totalFreelancersHired = $user->employerProjects()
             ->distinct('freelancer_id')
             ->count();
 
@@ -168,15 +168,15 @@ class AnalyticsController extends Controller
         }
 
         // Project success rate
-        $totalProjects = $user->clientProjects()->count();
-        $successfulProjects = $user->clientProjects()
+        $totalProjects = $user->employerProjects()->count();
+        $successfulProjects = $user->employerProjects()
             ->where('status', 'completed')
-            ->where('client_approved', true)
+            ->where('employer_approved', true)
             ->count();
         $projectSuccessRate = $totalProjects > 0 ? ($successfulProjects / $totalProjects) * 100 : 0;
 
         // Recent projects
-        $recentProjects = $user->clientProjects()
+        $recentProjects = $user->employerProjects()
             ->with(['job:id,title', 'freelancer:id,first_name,last_name'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
@@ -251,7 +251,7 @@ class AnalyticsController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
         } else {
-            $projects = $user->clientProjects()
+            $projects = $user->employerProjects()
                 ->where('created_at', '>=', $startDate)
                 ->with(['job:id,title', 'freelancer:id,first_name,last_name', 'reviews'])
                 ->orderBy('created_at', 'desc')
@@ -347,13 +347,13 @@ class AnalyticsController extends Controller
     {
         // Database agnostic date difference calculation
         $dateSql = $this->getDateExtractionSql();
-        $avgProjectDuration = $user->clientProjects()
+        $avgProjectDuration = $user->employerProjects()
             ->whereNotNull('completed_at')
             ->whereNotNull('started_at')
             ->selectRaw("AVG({$dateSql['date_diff']}) as avg_duration")
             ->value('avg_duration');
 
-        $repeatFreelancers = $user->clientProjects()
+        $repeatFreelancers = $user->employerProjects()
             ->select('freelancer_id')
             ->groupBy('freelancer_id')
             ->havingRaw('COUNT(*) > 1')
@@ -362,7 +362,7 @@ class AnalyticsController extends Controller
         return [
             'avg_project_duration' => round($avgProjectDuration ?? 0, 1),
             'repeat_freelancers' => $repeatFreelancers,
-            'avg_project_cost' => $user->clientProjects()->avg('agreed_amount') ?? 0
+            'avg_project_cost' => $user->employerProjects()->avg('agreed_amount') ?? 0
         ];
     }
 
@@ -523,7 +523,7 @@ class AnalyticsController extends Controller
 
         } else {
             // Projects export
-            $data = $user->clientProjects()
+            $data = $user->employerProjects()
                 ->where('created_at', '>=', $startDate)
                 ->with(['job:id,title', 'freelancer:id,first_name,last_name'])
                 ->orderBy('created_at', 'desc')

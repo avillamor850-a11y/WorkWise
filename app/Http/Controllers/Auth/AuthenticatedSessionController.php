@@ -31,6 +31,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // #region agent log
+        $logPath = base_path('debug-c58bb5.log');
+        file_put_contents($logPath, json_encode(['sessionId'=>'c58bb5','hypothesisId'=>'H2,H3,H4','location'=>'AuthenticatedSessionController::store','message'=>'store entered','data'=>['emailMasked'=>strlen($request->input('email',''))>0?substr($request->input('email'),0,2).'***':'(empty)'],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+
         $request->authenticate();
 
         $request->session()->regenerate();
@@ -66,14 +71,23 @@ class AuthenticatedSessionController extends Controller
 
         // Check if user is admin and redirect to admin dashboard
         if ($user && $user->isAdmin()) {
+            // #region agent log
+            file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H4','location'=>'AuthenticatedSessionController::store','message'=>'redirect admin','data'=>[],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
             return redirect()->intended(route('admin.dashboard'));
         }
 
         // Gig workers go to the jobs page after login
         if ($user && $user->isGigWorker()) {
+            // #region agent log
+            file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H4','location'=>'AuthenticatedSessionController::store','message'=>'redirect jobs.index','data'=>[],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
             return redirect()->intended(route('jobs.index'));
         }
 
+        // #region agent log
+        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H1,H4','location'=>'AuthenticatedSessionController::store','message'=>'redirect dashboard (employer or other)','data'=>['user_type'=>$user->user_type ?? null],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         return redirect()->intended(route('dashboard'));
     }
 

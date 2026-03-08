@@ -278,6 +278,7 @@ class RecommendationService
 
         $matches = [];
         $startTime = microtime(true);
+        $deadline = $startTime + self::MAX_PROCESS_TIME;
 
         foreach ($jobs as $job) {
             if ((microtime(true) - $startTime) > self::MAX_PROCESS_TIME) {
@@ -289,7 +290,7 @@ class RecommendationService
                 break;
             }
 
-            $result = $this->getJobRecommendationScoreForWorker($job, $gigWorker, $workerText, $refresh);
+            $result = $this->getJobRecommendationScoreForWorker($job, $gigWorker, $workerText, $refresh, $deadline);
             // #region agent log
             $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'B', 'location' => 'RecommendationService.php:worker_loop', 'message' => 'Job scored', 'data' => ['job_id' => $job->id, 'score' => $result['score'] ?? null, 'success' => $result['success'] ?? false, 'added' => ($result['success'] && ($result['score'] ?? 0) > 0)], 'timestamp' => round(microtime(true) * 1000)]) . "\n";
             @file_put_contents($logPath, $logLine, FILE_APPEND);
@@ -318,7 +319,7 @@ class RecommendationService
     /**
      * Single job recommendation score for worker (relevance + quality)
      */
-    private function getJobRecommendationScoreForWorker(GigJob $job, User $gigWorker, string $workerText, bool $refresh): array
+    private function getJobRecommendationScoreForWorker(GigJob $job, User $gigWorker, string $workerText, bool $refresh, ?float $deadline = null): array
     {
         $cacheKey = "recommendation_worker_{$gigWorker->id}_{$job->id}";
         if (!$refresh && Cache::has($cacheKey)) {
@@ -332,6 +333,10 @@ class RecommendationService
         }
 
         if (!$this->isConfigured) {
+            return $this->fallbackWorkerScore($job, $gigWorker);
+        }
+
+        if ($deadline !== null && microtime(true) >= $deadline) {
             return $this->fallbackWorkerScore($job, $gigWorker);
         }
 
@@ -404,7 +409,7 @@ class RecommendationService
             try {
                 $response = Http::withToken($this->apiKey)
                     ->withOptions(['verify' => file_exists($this->certPath) ? $this->certPath : true])
-                    ->timeout(str_contains($modelConfig['name'], 'qwen') ? 45 : 30)
+                    ->timeout(str_contains($modelConfig['name'], 'qwen') ? 25 : 15)
                     ->post($this->baseUrl . '/chat/completions', [
                         'model' => $modelConfig['name'],
                         'messages' => [
