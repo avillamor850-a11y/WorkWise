@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useTheme } from '@/Contexts/ThemeContext';
 import ErrorModal from '@/Components/ErrorModal';
 import {
     DocumentCheckIcon,
@@ -76,6 +77,9 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
         }
     }, [signNotAllowed, signNotAllowedMessage]);
 
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     const handleNextStep = () => {
         if (signatureStep < 3) {
             setSignatureStep(signatureStep + 1);
@@ -143,31 +147,31 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
     };
 
     const ContractSummary = () => (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className={`rounded-xl p-6 mb-6 shadow-sm border ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'}`}>
+            <h3 className={`text-lg font-semibold mb-4 flex items-center ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                 <DocumentCheckIcon className="w-5 h-5 mr-2 text-blue-600" />
                 Contract Summary
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center">
                     <BriefcaseIcon className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm text-gray-600">Project:</span>
-                    <span className="ml-2 font-medium text-gray-900">{contract.job?.title}</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Project:</span>
+                    <span className={`ml-2 font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{contract.job?.title}</span>
                 </div>
                 <div className="flex items-center">
                     <CurrencyDollarIcon className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm text-gray-600">Amount:</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Amount:</span>
                     <span className="ml-2 font-medium text-green-600">₱{contract.total_payment?.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center">
                     <CalendarIcon className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm text-gray-600">Start Date:</span>
-                    <span className="ml-2 font-medium text-gray-900">{new Date(contract.project_start_date).toLocaleDateString()}</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Start Date:</span>
+                    <span className={`ml-2 font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{new Date(contract.project_start_date).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center">
                     <CalendarIcon className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm text-gray-600">End Date:</span>
-                    <span className="ml-2 font-medium text-gray-900">{new Date(contract.project_end_date).toLocaleDateString()}</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>End Date:</span>
+                    <span className={`ml-2 font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{new Date(contract.project_end_date).toLocaleDateString()}</span>
                 </div>
             </div>
         </div>
@@ -179,7 +183,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                 <React.Fragment key={step}>
                     <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${step <= signatureStep
                             ? 'bg-blue-600 border-blue-500 text-white'
-                            : 'border-gray-600 text-gray-500'
+                            : isDark ? 'border-gray-600 text-gray-500' : 'border-gray-300 text-gray-500'
                         }`}>
                         {step < signatureStep ? (
                             <CheckCircleIcon className="w-5 h-5" />
@@ -188,7 +192,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                         )}
                     </div>
                     {step < 3 && (
-                        <div className={`w-16 h-0.5 mx-2 ${step < signatureStep ? 'bg-blue-500' : 'bg-gray-600'
+                        <div className={`w-16 h-0.5 mx-2 ${step < signatureStep ? 'bg-blue-500' : isDark ? 'bg-gray-600' : 'bg-gray-300'
                             }`} />
                     )}
                 </React.Fragment>
@@ -198,13 +202,13 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
     const StepLabels = () => (
         <div className="flex justify-between mb-8 text-sm">
-            <span className={signatureStep >= 1 ? 'text-blue-400 font-medium' : 'text-gray-500'}>
+            <span className={signatureStep >= 1 ? (isDark ? 'text-blue-400' : 'text-blue-600') + ' font-medium' : 'text-gray-500'}>
                 Review Contract
             </span>
-            <span className={signatureStep >= 2 ? 'text-blue-400 font-medium' : 'text-gray-500'}>
+            <span className={signatureStep >= 2 ? (isDark ? 'text-blue-400' : 'text-blue-600') + ' font-medium' : 'text-gray-500'}>
                 Confirm Details
             </span>
-            <span className={signatureStep >= 3 ? 'text-blue-400 font-medium' : 'text-gray-500'}>
+            <span className={signatureStep >= 3 ? (isDark ? 'text-blue-400' : 'text-blue-600') + ' font-medium' : 'text-gray-500'}>
                 Digital Signature
             </span>
         </div>
@@ -212,22 +216,22 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
     if (showWaitingModal) {
         return (
-            <AuthenticatedLayout user={auth.user} pageTheme="dark" header={<h2 className="font-semibold text-xl text-gray-100 leading-tight">Contract Signing</h2>}>
+            <AuthenticatedLayout user={auth.user} pageTheme={isDark ? 'dark' : 'light'} header={<h2 className={`font-semibold text-xl leading-tight ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Contract Signing</h2>}>
                 <Head title="Contract Signing - Waiting" />
-                <div className="min-h-screen bg-gray-900 relative">
+                <div className={`min-h-screen relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
                         <div className="absolute top-1/4 -left-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
                         <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
                     </div>
                     <div className="py-12 relative z-20">
                         <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                            <div className="bg-gray-800 border border-gray-700 overflow-hidden sm:rounded-xl">
+                            <div className={`overflow-hidden sm:rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                                 <div className="p-8 text-center">
                                     <ClockIcon className="w-16 h-16 mx-auto text-amber-400 mb-4" />
-                                    <h2 className="text-2xl font-bold text-gray-100 mb-4">
+                                    <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                         Waiting for Employer Signature
                                     </h2>
-                                    <p className="text-gray-200 mb-6">
+                                    <p className={`mb-6 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         {employerName || 'The employer'} needs to sign the contract first before you can proceed.
                                         You'll receive a notification once they've completed their signature.
                                     </p>
@@ -240,7 +244,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                         </button>
                                         <button
                                             onClick={() => router.visit(route('contracts.index'))}
-                                            className="block w-full text-center border border-gray-600 text-gray-200 bg-gray-800 hover:bg-gray-700 px-6 py-2 rounded-lg transition-colors"
+                                            className={isDark ? 'block w-full text-center border border-gray-600 text-gray-200 bg-gray-800 hover:bg-gray-700 px-6 py-2 rounded-lg transition-colors' : 'block w-full text-center border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-2 rounded-lg transition-colors'}
                                         >
                                             Back to Contracts
                                         </button>
@@ -257,8 +261,8 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
     return (
         <AuthenticatedLayout
             user={auth.user}
-            pageTheme="dark"
-            header={<h2 className="font-semibold text-xl text-gray-100 leading-tight">Digital Contract Signature</h2>}
+            pageTheme={isDark ? 'dark' : 'light'}
+            header={<h2 className={`font-semibold text-xl leading-tight ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Digital Contract Signature</h2>}
         >
             <Head title={`Sign Contract - ${contract.contract_id}`} />
 
@@ -271,21 +275,21 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                 </div>
             )}
 
-            <div className="min-h-screen bg-gray-900 relative">
+            <div className={`min-h-screen relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-1/4 -left-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
                     <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
                 </div>
                 <div className="py-12 relative z-20">
                     <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                        <div className="bg-gray-800 border border-gray-700 overflow-hidden sm:rounded-xl">
+                        <div className={`overflow-hidden sm:rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                             <div className="p-8">
                                 <div className="mb-8">
-                                    <h1 className="text-3xl font-bold text-gray-100 mb-2">
+                                    <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                         Digital Contract Signature
                                     </h1>
-                                    <p className="text-gray-400">
-                                        Contract ID: <span className="font-medium text-gray-200">{contract.contract_id}</span>
+                                    <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                                        Contract ID: <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{contract.contract_id}</span>
                                     </p>
                                 </div>
 
@@ -296,16 +300,16 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                     <div className="space-y-6">
                                         <ContractSummary />
 
-                                        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Contract Terms & Conditions</h3>
-                                            <div className="prose max-w-none text-sm text-gray-700 space-y-4">
+                                        <div className={`rounded-xl p-6 shadow-sm border ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'}`}>
+                                            <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Contract Terms & Conditions</h3>
+                                            <div className={`prose max-w-none text-sm space-y-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                                                 <div>
-                                                    <h4 className="font-medium text-gray-900">Scope of Work:</h4>
+                                                    <h4 className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Scope of Work:</h4>
                                                     <p className="whitespace-pre-line break-all">{contract.scope_of_work}</p>
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-medium text-gray-900">Your Responsibilities:</h4>
+                                                    <h4 className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Your Responsibilities:</h4>
                                                     <ul className="list-disc list-inside space-y-1">
                                                         {(userRole === 'employer' ? contract.employer_responsibilities : contract.gig_worker_responsibilities)?.map((responsibility, index) => (
                                                             <li key={index}>{responsibility}</li>
@@ -314,7 +318,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="font-medium text-gray-900">Communication:</h4>
+                                                    <h4 className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Communication:</h4>
                                                     <p>Method: {contract.preferred_communication}</p>
                                                     <p>Frequency: {contract.communication_frequency}</p>
                                                 </div>
@@ -327,9 +331,9 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                 id="readContract"
                                                 checked={hasReadContract}
                                                 onChange={(e) => setHasReadContract(e.target.checked)}
-                                                className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500/50"
+                                                className={isDark ? 'rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500/50' : 'rounded border-gray-300 text-blue-500 focus:ring-blue-500/50'}
                                             />
-                                            <label htmlFor="readContract" className="text-sm text-gray-200">
+                                            <label htmlFor="readContract" className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                 I have read and understood the contract terms
                                             </label>
                                         </div>
@@ -340,7 +344,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                 disabled={!hasReadContract}
                                                 className={`px-6 py-2 rounded-lg transition-colors ${hasReadContract
                                                         ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                                                        : 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700'
+                                                        : isDark ? 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700' : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'
                                                     }`}
                                             >
                                                 Continue to Confirmation
@@ -351,32 +355,32 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
                                 {signatureStep === 2 && (
                                     <div className="space-y-6">
-                                        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                        <div className={`rounded-xl p-6 shadow-sm border ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'}`}>
+                                            <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                                 Confirm Contract Details
                                             </h3>
                                             <div className="space-y-3 text-sm">
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">Contract ID:</span>
-                                                    <span className="font-medium text-gray-900">{contract.contract_id}</span>
+                                                    <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Contract ID:</span>
+                                                    <span className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{contract.contract_id}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">Project:</span>
-                                                    <span className="font-medium text-gray-900">{contract.job?.title}</span>
+                                                    <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Project:</span>
+                                                    <span className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{contract.job?.title}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">Total Amount:</span>
+                                                    <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Total Amount:</span>
                                                     <span className="font-medium text-green-600">₱{contract.total_payment?.toLocaleString()}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">Duration:</span>
-                                                    <span className="font-medium text-gray-900">
+                                                    <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Duration:</span>
+                                                    <span className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                                         {new Date(contract.project_start_date).toLocaleDateString()} - {new Date(contract.project_end_date).toLocaleDateString()}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">Signing as:</span>
-                                                    <span className="font-medium text-gray-900 capitalize">{userRole.replace('_', ' ')}</span>
+                                                    <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Signing as:</span>
+                                                    <span className={`font-medium capitalize ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{userRole.replace('_', ' ')}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -387,9 +391,9 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                 id="agreeTerms"
                                                 checked={agreedToTerms}
                                                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                                                className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500/50"
+                                                className={isDark ? 'rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500/50' : 'rounded border-gray-300 text-blue-500 focus:ring-blue-500/50'}
                                             />
-                                            <label htmlFor="agreeTerms" className="text-sm text-gray-200">
+                                            <label htmlFor="agreeTerms" className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                 I agree to the terms and conditions of this contract
                                             </label>
                                         </div>
@@ -397,7 +401,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                         <div className="flex justify-between">
                                             <button
                                                 onClick={handlePrevStep}
-                                                className="px-6 py-2 border border-gray-600 text-gray-200 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
+                                                className={isDark ? 'px-6 py-2 border border-gray-600 text-gray-200 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors' : 'px-6 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors'}
                                             >
                                                 Back to Review
                                             </button>
@@ -406,7 +410,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                 disabled={!agreedToTerms}
                                                 className={`px-6 py-2 rounded-lg transition-colors ${agreedToTerms
                                                         ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                                                        : 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700'
+                                                        : isDark ? 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700' : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'
                                                     }`}
                                             >
                                                 Proceed to Signature
@@ -417,14 +421,14 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
 
                                 {signatureStep === 3 && (
                                     <form onSubmit={handleSubmit} className="space-y-6">
-                                        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                        <div className={`rounded-xl p-6 shadow-sm border ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'}`}>
+                                            <h3 className={`text-lg font-semibold mb-4 flex items-center ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                                 <UserIcon className="w-5 h-5 mr-2 text-blue-600" />
                                                 Digital Signature
                                             </h3>
                                             <div className="space-y-4">
                                                 <div>
-                                                    <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <label htmlFor="full_name" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                         Full Legal Name
                                                     </label>
                                                     <input
@@ -432,7 +436,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                         id="full_name"
                                                         value={data.full_name}
                                                         onChange={(e) => setData('full_name', e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        className={isDark ? 'w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500' : 'w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}
                                                         required
                                                     />
                                                     {errors.full_name && (
@@ -440,7 +444,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                     )}
                                                 </div>
 
-                                                <div className="text-xs text-gray-500 space-y-1">
+                                                <div className={`text-xs space-y-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                                     <p>By typing your name above, you are providing your digital signature.</p>
                                                     <p>Timestamp: {new Date().toLocaleString()}</p>
                                                     <p>IP Address will be recorded for security purposes.</p>
@@ -452,7 +456,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                             <button
                                                 type="button"
                                                 onClick={handlePrevStep}
-                                                className="px-6 py-2 border border-gray-600 text-gray-200 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
+                                                className={isDark ? 'px-6 py-2 border border-gray-600 text-gray-200 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors' : 'px-6 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors'}
                                             >
                                                 Back to Confirmation
                                             </button>
@@ -460,7 +464,7 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
                                                 type="submit"
                                                 disabled={isSubmitting || !data.full_name.trim()}
                                                 className={`px-8 py-2 rounded-lg transition-colors flex items-center ${isSubmitting || !data.full_name.trim()
-                                                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700'
+                                                        ? isDark ? 'bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-700' : 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200'
                                                         : 'bg-green-600 hover:bg-green-500 text-white'
                                                     }`}
                                             >
@@ -491,13 +495,13 @@ export default function OptimizedSign({ auth, contract, userRole, user, waitingF
             {/* Success Modal */}
             {showSuccessModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative w-full max-w-md p-6 border border-gray-700 shadow-xl rounded-xl bg-gray-800">
+                    <div className={`relative w-full max-w-md p-6 border shadow-xl rounded-xl ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                         <div className="text-center">
                             <CheckCircleIcon className="w-16 h-16 mx-auto text-green-400 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-100 mb-2">
+                            <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                 Contract Signed Successfully!
                             </h3>
-                            <p className="text-sm text-gray-400 mb-4">
+                            <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Your digital signature has been recorded. Redirecting you now...
                             </p>
                             <div className="flex justify-center">

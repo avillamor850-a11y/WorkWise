@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useTheme } from '@/Contexts/ThemeContext';
 import FileUploadInput from '@/Components/FileUploadInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 
 export default function Upload() {
     const { auth, flash } = usePage().props;
     const user = auth.user;
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
 
     // Upload step state: 'front', 'back', 'complete'
     const [uploadStep, setUploadStep] = useState('front');
@@ -285,13 +288,13 @@ export default function Upload() {
 
     return (
         <AuthenticatedLayout
-            pageTheme="dark"
+            pageTheme={isDark ? 'dark' : 'light'}
             header={
                 <div>
-                    <h2 className="font-semibold text-xl text-white leading-tight">
+                    <h2 className={`font-semibold text-xl leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
                         ID Verification
                     </h2>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         Upload your valid ID to verify your identity
                     </p>
                 </div>
@@ -299,10 +302,10 @@ export default function Upload() {
         >
             <Head title="ID Verification" />
 
-            <div className="min-h-screen bg-gray-900">
+            <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 <div className="py-6 sm:py-12">
                     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="bg-gray-800 border border-gray-700 overflow-hidden sm:rounded-xl">
+                        <div className={`overflow-hidden sm:rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                             <div className="p-6 sm:p-8">
                                 {/* Status Banners */}
                                 {verificationStatus === 'pending' && (
@@ -314,16 +317,16 @@ export default function Upload() {
                                                 </svg>
                                             </div>
                                             <div className="ml-3 flex-1">
-                                                <h3 className="text-lg font-semibold text-white">
+                                                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                                     Verification Pending
                                                 </h3>
-                                                <p className="mt-2 text-sm text-gray-200">
+                                                <p className={`mt-2 text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                     Your ID has been submitted for verification.
                                                 </p>
-                                                <p className="mt-1 text-sm font-medium text-gray-200">
+                                                <p className={`mt-1 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                     Please wait up to 24 hours for identity verification.
                                                 </p>
-                                                <p className="mt-2 text-xs text-gray-200">
+                                                <p className={`mt-2 text-xs ${isDark ? 'text-gray-200' : 'text-gray-600'}`}>
                                                     We'll notify you once the review is complete. You cannot upload new images while your submission is under review.
                                                 </p>
                                             </div>
@@ -333,19 +336,19 @@ export default function Upload() {
                                         {frontImageUrl && backImageUrl && (
                                             <div className="mt-4 grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <p className="text-xs font-medium text-gray-200 mb-2">Front ID (Submitted)</p>
+                                                    <p className={`text-xs font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Front ID (Submitted)</p>
                                                     <img 
                                                         src={frontImageUrl} 
                                                         alt="Front ID" 
-                                                        className="w-full rounded-lg border border-gray-700"
+                                                        className={`w-full rounded-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs font-medium text-gray-200 mb-2">Back ID (Submitted)</p>
+                                                    <p className={`text-xs font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Back ID (Submitted)</p>
                                                     <img 
                                                         src={backImageUrl} 
                                                         alt="Back ID" 
-                                                        className="w-full rounded-lg border border-gray-700"
+                                                        className={`w-full rounded-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
                                                     />
                                                 </div>
                                             </div>
@@ -362,10 +365,10 @@ export default function Upload() {
                                                 </svg>
                                             </div>
                                             <div className="ml-3">
-                                                <h3 className="text-sm font-medium text-white">
+                                                <h3 className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                                     Identity Verified!
                                                 </h3>
-                                                <p className="mt-1 text-sm text-gray-200">
+                                                <p className={`mt-1 text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                     Your identity has been successfully verified. You now have full access to all platform features.
                                                 </p>
                                             </div>
@@ -382,18 +385,18 @@ export default function Upload() {
                                                 </svg>
                                             </div>
                                             <div className="ml-3">
-                                                <h3 className="text-sm font-medium text-white">
+                                                <h3 className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                                     ID Verification Rejected
                                                 </h3>
-                                                <p className="mt-1 text-sm text-gray-200">
+                                                <p className={`mt-1 text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                     Your ID verification was not approved. {rejectionReason && `Reason: ${rejectionReason}`}
                                                 </p>
-                                                <p className="mt-2 text-sm text-gray-200">
+                                                <p className={`mt-2 text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                     Please re-upload your documents with clear, readable images.
                                                 </p>
                                                 <button
                                                     onClick={handleResubmit}
-                                                    className="mt-3 inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 focus:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition ease-in-out duration-150"
+                                                    className={`mt-3 inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 focus:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${isDark ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'} transition ease-in-out duration-150`}
                                                 >
                                                     Re-upload ID Documents
                                                 </button>
@@ -412,8 +415,8 @@ export default function Upload() {
                                                 </svg>
                                             </div>
                                             <div className="ml-3">
-                                                <h3 className="text-sm font-medium text-white">Why verify your ID?</h3>
-                                                <div className="mt-2 text-sm text-gray-200">
+                                                <h3 className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Why verify your ID?</h3>
+                                                <div className={`mt-2 text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                     <ul className="list-disc list-inside space-y-1">
                                                         <li>Build trust with employers</li>
                                                         <li>Increase your chances of getting hired</li>
@@ -432,7 +435,7 @@ export default function Upload() {
                                     {/* Step 1: Front ID Upload */}
                                     <div className={`${uploadStep !== 'front' && frontImageUrl ? 'opacity-75' : ''}`}>
                                         <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-lg font-semibold text-white">
+                                            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                                 Step 1: Upload Front of ID
                                             </h3>
                                             {frontImageUrl && (
@@ -446,7 +449,7 @@ export default function Upload() {
                                         </div>
                                         
                                         <FileUploadInput
-                                            variant="dark"
+                                            variant={isDark ? 'dark' : 'light'}
                                             name="front_image"
                                             label=""
                                             accept="image/jpeg,image/jpg,image/png,image/webp"
@@ -470,7 +473,7 @@ export default function Upload() {
                                                 <PrimaryButton
                                                     onClick={uploadFrontImage}
                                                     disabled={!frontImage || isUploading}
-                                                    className="w-full sm:w-auto !bg-blue-600 hover:!bg-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-blue-500"
+                                                    className={`w-full sm:w-auto !bg-blue-600 hover:!bg-blue-500 focus:ring-blue-500 focus:ring-offset-2 ${isDark ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'}`}
                                                 >
                                                     Upload Front ID
                                                 </PrimaryButton>
@@ -482,7 +485,7 @@ export default function Upload() {
                                     {frontImageUrl && uploadStep !== 'front' && (
                                         <div className={`${uploadStep !== 'back' && backImageUrl ? 'opacity-75' : ''}`}>
                                             <div className="flex items-center justify-between mb-3">
-                                                <h3 className="text-lg font-semibold text-white">
+                                                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                                     Step 2: Upload Back of ID
                                                 </h3>
                                                 {backImageUrl && (
@@ -496,7 +499,7 @@ export default function Upload() {
                                             </div>
                                             
                                             <FileUploadInput
-                                                variant="dark"
+                                                variant={isDark ? 'dark' : 'light'}
                                                 name="back_image"
                                                 label=""
                                                 accept="image/jpeg,image/jpg,image/png,image/webp"
@@ -517,11 +520,11 @@ export default function Upload() {
                                             
                                             {!backImageUrl && backImage && !isUploading && (
                                                 <div className="mt-4">
-                                                    <PrimaryButton
-                                                        onClick={uploadBackImage}
-                                                        disabled={!backImage || isUploading}
-                                                        className="w-full sm:w-auto !bg-blue-600 hover:!bg-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-blue-500"
-                                                    >
+                                                <PrimaryButton
+                                                    onClick={uploadBackImage}
+                                                    disabled={!backImage || isUploading}
+                                                    className={`w-full sm:w-auto !bg-blue-600 hover:!bg-blue-500 focus:ring-blue-500 focus:ring-offset-2 ${isDark ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'}`}
+                                                >
                                                         Upload Back ID
                                                     </PrimaryButton>
                                                 </div>
@@ -537,32 +540,32 @@ export default function Upload() {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </div>
-                                            <h3 className="text-lg font-semibold text-white text-center mb-2">
+                                            <h3 className={`text-lg font-semibold text-center mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                                 ID Submitted Successfully!
                                             </h3>
-                                            <p className="text-sm text-gray-200 text-center mb-4">
+                                            <p className={`text-sm text-center mb-4 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                 Your ID has been submitted for verification.
                                             </p>
-                                            <p className="text-sm text-gray-200 text-center">
+                                            <p className={`text-sm text-center ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                                 Please wait up to 24 hours for identity verification. We'll notify you once the review is complete.
                                             </p>
                                             
                                             {/* Preview of uploaded images */}
                                             <div className="mt-6 grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <p className="text-xs font-medium text-gray-400 mb-2">Front ID</p>
+                                                    <p className={`text-xs font-medium mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Front ID</p>
                                                     <img 
                                                         src={frontImageUrl} 
                                                         alt="Front ID" 
-                                                        className="w-full rounded-lg border border-gray-700"
+                                                        className={`w-full rounded-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs font-medium text-gray-400 mb-2">Back ID</p>
+                                                    <p className={`text-xs font-medium mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Back ID</p>
                                                     <img 
                                                         src={backImageUrl} 
                                                         alt="Back ID" 
-                                                        className="w-full rounded-lg border border-gray-700"
+                                                        className={`w-full rounded-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
                                                     />
                                                 </div>
                                             </div>
@@ -574,22 +577,22 @@ export default function Upload() {
                             {/* Verified Status - Show uploaded images */}
                             {verificationStatus === 'verified' && frontImageUrl && backImageUrl && (
                                 <div className="mt-6">
-                                    <h3 className="text-lg font-semibold text-white mb-4">Your Verified ID Documents</h3>
+                                    <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Verified ID Documents</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-sm font-medium text-gray-400 mb-2">Front ID</p>
+                                            <p className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Front ID</p>
                                             <img 
                                                 src={frontImageUrl} 
                                                 alt="Front ID" 
-                                                className="w-full rounded-lg border border-gray-700"
+                                                className={`w-full rounded-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
                                             />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-gray-400 mb-2">Back ID</p>
+                                            <p className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Back ID</p>
                                             <img 
                                                 src={backImageUrl} 
                                                 alt="Back ID" 
-                                                className="w-full rounded-lg border border-gray-700"
+                                                className={`w-full rounded-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
                                             />
                                         </div>
                                     </div>
@@ -597,11 +600,11 @@ export default function Upload() {
                             )}
 
                             {/* Help Section */}
-                            <div className="mt-8 border-t border-gray-700 pt-6">
-                                <h3 className="text-sm font-medium text-white mb-4">Acceptable Documents</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-400">
+                            <div className={`mt-8 border-t pt-6 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                                <h3 className={`text-sm font-medium mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Acceptable Documents</h3>
+                                <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                     <div>
-                                        <h4 className="font-medium text-white mb-2">Government-issued IDs:</h4>
+                                        <h4 className={`font-medium mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Government-issued IDs:</h4>
                                         <ul className="list-disc list-inside space-y-1">
                                             <li>Philippine Passport</li>
                                             <li>Driver's License</li>
@@ -613,7 +616,7 @@ export default function Upload() {
                                         </ul>
                                     </div>
                                     <div>
-                                        <h4 className="font-medium text-white mb-2">Requirements:</h4>
+                                        <h4 className={`font-medium mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Requirements:</h4>
                                         <ul className="list-disc list-inside space-y-1">
                                             <li>Clear and readable image</li>
                                             <li>All corners visible</li>
@@ -630,12 +633,6 @@ export default function Upload() {
                     </div>
                 </div>
             </div>
-            <style>{`
-                body {
-                    background: #111827;
-                    color: #e5e7eb;
-                }
-            `}</style>
         </AuthenticatedLayout>
     );
 }

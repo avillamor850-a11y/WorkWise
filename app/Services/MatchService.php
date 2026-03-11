@@ -102,9 +102,28 @@ class MatchService
             }, $skillsReqs));
             $allSkillNames = array_filter($allSkillNames);
 
+            // #region agent log
+            $firstReq = array_values($required)[0] ?? null;
+            $firstPref = array_values($preferred)[0] ?? null;
+            $reqHasExp = $firstReq !== null ? array_key_exists('experience_level', $firstReq) : 'n/a';
+            $prefHasExp = $firstPref !== null ? array_key_exists('experience_level', $firstPref) : 'n/a';
+            @file_put_contents(base_path('debug-8533e5.log'), json_encode(['sessionId'=>'8533e5','hypothesisId'=>'H3','location'=>'MatchService::getJobSkillsForMatching','message'=>'skills_requirements branch','data'=>['job_id'=>$job->id,'branch'=>'skills_requirements','required_count'=>count($required),'preferred_count'=>count($preferred),'first_required_has_experience_level'=>$reqHasExp,'first_preferred_has_experience_level'=>$prefHasExp],'timestamp'=>time()*1000])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
+
+            $defaultLevel = $job->experience_level ?? 'intermediate';
+            $normalize = function (array $items) use ($defaultLevel) {
+                return array_values(array_map(function ($s) use ($defaultLevel) {
+                    return [
+                        'skill' => $s['skill'] ?? $s[0] ?? '',
+                        'experience_level' => $s['experience_level'] ?? $defaultLevel,
+                        'importance' => $s['importance'] ?? 'required',
+                    ];
+                }, $items));
+            };
+
             return [
-                'required' => array_values($required),
-                'preferred' => array_values($preferred),
+                'required' => $normalize($required),
+                'preferred' => $normalize($preferred),
                 'all_skill_names' => array_values($allSkillNames)
             ];
         }
@@ -613,6 +632,9 @@ class MatchService
             throw new \Exception('All Groq models failed to return a valid response.');
 
         } catch (\Exception $e) {
+            // #region agent log
+            @file_put_contents(base_path('debug-8533e5.log'), json_encode(['sessionId'=>'8533e5','hypothesisId'=>'H1','location'=>'MatchService::getJobMatch catch','message'=>'AI Match Error caught','data'=>['job_id'=>$job->id,'gig_worker_id'=>$gigWorker->id,'error'=>$e->getMessage()],'timestamp'=>time()*1000])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
             Log::error('AI Match Error', [
                 'job_id' => $job->id,
                 'gig_worker_id' => $gigWorker->id,

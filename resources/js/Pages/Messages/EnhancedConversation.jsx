@@ -1,36 +1,38 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useTheme } from '@/Contexts/ThemeContext';
 import { getFileIcon, isImageFile, getFileExtension, formatFileSize } from '@/utils/fileIcons.jsx';
 import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 import axios from 'axios';
 
-// Enhanced Loading Components
-const LoadingSpinner = () => (
+// Enhanced Loading Components - theme-aware
+const LoadingSpinner = ({ isDark = true }) => (
     <div className="flex items-center justify-center p-4">
         <div className="relative">
-            <div className="w-6 h-6 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
+            <div className={`w-6 h-6 border-2 border-t-blue-500 rounded-full animate-spin ${isDark ? 'border-gray-600' : 'border-gray-300'}`}></div>
             <div className="absolute inset-0 w-6 h-6 border-2 border-transparent border-t-blue-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
         </div>
-        <span className="ml-2 text-sm text-gray-400">Loading messages...</span>
+        <span className={`ml-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Loading messages...</span>
     </div>
 );
 
-const MessageSkeleton = () => (
+const MessageSkeleton = ({ isDark = true }) => (
     <div className="flex space-x-3 animate-pulse mb-4">
-        <div className="w-8 h-8 bg-gray-700 rounded-full flex-shrink-0"></div>
+        <div className={`w-8 h-8 rounded-full flex-shrink-0 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
         <div className="flex-1">
-            <div className="bg-gray-700 rounded-2xl p-3 max-w-xs">
-                <div className="h-4 bg-gray-600 rounded mb-2"></div>
-                <div className="h-4 bg-gray-600 rounded w-3/4"></div>
+            <div className={`rounded-2xl p-3 max-w-xs ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                <div className={`h-4 rounded mb-2 ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+                <div className={`h-4 rounded w-3/4 ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
             </div>
-            <div className="h-3 bg-gray-700 rounded w-16 mt-1"></div>
+            <div className={`h-3 rounded w-16 mt-1 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
         </div>
     </div>
 );
 
 // Enhanced Avatar Component
-const UserAvatar = ({ user, size = 'w-8 h-8', showOnline = false }) => {
+const UserAvatar = ({ user, size = 'w-8 h-8', showOnline = false, isDark = true }) => {
+    const ringClass = isDark ? 'ring-white' : 'ring-gray-200';
     const sizeClasses = {
         'w-6 h-6': 'w-6 h-6 text-xs',
         'w-8 h-8': 'w-8 h-8 text-xs',
@@ -46,7 +48,7 @@ const UserAvatar = ({ user, size = 'w-8 h-8', showOnline = false }) => {
                 <img
                     src={avatarSrc}
                     alt={`${user.first_name} ${user.last_name}`}
-                    className={`${size} rounded-full object-cover ring-2 ring-white shadow-sm`}
+                    className={`${size} rounded-full object-cover ring-2 ${ringClass} shadow-sm`}
                 />
                 {showOnline && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
@@ -69,7 +71,7 @@ const UserAvatar = ({ user, size = 'w-8 h-8', showOnline = false }) => {
 
     return (
         <div className="relative">
-            <div className={`${size} rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white ${sizeClasses[size]}`}>
+            <div className={`${size} rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-semibold shadow-sm ring-2 ${ringClass} ${sizeClasses[size]}`}>
                 {initials}
             </div>
             {showOnline && (
@@ -80,6 +82,8 @@ const UserAvatar = ({ user, size = 'w-8 h-8', showOnline = false }) => {
 };
 
 export default function EnhancedConversation({ user, messages: initialMessages, currentUser }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [messageList, setMessageList] = useState(initialMessages);
     const [newMessage, setNewMessage] = useState('');
     const [attachment, setAttachment] = useState(null);
@@ -360,14 +364,14 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
             <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-6 group relative`}>
                 <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-end space-x-3 max-w-xs lg:max-w-md xl:max-w-lg`}>
                     <div className="flex-shrink-0">
-                        <UserAvatar user={message.sender} size="w-8 h-8" />
+                        <UserAvatar user={message.sender} size="w-8 h-8" isDark={isDark} />
                     </div>
                     <div className="flex flex-col space-y-1 relative">
                         <div className="relative">
                             {/* Reply button */}
                             <button
                                 onClick={() => handleReplyToMessage(message)}
-                                className={`absolute ${isOwnMessage ? 'left-0 -ml-16' : 'right-0 -mr-16'} top-2 p-1 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity`}
+                                className={`absolute ${isOwnMessage ? 'left-0 -ml-16' : 'right-0 -mr-16'} top-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
                                 title="Reply to message"
                             >
                                 <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,7 +382,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                             {/* Three-dot menu button */}
                             <button
                                 onClick={() => setOpenMenuId(openMenuId === message.id ? null : message.id)}
-                                className={`absolute ${isOwnMessage ? 'left-0 -ml-8' : 'right-0 -mr-8'} top-2 p-1 rounded-full hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity ${openMenuId === message.id ? 'opacity-100' : ''
+                                className={`absolute ${isOwnMessage ? 'left-0 -ml-8' : 'right-0 -mr-8'} top-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200'} ${openMenuId === message.id ? 'opacity-100' : ''
                                     }`}
                                 title="Message options"
                             >
@@ -391,12 +395,12 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                             {openMenuId === message.id && isOwnMessage && (
                                 <div
                                     ref={menuRef}
-                                    className={`absolute ${isOwnMessage ? 'left-0 -ml-8' : 'right-0 -mr-8'} top-8 mt-1 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-1 z-10`}
+                                    className={`absolute ${isOwnMessage ? 'left-0 -ml-8' : 'right-0 -mr-8'} top-8 mt-1 w-48 rounded-lg shadow-lg py-1 z-10 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                                 >
                                     <button
                                         onClick={() => handleDeleteMessage(message.id)}
                                         disabled={isDeleting}
-                                        className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-800 flex items-center space-x-2 disabled:opacity-50"
+                                        className={`w-full text-left px-4 py-2 text-sm flex items-center space-x-2 disabled:opacity-50 ${isDark ? 'text-red-400 hover:bg-gray-800' : 'text-red-600 hover:bg-gray-50'}`}
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -408,16 +412,16 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
 
                             <div className={`message-bubble px-4 py-3 rounded-2xl shadow-sm ${isOwnMessage
                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md'
-                                : 'bg-gray-700 text-white border border-gray-700 rounded-bl-md'
+                                : isDark ? 'bg-gray-700 text-white border border-gray-700 rounded-bl-md' : 'bg-gray-100 text-gray-900 border border-gray-200 rounded-bl-md'
                                 } ${isDeleting ? 'opacity-50' : ''}`}>
                                 {/* Replied message preview */}
                                 {repliedMessage && (
-                                    <div className={`mb-2 pb-2 border-l-2 pl-3 ${isOwnMessage ? 'border-gray-600' : 'border-blue-400/50'
+                                    <div className={`mb-2 pb-2 border-l-2 pl-3 ${isOwnMessage ? (isDark ? 'border-gray-600' : 'border-gray-400') : 'border-blue-400/50'
                                         }`}>
-                                        <div className={`text-xs font-medium ${isOwnMessage ? 'text-blue-100' : 'text-blue-400'}`}>
+                                        <div className={`text-xs font-medium ${isOwnMessage ? 'text-blue-100' : (isDark ? 'text-blue-400' : 'text-blue-700')}`}>
                                             Replying to {repliedMessage.sender.first_name}
                                         </div>
-                                        <div className={`text-xs mt-1 ${isOwnMessage ? 'text-gray-200' : 'text-gray-400'} truncate`}>
+                                        <div className={`text-xs mt-1 ${isOwnMessage ? 'text-gray-200' : (isDark ? 'text-gray-400' : 'text-gray-700')} truncate`}>
                                             {repliedMessage.type === 'file'
                                                 ? `📎 ${repliedMessage.attachment_name}`
                                                 : repliedMessage.message}
@@ -439,7 +443,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                                     className="max-w-xs rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                                                     style={{ maxHeight: '300px', objectFit: 'cover' }}
                                                 />
-                                                <div className="mt-2 text-xs text-gray-400 group-hover:underline">
+                                                <div className={`mt-2 text-xs group-hover:underline ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                     {message.attachment_name}
                                                 </div>
                                             </a>
@@ -450,19 +454,18 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                     ) : (
                                         <div className="space-y-2">
                                             <div className="flex items-center space-x-3">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isOwnMessage ? 'bg-gray-600' : 'bg-gray-700'
-                                                    }`}>
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isOwnMessage ? 'bg-gray-600' : (isDark ? 'bg-gray-700' : 'bg-gray-200')}`}>
                                                     {getFileIcon(message.attachment_name, 'w-5 h-5', isOwnMessage)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="font-medium text-sm truncate">{message.attachment_name}</div>
                                                     <div className="flex items-center space-x-2">
-                                                        <span className={`text-xs ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+                                                        <span className={`text-xs ${isOwnMessage ? 'text-blue-100' : (isDark ? 'text-gray-500' : 'text-gray-600')}`}>
                                                             {getFileExtension(message.attachment_name).toUpperCase()}
                                                         </span>
                                                         <a
                                                             href={`/messages/${message.id}/download`}
-                                                            className={`text-xs ${isOwnMessage ? 'text-blue-200 hover:text-white' : 'text-blue-400 hover:text-blue-300'} hover:underline transition-colors flex items-center`}
+                                                            className={`text-xs hover:underline transition-colors flex items-center ${isOwnMessage ? 'text-blue-200 hover:text-white' : (isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700')}`}
                                                         >
                                                             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -487,18 +490,18 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                                     <a href={`/jobs/${jobData.id}`}
                                                         className={`block p-4 rounded-xl border transition-all hover:-translate-y-0.5 shadow-sm ${isOwnMessage
                                                             ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
-                                                            : 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                                                            : isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-gray-100 border-gray-200 hover:bg-gray-200'
                                                             }`}>
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <span className={`material-icons text-lg ${isOwnMessage ? 'text-blue-200' : 'text-blue-400'}`}>work</span>
-                                                            <div className={`text-xs font-bold uppercase tracking-wider ${isOwnMessage ? 'text-blue-100' : 'text-blue-400'}`}>
+                                                            <span className={`material-icons text-lg ${isOwnMessage ? 'text-blue-200' : (isDark ? 'text-blue-400' : 'text-blue-600')}`}>work</span>
+                                                            <div className={`text-xs font-bold uppercase tracking-wider ${isOwnMessage ? 'text-blue-100' : (isDark ? 'text-blue-400' : 'text-blue-700')}`}>
                                                                 Job Invitation
                                                             </div>
                                                         </div>
-                                                        <h4 className={`text-lg font-bold mb-1 ${isOwnMessage ? 'text-white' : 'text-white'}`}>
+                                                        <h4 className={`text-lg font-bold mb-1 ${isOwnMessage ? 'text-white' : (isDark ? 'text-white' : 'text-gray-900')}`}>
                                                             {jobData.title}
                                                         </h4>
-                                                        <div className={`flex items-center gap-2 text-sm font-medium ${isOwnMessage ? 'text-blue-100' : 'text-emerald-400'}`}>
+                                                        <div className={`flex items-center gap-2 text-sm font-medium ${isOwnMessage ? 'text-blue-100' : (isDark ? 'text-emerald-400' : 'text-emerald-700')}`}>
                                                             <span className="material-icons text-base">payments</span>
                                                             {jobData.budget || 'Negotiable'}
                                                         </div>
@@ -549,13 +552,13 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
 
     return (
         <AuthenticatedLayout
-            pageTheme="dark"
+            pageTheme={isDark ? 'dark' : 'light'}
             header={
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                         <Link
                             href="/messages"
-                            className="flex items-center text-gray-200 hover:text-gray-100 transition-colors"
+                            className={`flex items-center transition-colors ${isDark ? 'text-gray-200 hover:text-gray-100' : 'text-gray-700 hover:text-gray-900'}`}
                         >
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -563,20 +566,20 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                             Back
                         </Link>
                         <div className="flex items-center space-x-4">
-                            <UserAvatar user={user} size="w-12 h-12" />
+                            <UserAvatar user={user} size="w-12 h-12" isDark={isDark} />
                             <div>
-                                <h2 className="font-bold text-xl text-white leading-tight">
+                                <h2 className={`font-bold text-xl leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                     {user.first_name} {user.last_name}
                                 </h2>
                                 <div className="flex items-center space-x-3 mt-1">
                                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${user.user_type === 'employer'
-                                        ? 'bg-blue-500/20 text-blue-400'
-                                        : 'bg-emerald-500/20 text-emerald-400'
+                                        ? (isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-800')
+                                        : (isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-800')
                                         }`}>
                                         {user.user_type === 'employer' ? 'Employer' : 'Gig Worker'}
                                     </span>
                                     {user.professional_title && (
-                                        <span className="text-sm text-gray-400">• {user.professional_title}</span>
+                                        <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>• {user.professional_title}</span>
                                     )}
                                 </div>
                             </div>
@@ -586,7 +589,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                         {currentUser.user_type === 'employer' && (
                             <button
                                 onClick={() => setShowPriceModal(true)}
-                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-green-500 transition-all shadow-sm"
+                                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-sm ${isDark ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'}`}
                                 title="Confirm Negotiated Price"
                             >
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -598,7 +601,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                         <button
                             onClick={fetchNewMessages}
                             disabled={loading}
-                            className="inline-flex items-center px-3 py-2 border border-gray-600 rounded-lg text-sm font-medium text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50 border ${isDark ? 'border-gray-600 text-gray-200 bg-gray-800 hover:bg-gray-700' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}
                             title="Refresh messages"
                         >
                             <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -614,21 +617,21 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
             {/* Price Confirmation Modal */}
             {showPriceModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-gray-800 rounded-2xl shadow-xl border border-gray-700 w-full max-w-md overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-white">Confirm Negotiated Price</h3>
-                            <button onClick={() => setShowPriceModal(false)} className="text-gray-500 hover:text-gray-200">
+                    <div className={`rounded-2xl shadow-xl w-full max-w-md overflow-hidden border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                        <div className={`px-6 py-4 border-b flex justify-between items-center ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                            <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Confirm Negotiated Price</h3>
+                            <button onClick={() => setShowPriceModal(false)} className={isDark ? 'text-gray-500 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
                         <div className="p-6">
-                            <p className="text-sm text-gray-400 mb-4">
+                            <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Enter the final price you have negotiated with {user.first_name}. This will pre-fill the contract creation form.
                             </p>
                             <div>
-                                <label className="block text-sm font-medium text-gray-200 mb-1">Final Agreed Price (₱)</label>
+                                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Final Agreed Price (₱)</label>
                                 <input
                                     type="number"
                                     min="0"
@@ -636,15 +639,15 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                     value={negotiatedPrice}
                                     onChange={(e) => setNegotiatedPrice(e.target.value)}
                                     placeholder="e.g. 5000"
-                                    className="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 ${isDark ? 'border-gray-600 bg-gray-800 text-white placeholder-gray-400' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'}`}
                                     autoFocus
                                 />
                             </div>
                         </div>
-                        <div className="px-6 py-4 bg-gray-800 flex justify-end gap-3 border-t border-gray-700">
+                        <div className={`px-6 py-4 flex justify-end gap-3 border-t ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                             <button
                                 onClick={() => setShowPriceModal(false)}
-                                className="px-4 py-2 text-sm font-medium text-gray-200 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 transition"
+                                className={`px-4 py-2 text-sm font-medium border rounded-lg transition ${isDark ? 'text-gray-200 bg-gray-800 border-gray-600 hover:bg-gray-700' : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'}`}
                             >
                                 Cancel
                             </button>
@@ -664,36 +667,36 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                 </div>
             )}
 
-            <div className="min-h-screen bg-gray-900 relative">
+            <div className={`min-h-screen relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-1/4 -left-32 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
                     <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
                 </div>
                 <div className="py-8 relative z-20">
                     <div className="max-w-5xl mx-auto sm:px-6 lg:px-8">
-                        <div className="bg-gray-800 overflow-hidden border border-gray-700 sm:rounded-2xl">
+                        <div className={`overflow-hidden sm:rounded-2xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                             {/* Messages Area */}
                             <div
                                 ref={messagesContainerRef}
-                                className="messages-container h-[32rem] overflow-y-auto p-6 bg-gray-800"
+                                className={`messages-container h-[32rem] overflow-y-auto p-6 ${isDark ? 'bg-gray-800' : 'bg-white'}`}
                             >
                                 {loading && messageList.length === 0 ? (
                                     <div className="space-y-4">
-                                        <LoadingSpinner />
+                                        <LoadingSpinner isDark={isDark} />
                                         {[...Array(3)].map((_, i) => (
-                                            <MessageSkeleton key={i} />
+                                            <MessageSkeleton key={i} isDark={isDark} />
                                         ))}
                                     </div>
                                 ) : messageList.length === 0 ? (
                                     <div className="flex items-center justify-center h-full">
                                         <div className="text-center">
-                                            <div className="w-20 h-20 mx-auto mb-6 bg-gray-700 rounded-full flex items-center justify-center">
+                                            <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center ${isDark ? 'bg-gray-700' : 'bg-gray-100'}`}>
                                                 <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                                 </svg>
                                             </div>
-                                            <h3 className="text-lg font-semibold text-white mb-2">No messages yet</h3>
-                                            <p className="text-gray-400 max-w-sm mx-auto">Start the conversation by sending a message below.</p>
+                                            <h3 className={`text-lg font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>No messages yet</h3>
+                                            <p className={`max-w-sm mx-auto ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Start the conversation by sending a message below.</p>
                                         </div>
                                     </div>
                                 ) : (
@@ -705,7 +708,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                         </div>
 
                         {/* Enhanced Message Input */}
-                        <div className="p-6 bg-gray-800 border-t border-gray-700">
+                        <div className={`p-6 border-t ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 {/* Reply preview */}
                                 {replyingTo && (
@@ -716,11 +719,11 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                                     <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                                                     </svg>
-                                                    <span className="text-sm font-medium text-blue-300">
+                                                    <span className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
                                                         Replying to {replyingTo.sender.first_name} {replyingTo.sender.last_name}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-blue-200/90 truncate">
+                                                <p className={`text-sm truncate ${isDark ? 'text-blue-200/90' : 'text-blue-800/90'}`}>
                                                     {replyingTo.type === 'file'
                                                         ? `📎 ${replyingTo.attachment_name}`
                                                         : replyingTo.message}
@@ -729,7 +732,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                             <button
                                                 type="button"
                                                 onClick={cancelReply}
-                                                className="text-blue-400 hover:text-blue-300 transition-colors p-1 rounded-lg hover:bg-gray-700"
+                                                className={`transition-colors p-1 rounded-lg ${isDark ? 'text-blue-400 hover:text-blue-300 hover:bg-gray-700' : 'text-blue-600 hover:text-blue-700 hover:bg-gray-100'}`}
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -741,19 +744,19 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
 
                                 {/* File attachment preview */}
                                 {attachment && (
-                                    <div className="file-preview bg-gray-800 border border-gray-700 rounded-xl p-4">
+                                    <div className={`file-preview rounded-xl p-4 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                                         <div className="flex items-center space-x-3">
                                             <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
                                                 {getFileIcon(attachment.name, 'w-5 h-5', false)}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-white truncate">{attachment.name}</p>
-                                                <p className="text-xs text-gray-500">{formatFileSize(attachment.size)}</p>
+                                                <p className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{attachment.name}</p>
+                                                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>{formatFileSize(attachment.size)}</p>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={removeAttachment}
-                                                className="text-gray-500 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-gray-700"
+                                                className={`transition-colors p-1 rounded-lg ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-gray-700' : 'text-gray-500 hover:text-red-600 hover:bg-gray-100'}`}
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -775,7 +778,7 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="flex-shrink-0 p-3 text-gray-500 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition-colors"
+                                        className={`flex-shrink-0 p-3 rounded-lg transition-colors ${isDark ? 'text-gray-500 hover:text-blue-400 hover:bg-gray-700' : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'}`}
                                         title="Attach file"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -794,13 +797,13 @@ export default function EnhancedConversation({ user, messages: initialMessages, 
                                             }}
                                             placeholder="Type your message..."
                                             rows="2"
-                                            className="w-full px-4 py-3 border border-gray-600 rounded-xl bg-gray-800 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none"
+                                            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none ${isDark ? 'border-gray-600 bg-gray-800 text-white placeholder-gray-400' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'}`}
                                         />
                                     </div>
                                     <button
                                         type="submit"
                                         disabled={sending || (!newMessage.trim() && !attachment)}
-                                        className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                                        className={`flex-shrink-0 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md ${isDark ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'}`}
                                     >
                                         {sending ? (
                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import SkillExperienceSelector from '@/Components/SkillExperienceSelector';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useTheme } from '@/Contexts/ThemeContext';
 
 export default function JobEdit({ job }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [skillInput, setSkillInput] = useState('');
 
     // Helper function to safely parse required_skills
@@ -127,13 +130,13 @@ export default function JobEdit({ job }) {
 
     return (
         <AuthenticatedLayout
-            pageTheme="dark"
+            pageTheme={isDark ? 'dark' : 'light'}
             header={
                 <div>
-                    <h2 className="font-semibold text-xl text-gray-100 leading-tight tracking-tight">
+                    <h2 className={`font-semibold text-xl leading-tight tracking-tight ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                         Edit Job: {job.title}
                     </h2>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         Update your job posting details
                     </p>
                 </div>
@@ -142,17 +145,17 @@ export default function JobEdit({ job }) {
             <Head title={`Edit Job: ${job.title}`} />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-            <div className="relative min-h-screen py-12 bg-gray-900 overflow-hidden">
+            <div className={`relative min-h-screen py-12 overflow-hidden ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
                 <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-blue-700/10 rounded-full blur-[100px] pointer-events-none" />
 
                 <div className="relative z-20 max-w-4xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-gray-800 backdrop-blur-sm overflow-hidden border border-gray-700 rounded-xl">
+                    <div className={`backdrop-blur-sm overflow-hidden border rounded-xl ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                         <div className="p-8">
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 {/* Job Title */}
                                 <div>
-                                    <label htmlFor="title" className="block text-sm font-medium text-gray-200 mb-2">
+                                    <label htmlFor="title" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Job Title *
                                     </label>
                                     <input
@@ -160,7 +163,7 @@ export default function JobEdit({ job }) {
                                         id="title"
                                         value={data.title}
                                         onChange={(e) => setData('title', e.target.value)}
-                                        className="w-full border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                        className={isDark ? 'w-full border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                         placeholder="e.g., Build a React.js E-commerce Website"
                                         required
                                     />
@@ -172,7 +175,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Job Description */}
                                 <div>
-                                    <label htmlFor="description" className="block text-sm font-medium text-gray-200 mb-2">
+                                    <label htmlFor="description" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Job Description *
                                     </label>
                                     <textarea
@@ -180,7 +183,7 @@ export default function JobEdit({ job }) {
                                         value={data.description}
                                         onChange={(e) => setData('description', e.target.value)}
                                         rows={6}
-                                        className="w-full border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none"
+                                        className={isDark ? 'w-full border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none' : 'w-full border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none'}
                                         placeholder="Describe your project in detail. Include specific requirements, deliverables, and any important information gig workers should know..."
                                         required
                                     />
@@ -192,7 +195,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Required Skills */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-200 mb-2">
+                                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Required Skills *
                                     </label>
                                     <div className="flex items-center space-x-2 mb-3">
@@ -201,7 +204,7 @@ export default function JobEdit({ job }) {
                                             value={skillInput}
                                             onChange={(e) => setSkillInput(e.target.value)}
                                             onKeyDown={handleSkillKeyPress}
-                                            className="flex-1 border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                            className={isDark ? 'flex-1 border border-gray-600 rounded-xl bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'flex-1 border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                             placeholder="Type a skill and press Enter"
                                         />
                                         <button
@@ -216,13 +219,13 @@ export default function JobEdit({ job }) {
                                         {data.required_skills.map((skill, index) => (
                                             <span
                                                 key={index}
-                                                className="inline-flex items-center px-3 py-1 rounded-xl text-sm font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                                                className={`inline-flex items-center px-3 py-1 rounded-xl text-sm font-medium border ${isDark ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-blue-100 text-blue-800 border-blue-200'}`}
                                             >
                                                 {skill}
                                                 <button
                                                     type="button"
                                                     onClick={() => removeSkill(skill)}
-                                                    className="ml-2 text-blue-400 hover:text-blue-300"
+                                                    className={isDark ? 'ml-2 text-blue-400 hover:text-blue-300' : 'ml-2 text-blue-600 hover:text-blue-700'}
                                                 >
                                                     ×
                                                 </button>
@@ -237,45 +240,43 @@ export default function JobEdit({ job }) {
 
                                 {/* Project Category */}
                                 <div>
-                                    <label htmlFor="project_category" className="block text-sm font-medium text-gray-200 mb-2">
+                                    <label htmlFor="project_category" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Project Category *
                                     </label>
                                     <select
                                         id="project_category"
                                         value={data.project_category}
                                         onChange={(e) => setData('project_category', e.target.value)}
-                                        className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
-                                        style={{ backgroundColor: '#0d1014' }}
+                                        className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                     >
-                                        <option value="" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Select a category</option>
-                                        <option value="Web Development" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Web Development</option>
-                                        <option value="Mobile App Development" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Mobile App Development</option>
-                                        <option value="UI/UX Design" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>UI/UX Design</option>
-                                        <option value="Graphic Design" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Graphic Design</option>
-                                        <option value="Content Writing" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Content Writing</option>
-                                        <option value="Video Editing" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Video Editing</option>
-                                        <option value="Data Analysis" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Data Analysis</option>
-                                        <option value="Virtual Assistant" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Virtual Assistant</option>
+                                        <option value="">Select a category</option>
+                                        <option value="Web Development">Web Development</option>
+                                        <option value="Mobile App Development">Mobile App Development</option>
+                                        <option value="UI/UX Design">UI/UX Design</option>
+                                        <option value="Graphic Design">Graphic Design</option>
+                                        <option value="Content Writing">Content Writing</option>
+                                        <option value="Video Editing">Video Editing</option>
+                                        <option value="Data Analysis">Data Analysis</option>
+                                        <option value="Virtual Assistant">Virtual Assistant</option>
                                     </select>
                                     {errors.project_category && <p className="mt-2 text-sm text-red-400">{errors.project_category}</p>}
                                 </div>
 
                                 {/* Job Complexity */}
                                 <div>
-                                    <label htmlFor="job_complexity" className="block text-sm font-medium text-gray-200 mb-2">
+                                    <label htmlFor="job_complexity" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Job Complexity *
                                     </label>
                                     <select
                                         id="job_complexity"
                                         value={data.job_complexity}
                                         onChange={(e) => setData('job_complexity', e.target.value)}
-                                        className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
-                                        style={{ backgroundColor: '#0d1014' }}
+                                        className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                     >
-                                        <option value="" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Select complexity</option>
-                                        <option value="simple" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Simple (e.g., basic website)</option>
-                                        <option value="moderate" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Moderate (e.g., medium-sized app)</option>
-                                        <option value="complex" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Complex (e.g., large-scale enterprise solution)</option>
+                                        <option value="">Select complexity</option>
+                                        <option value="simple">Simple (e.g., basic website)</option>
+                                        <option value="moderate">Moderate (e.g., medium-sized app)</option>
+                                        <option value="complex">Complex (e.g., large-scale enterprise solution)</option>
                                     </select>
                                     {errors.job_complexity && <p className="mt-2 text-sm text-red-400">{errors.job_complexity}</p>}
                                 </div>
@@ -288,7 +289,7 @@ export default function JobEdit({ job }) {
                                     onChange={(skills) => setData('skills_requirements', skills)}
                                     type="required"
                                     maxSkills={10}
-                                    variant="dark"
+                                    variant={isDark ? 'dark' : 'light'}
                                 />
 
                                 {/* Nice to Have Skills */}
@@ -299,12 +300,12 @@ export default function JobEdit({ job }) {
                                     onChange={(skills) => setData('nice_to_have_skills', skills)}
                                     type="nice_to_have"
                                     maxSkills={5}
-                                    variant="dark"
+                                    variant={isDark ? 'dark' : 'light'}
                                 />
 
                                 {/* Budget */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-200 mb-4">
+                                    <label className={`block text-sm font-medium mb-4 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Budget *
                                     </label>
                                     <div className="space-y-4">
@@ -318,7 +319,7 @@ export default function JobEdit({ job }) {
                                                     onChange={(e) => setData('budget_type', e.target.value)}
                                                     className="text-blue-500 focus:ring-blue-500/50"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-gray-200">Fixed Price</span>
+                                                <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Fixed Price</span>
                                             </label>
                                             <label className="flex items-center">
                                                 <input
@@ -329,13 +330,13 @@ export default function JobEdit({ job }) {
                                                     onChange={(e) => setData('budget_type', e.target.value)}
                                                     className="text-blue-500 focus:ring-blue-500/50"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-gray-200">Hourly Rate</span>
+                                                <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Hourly Rate</span>
                                             </label>
                                         </div>
                                         
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm text-gray-400 mb-1">
+                                                <label className={`block text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                     {data.budget_type === 'fixed' ? 'Minimum Budget' : 'Minimum Rate/Hour'}
                                                 </label>
                                                 <div className="relative">
@@ -344,7 +345,7 @@ export default function JobEdit({ job }) {
                                                         type="number"
                                                         value={data.budget_min}
                                                         onChange={(e) => setData('budget_min', e.target.value)}
-                                                        className="w-full pl-8 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                                        className={isDark ? 'w-full pl-8 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full pl-8 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                                         placeholder="0"
                                                         min="0"
                                                         step="0.01"
@@ -353,7 +354,7 @@ export default function JobEdit({ job }) {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="block text-sm text-gray-400 mb-1">
+                                                <label className={`block text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                     {data.budget_type === 'fixed' ? 'Maximum Budget' : 'Maximum Rate/Hour'}
                                                 </label>
                                                 <div className="relative">
@@ -362,7 +363,7 @@ export default function JobEdit({ job }) {
                                                         type="number"
                                                         value={data.budget_max}
                                                         onChange={(e) => setData('budget_max', e.target.value)}
-                                                        className="w-full pl-8 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                                        className={isDark ? 'w-full pl-8 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full pl-8 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                                         placeholder="0"
                                                         min="0"
                                                         step="0.01"
@@ -379,26 +380,25 @@ export default function JobEdit({ job }) {
                                 {/* Experience Level & Duration */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label htmlFor="experience_level" className="block text-sm font-medium text-gray-200 mb-2">
+                                        <label htmlFor="experience_level" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                             Experience Level *
                                         </label>
                                         <select
                                             id="experience_level"
                                             value={data.experience_level}
                                             onChange={(e) => setData('experience_level', e.target.value)}
-                                            className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
-                                            style={{ backgroundColor: '#0d1014' }}
+                                            className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                             required
                                         >
-                                            <option value="beginner" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Beginner (0-1 years)</option>
-                                            <option value="intermediate" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Intermediate (2-5 years)</option>
-                                            <option value="expert" style={{ backgroundColor: '#0d1014', color: '#e5e7eb' }}>Expert (5+ years)</option>
+                                            <option value="beginner">Beginner (0-1 years)</option>
+                                            <option value="intermediate">Intermediate (2-5 years)</option>
+                                            <option value="expert">Expert (5+ years)</option>
                                         </select>
                                         {errors.experience_level && <p className="mt-2 text-sm text-red-400">{errors.experience_level}</p>}
                                     </div>
 
                                     <div>
-                                        <label htmlFor="estimated_duration_days" className="block text-sm font-medium text-gray-200 mb-2">
+                                        <label htmlFor="estimated_duration_days" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                             Estimated Duration (Days) *
                                         </label>
                                         <input
@@ -406,7 +406,7 @@ export default function JobEdit({ job }) {
                                             id="estimated_duration_days"
                                             value={data.estimated_duration_days}
                                             onChange={(e) => setData('estimated_duration_days', e.target.value)}
-                                            className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                            className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                             placeholder="e.g., 30"
                                             min="1"
                                             required
@@ -417,7 +417,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Location & Remote */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-200 mb-4">
+                                    <label className={`block text-sm font-medium mb-4 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Work Location
                                     </label>
                                     <div className="space-y-4">
@@ -429,12 +429,12 @@ export default function JobEdit({ job }) {
                                                     onChange={(e) => setData('is_remote', e.target.checked)}
                                                     className="text-blue-500 focus:ring-blue-500/50 rounded"
                                                 />
-                                                <span className="ml-2 text-sm font-medium text-gray-200">Remote Work</span>
+                                                <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Remote Work</span>
                                             </label>
                                         </div>
                                         
                                         <div>
-                                            <label htmlFor="location" className="block text-sm text-gray-400 mb-1">
+                                            <label htmlFor="location" className={`block text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                 Location (Optional)
                                             </label>
                                             <input
@@ -442,7 +442,7 @@ export default function JobEdit({ job }) {
                                                 id="location"
                                                 value={data.location}
                                                 onChange={(e) => setData('location', e.target.value)}
-                                                className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                                                className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                                 placeholder="e.g., City, Province or leave empty for any location"
                                             />
                                             <p className="mt-1 text-sm text-gray-500">
@@ -455,7 +455,7 @@ export default function JobEdit({ job }) {
 
                                 {/* Deadline */}
                                 <div>
-                                    <label htmlFor="deadline" className="block text-sm font-medium text-gray-200 mb-2">
+                                    <label htmlFor="deadline" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                                         Project Deadline (Optional)
                                     </label>
                                     <input
@@ -463,7 +463,7 @@ export default function JobEdit({ job }) {
                                         id="deadline"
                                         value={data.deadline}
                                         onChange={(e) => setData('deadline', e.target.value)}
-                                        className="w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 [color-scheme:dark]"
+                                        className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 [color-scheme:dark]' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
                                         min={new Date().toISOString().split('T')[0]}
                                     />
                                     <p className="mt-1 text-sm text-gray-500">
@@ -473,17 +473,17 @@ export default function JobEdit({ job }) {
                                 </div>
 
                                 {/* Submit Buttons */}
-                                <div className="flex items-center justify-between pt-6 border-t border-gray-700">
+                                <div className={`flex items-center justify-between pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                                     <div className="flex space-x-3">
                                         <Link
                                             href={`/jobs/${job.id}`}
-                                            className="inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-xl text-gray-200 bg-gray-700 hover:bg-gray-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className={isDark ? 'inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-xl text-gray-200 bg-gray-700 hover:bg-gray-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50' : 'inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50'}
                                         >
                                             Cancel
                                         </Link>
                                         <Link
                                             href="/jobs"
-                                            className="inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-xl text-gray-200 bg-gray-700 hover:bg-gray-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className={isDark ? 'inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-xl text-gray-200 bg-gray-700 hover:bg-gray-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50' : 'inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50'}
                                         >
                                             Back to Jobs
                                         </Link>
@@ -508,9 +508,9 @@ export default function JobEdit({ job }) {
                     </div>
 
                     {/* Job Stats */}
-                    <div className="mt-8 bg-gray-800 border border-gray-700 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-100 mb-4">Job Statistics</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-200">
+                    <div className={`mt-8 border rounded-xl p-6 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                        <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Job Statistics</h3>
+                        <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                             <div>
                                 <div className="font-medium">Total Proposals</div>
                                 <div className="text-2xl font-bold text-blue-400">{job.bids_count || 0}</div>
@@ -529,14 +529,6 @@ export default function JobEdit({ job }) {
                     </div>
                 </div>
             </div>
-
-            <style>{`
-                body {
-                    background: #111827;
-                    color: #e5e7eb;
-                    font-family: 'Inter', sans-serif;
-                }
-            `}</style>
         </AuthenticatedLayout>
     );
 }

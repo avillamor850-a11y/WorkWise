@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 
 // ─── Step 1: Welcome ─────────────────────────────────────────────────────────
-function Step1Welcome({ onNext, onSkip }) {
+function Step1Welcome({ onNext, onSkip, darkMode = false }) {
     return (
         <main className="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
             {/* Left Panel */}
@@ -41,15 +41,15 @@ function Step1Welcome({ onNext, onSkip }) {
             </div>
 
             {/* Right Panel */}
-            <div className="w-full lg:w-7/12 xl:w-1/2 bg-white flex flex-col overflow-y-auto">
+            <div className={`w-full lg:w-7/12 xl:w-1/2 flex flex-col overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
                 <div className="flex-1 flex flex-col justify-center px-6 py-10 sm:px-12 xl:px-24 max-w-5xl mx-auto w-full">
                     <div className="mb-10">
-                        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+                        <h1 className={`text-3xl sm:text-4xl font-bold mb-3 tracking-tight ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                             Welcome to WorkWise! <span className="inline-block animate-bounce">👋</span>
                         </h1>
-                        <p className="text-lg text-gray-600 leading-relaxed max-w-2xl">
+                        <p className={`text-lg leading-relaxed max-w-2xl ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             Let's set up your professional profile. Completing these steps will boost your visibility by{' '}
-                            <span className="text-blue-600 font-semibold">3x</span> to potential employers.
+                            <span className="text-blue-400 font-semibold">3x</span> to potential employers.
                         </p>
                     </div>
 
@@ -59,31 +59,31 @@ function Step1Welcome({ onNext, onSkip }) {
                             { num: 2, icon: 'design_services', title: 'Skills', desc: 'Expertise areas and skill levels.' },
                             { num: 3, icon: 'folder_open', title: 'Portfolio', desc: 'Showcase your best work samples.' },
                         ].map((item) => (
-                            <div key={item.num} className="group relative bg-white rounded-xl p-5 border-2 border-blue-600/10 hover:border-blue-600/40 shadow-sm hover:shadow-md transition-all cursor-default">
-                                <div className="absolute top-4 right-4 font-bold text-5xl text-gray-200 opacity-20 select-none">{item.num}</div>
-                                <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <div key={item.num} className={`group relative rounded-xl p-5 border-2 shadow-sm hover:shadow-md transition-all cursor-default ${darkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500/50' : 'bg-white border-blue-600/10 hover:border-blue-600/40'}`}>
+                                <div className={`absolute top-4 right-4 font-bold text-5xl opacity-20 select-none ${darkMode ? 'text-gray-500' : 'text-gray-200'}`}>{item.num}</div>
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${darkMode ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
                                     <span className="material-icons">{item.icon}</span>
                                 </div>
-                                <h3 className="font-bold text-gray-900 text-base mb-1">{item.title}</h3>
-                                <p className="text-xs text-gray-500 leading-snug">{item.desc}</p>
+                                <h3 className={`font-bold text-base mb-1 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{item.title}</h3>
+                                <p className={`text-xs leading-snug ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{item.desc}</p>
                             </div>
                         ))}
                     </div>
 
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 items-start">
-                        <span className="material-icons text-blue-600 text-xl mt-0.5">info</span>
+                    <div className={`rounded-lg p-4 flex gap-3 items-start border ${darkMode ? 'bg-blue-900/50 border-blue-700' : 'bg-blue-50 border-blue-100'}`}>
+                        <span className={`material-icons text-xl mt-0.5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>info</span>
                         <div>
-                            <p className="text-sm text-gray-700 font-medium">Identity Verification</p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className={`text-sm font-medium ${darkMode ? 'text-blue-200' : 'text-gray-700'}`}>Identity Verification</p>
+                            <p className={`text-xs mt-1 ${darkMode ? 'text-blue-300' : 'text-gray-500'}`}>
                                 You can complete ID verification later from your dashboard. No credit card required.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="border-t border-gray-100 p-6 sm:px-12 xl:px-24 bg-white sticky bottom-0">
+                <div className={`border-t p-6 sm:px-12 xl:px-24 sticky bottom-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'border-gray-100 bg-white'}`}>
                     <div className="max-w-5xl mx-auto flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
-                        <button onClick={onSkip} className="text-gray-500 hover:text-gray-800 font-medium text-sm py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors">
+                        <button onClick={onSkip} className={`font-medium text-sm py-2 px-4 rounded-lg transition-colors ${darkMode ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>
                             Skip setup for now
                         </button>
                         <button onClick={onNext} className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 text-white font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
@@ -98,7 +98,7 @@ function Step1Welcome({ onNext, onSkip }) {
 }
 
 // ─── Step 2: Professional Info ────────────────────────────────────────────────
-function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDraft, saving }) {
+function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDraft, saving, darkMode = false }) {
     const fileRef = useRef(null);
     const [preview, setPreview] = useState(data.profile_picture_preview || null);
     const [charCount, setCharCount] = useState((data.bio || '').length);
@@ -110,32 +110,38 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
         setPreview(URL.createObjectURL(file));
     };
 
+    const inputClass = darkMode
+        ? 'block w-full rounded-lg border border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 shadow-sm'
+        : 'block w-full rounded-lg border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 shadow-sm border';
+    const labelClass = darkMode ? 'block text-sm font-semibold text-gray-300' : 'block text-sm font-semibold text-gray-700';
+    const hintClass = darkMode ? 'text-xs text-gray-400' : 'text-xs text-gray-500';
+
     return (
         <main className="flex-grow container mx-auto px-4 py-10 max-w-5xl">
             <div className="mb-10 max-w-3xl mx-auto">
                 <div className="flex justify-between items-end mb-3">
-                    <h1 className="text-2xl font-bold text-gray-900">Professional Info</h1>
+                    <h1 className={`text-2xl font-bold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>Professional Info</h1>
                     <div className="text-right">
-                        <span className="text-sm font-medium text-gray-500 block">Step 2 of 5</span>
-                        <span className="text-xs font-semibold text-blue-600">40%</span>
+                        <span className={`text-sm font-medium block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Step 2 of 5</span>
+                        <span className={`text-xs font-semibold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>40%</span>
                     </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className={`w-full rounded-full h-2.5 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                     <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-500 shadow-lg shadow-blue-500/30" style={{ width: '40%' }} />
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+            <div className={`rounded-2xl shadow-xl overflow-hidden border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                 <div className="p-8 md:p-10">
-                    <h2 className="text-2xl font-bold mb-2 text-gray-900">Tell us about yourself</h2>
-                    <p className="text-gray-500 mb-8">Fill in your professional details to help clients find you.</p>
+                    <h2 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>Tell us about yourself</h2>
+                    <p className={`mb-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Fill in your professional details to help clients find you.</p>
 
                     <div className="flex flex-col lg:flex-row gap-10">
                         {/* Left form */}
                         <div className="flex-1 space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-semibold text-gray-700" htmlFor="professional_title">
+                                    <label className={labelClass} htmlFor="professional_title">
                                         Professional Title <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
@@ -145,7 +151,7 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                                             value={data.professional_title}
                                             onChange={e => setData('professional_title', e.target.value)}
                                             placeholder="e.g. Senior Graphic Designer"
-                                            className="block w-full rounded-lg border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 shadow-sm border"
+                                            className={inputClass}
                                         />
                                         {data.professional_title && (
                                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -153,17 +159,17 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                                             </div>
                                         )}
                                     </div>
-                                    <p className="text-xs text-gray-500">Describe your primary role.</p>
+                                    <p className={hintClass}>Describe your primary role.</p>
                                     {errors.professional_title && <p className="text-xs text-red-500">{errors.professional_title}</p>}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-semibold text-gray-700" htmlFor="hourly_rate">
+                                    <label className={labelClass} htmlFor="hourly_rate">
                                         Hourly Rate (PHP)
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <span className="text-gray-500 sm:text-sm">₱</span>
+                                            <span className={`sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>₱</span>
                                         </div>
                                         <input
                                             id="hourly_rate"
@@ -172,20 +178,20 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                                             value={data.hourly_rate}
                                             onChange={e => setData('hourly_rate', e.target.value)}
                                             placeholder="0.00"
-                                            className="block w-full rounded-lg border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm pl-8 p-3 shadow-sm border"
+                                            className={inputClass + ' pl-8'}
                                         />
                                     </div>
-                                    <p className="text-xs text-gray-500">Suggested range: ₱500 – ₱2,500 based on experience.</p>
+                                    <p className={hintClass}>Suggested range: ₱500 – ₱2,500 based on experience.</p>
                                     {errors.hourly_rate && <p className="text-xs text-red-500">{errors.hourly_rate}</p>}
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <div className="flex justify-between">
-                                    <label className="block text-sm font-semibold text-gray-700" htmlFor="bio">
+                                    <label className={labelClass} htmlFor="bio">
                                         Professional Bio <span className="text-red-500">*</span>
                                     </label>
-                                    <span className="text-xs text-gray-500">Markdown supported</span>
+                                    <span className={hintClass}>Markdown supported</span>
                                 </div>
                                 <div className="relative">
                                     <textarea
@@ -194,35 +200,37 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                                         value={data.bio}
                                         onChange={e => { setData('bio', e.target.value); setCharCount(e.target.value.length); }}
                                         placeholder="Tell clients about your experience..."
-                                        className="block w-full rounded-lg border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-4 shadow-sm border min-h-[220px]"
+                                        className={darkMode
+                                            ? 'block w-full rounded-lg border border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-4 shadow-sm min-h-[220px]'
+                                            : 'block w-full rounded-lg border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-4 shadow-sm border min-h-[220px]'}
                                     />
                                 </div>
-                                <div className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded-lg">
-                                    <div className={`flex items-center font-medium ${charCount >= 100 ? 'text-green-600' : 'text-gray-400'}`}>
+                                <div className={`flex justify-between items-center text-xs p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-50'}`}>
+                                    <div className={`flex items-center font-medium ${charCount >= 100 ? (darkMode ? 'text-green-400' : 'text-green-600') : (darkMode ? 'text-gray-400' : 'text-gray-400')}`}>
                                         {charCount >= 100 && <span className="material-icons text-sm mr-1">check_circle</span>}
                                         {charCount >= 100 ? `Great length! (${charCount} chars)` : `${charCount} chars (min 100)`}
                                     </div>
-                                    <span className="text-gray-400">Max: 1000</span>
+                                    <span className={darkMode ? 'text-gray-500' : 'text-gray-400'}>Max: 1000</span>
                                 </div>
                                 {errors.bio && <p className="text-xs text-red-500">{errors.bio}</p>}
                             </div>
                         </div>
 
                         {/* Right: Profile Photo */}
-                        <div className="w-full lg:w-72 flex-shrink-0 flex flex-col items-center justify-start pt-2 border-t lg:border-t-0 lg:border-l border-gray-200 lg:pl-10 mt-8 lg:mt-0">
-                            <h3 className="text-sm font-semibold text-gray-700 mb-6 self-start lg:self-center">Profile Photo (Optional)</h3>
+                        <div className={`w-full lg:w-72 flex-shrink-0 flex flex-col items-center justify-start pt-2 border-t lg:border-t-0 lg:border-l lg:pl-10 mt-8 lg:mt-0 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                            <h3 className={`text-sm font-semibold mb-6 self-start lg:self-center ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Profile Photo (Optional)</h3>
                             <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
-                                <div className="w-48 h-48 rounded-full border-4 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-all overflow-hidden relative">
+                                <div className={`w-48 h-48 rounded-full border-4 border-dashed flex items-center justify-center transition-all overflow-hidden relative ${darkMode ? 'border-gray-600 bg-gray-700 group-hover:bg-gray-600' : 'border-gray-300 bg-gray-50 group-hover:bg-gray-100'}`}>
                                     {preview ? (
                                         <img src={preview} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="text-center p-4">
-                                            <span className="material-icons text-5xl text-gray-300 mb-2 group-hover:text-blue-500 transition-colors block">account_circle</span>
-                                            <p className="text-xs text-gray-400 font-medium">No photo uploaded</p>
+                                            <span className={`material-icons text-5xl mb-2 group-hover:text-blue-500 transition-colors block ${darkMode ? 'text-gray-500' : 'text-gray-300'}`}>account_circle</span>
+                                            <p className={`text-xs font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>No photo uploaded</p>
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <span className="bg-white text-gray-800 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">Upload</span>
+                                        <span className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-800'}`}>Upload</span>
                                     </div>
                                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                                 </div>
@@ -231,13 +239,13 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                                 </div>
                             </div>
                             <div className="mt-6 text-center">
-                                <button type="button" onClick={() => fileRef.current?.click()} className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center justify-center gap-1 mb-2">
+                                <button type="button" onClick={() => fileRef.current?.click()} className="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center justify-center gap-1 mb-2">
                                     <span className="material-icons text-base">file_upload</span>
                                     Choose File
                                 </button>
-                                <p className="text-xs text-gray-500 max-w-[200px] mx-auto leading-relaxed">
+                                <p className={`text-xs max-w-[200px] mx-auto leading-relaxed ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                     JPG, PNG or GIF. Max size of 2MB.<br />
-                                    <span className="text-green-600 mt-1 block">Profiles with photos get 40% more views.</span>
+                                    <span className="text-green-400 mt-1 block">Profiles with photos get 40% more views.</span>
                                 </p>
                                 {errors.profile_picture && <p className="text-xs text-red-500 mt-2">{errors.profile_picture}</p>}
                             </div>
@@ -247,14 +255,14 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
             </div>
 
             {/* Footer Nav */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 px-6 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div className={`fixed bottom-0 left-0 right-0 border-t py-4 px-6 z-40 ${darkMode ? 'bg-gray-800 border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]' : 'bg-white border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]'}`}>
                 <div className="container mx-auto max-w-5xl flex items-center justify-between">
-                    <button onClick={onBack} className="inline-flex items-center px-6 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition shadow-sm">
+                    <button onClick={onBack} className={`inline-flex items-center px-6 py-2.5 border text-sm font-medium rounded-lg transition shadow-sm ${darkMode ? 'border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}>
                         <span className="material-icons text-sm mr-2">arrow_back</span>
                         Back
                     </button>
                     <div className="flex gap-4">
-                        <button onClick={onSaveDraft} disabled={saving} className="text-gray-500 hover:text-gray-700 text-sm font-medium px-4 py-2 transition">
+                        <button onClick={onSaveDraft} disabled={saving} className={darkMode ? 'text-gray-400 hover:text-gray-200 text-sm font-medium px-4 py-2 transition' : 'text-gray-500 hover:text-gray-700 text-sm font-medium px-4 py-2 transition'}>
                             {saving ? 'Saving...' : 'Save as Draft'}
                         </button>
                         <button onClick={onNext} className="inline-flex items-center px-8 py-2.5 text-sm font-medium rounded-lg shadow-md text-white bg-blue-600 hover:bg-blue-700 transition active:scale-95">

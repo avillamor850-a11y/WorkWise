@@ -1,11 +1,14 @@
 import InputError from '@/Components/InputError';
 import GoogleAuthButton from '@/Components/GoogleAuthButton';
 import WorkWiseNavBrand from '@/Components/WorkWiseNavBrand';
+import { useTheme } from '@/Contexts/ThemeContext';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase';
 
 export default function Login({ status, canResetPassword }) {
+    const { theme, setTheme } = useTheme();
+    const isDark = theme === 'dark';
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         email: '',
         password: '',
@@ -141,6 +144,9 @@ export default function Login({ status, canResetPassword }) {
 
     useEffect(() => {
         const targets = document.querySelectorAll('[data-observer-target]');
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'86ef92'},body:JSON.stringify({sessionId:'86ef92',location:'Login.jsx:observer effect',message:'observer effect run',data:{targetCount:targets.length},timestamp:Date.now(),hypothesisId:'H1,H2,H5'})}).catch(()=>{});
+        // #endregion
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -153,23 +159,40 @@ export default function Login({ status, canResetPassword }) {
 
         requestAnimationFrame(() => {
             targets.forEach(el => el.classList.add('is-visible'));
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'86ef92'},body:JSON.stringify({sessionId:'86ef92',location:'Login.jsx:rAF',message:'rAF added is-visible',data:{count:targets.length},timestamp:Date.now(),hypothesisId:'H1,H5'})}).catch(()=>{});
+            // #endregion
         });
 
         return () => observer.disconnect();
     }, []);
+
+    useEffect(() => {
+        const card = document.querySelector('[data-observer-target]');
+        const hasVisible = card ? card.classList.contains('is-visible') : false;
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'86ef92'},body:JSON.stringify({sessionId:'86ef92',location:'Login.jsx:theme effect',message:'theme changed',data:{theme,hasCard:!!card,hasVisible},timestamp:Date.now(),hypothesisId:'H2,H3'})}).catch(()=>{});
+        // #endregion
+        if (card && !hasVisible) {
+            card.classList.add('is-visible');
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'86ef92'},body:JSON.stringify({sessionId:'86ef92',location:'Login.jsx:theme effect',message:'reapplied is-visible',data:{theme},timestamp:Date.now(),runId:'post-fix'})}).catch(()=>{});
+            // #endregion
+        }
+    }, [theme]);
 
     return (
         <>
             <Head title="Log in" />
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
-            <div className="relative min-h-screen bg-gray-900">
+            <div className={`relative min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 {/* Animated Background Shapes */}
                 <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
                 <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-700/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
 
                 {/* Enhanced Header */}
-                <header className="relative z-10 border-b border-gray-700">
+                <header className={`relative z-10 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                     <div className="mx-auto" style={{ paddingLeft: '0.45in', paddingRight: '0.45in' }}>
                         <div className="flex justify-between items-center h-16">
                             <Link href="/" className="flex items-center">
@@ -177,10 +200,27 @@ export default function Login({ status, canResetPassword }) {
                             </Link>
 
                             <div className="flex items-center space-x-4">
-                                <span className="text-sm text-gray-400">Don't have an account?</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                                    className={`p-2 rounded-lg transition-colors duration-200 ${isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                                    title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                                    aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                                >
+                                    {isDark ? (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                        </svg>
+                                    )}
+                                </button>
+                                <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Don't have an account?</span>
                                 <Link
                                     href={route('role.selection')}
-                                    className="text-sm text-blue-400 hover:text-blue-300 font-medium transition-all duration-700"
+                                    className={`text-sm font-medium transition-all duration-700 ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
                                 >
                                     Sign up
                                 </Link>
@@ -191,15 +231,15 @@ export default function Login({ status, canResetPassword }) {
 
                 {/* Main Content */}
                 <div className="relative z-10 max-w-md mx-auto pt-12 pb-16 px-4">
-                    <div className="bg-gray-800 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-gray-700" data-observer-target>
+                    <div className={`backdrop-blur-sm p-8 rounded-xl shadow-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`} data-observer-target>
                         <div className="text-center mb-8">
-                            <h1 className="text-3xl font-bold text-gray-100 mb-2">
+                            <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                 Welcome Back
                             </h1>
-                            <p className="text-gray-400">Log in to your WorkWise account</p>
+                            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Log in to your WorkWise account</p>
 
                             {status && (
-                                <div className="mt-6 p-4 bg-blue-900/50 border border-blue-700 rounded-lg text-sm text-blue-200">
+                                <div className={`mt-6 p-4 rounded-lg text-sm border ${isDark ? 'bg-blue-900/50 border-blue-700 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                                     {status}
                                 </div>
                             )}
@@ -208,7 +248,7 @@ export default function Login({ status, canResetPassword }) {
                         <form onSubmit={submit} className="space-y-6" data-testid="login-form">
                             {/* Email */}
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                                <label htmlFor="email" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Email Address
                                 </label>
                                 <input
@@ -217,7 +257,7 @@ export default function Login({ status, canResetPassword }) {
                                     type="email"
                                     value={data.email}
                                     onChange={(e) => setData('email', e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-gray-500 transition-all duration-300 bg-gray-700 text-white placeholder-gray-400"
+                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ${isDark ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:border-gray-500' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:border-gray-400'}`}
                                     required
                                     data-testid="email-input"
                                 />
@@ -226,7 +266,7 @@ export default function Login({ status, canResetPassword }) {
 
                             {/* Password */}
                             <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                                <label htmlFor="password" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Password
                                 </label>
                                 <div className="relative">
@@ -236,7 +276,7 @@ export default function Login({ status, canResetPassword }) {
                                         type={showPassword ? "text" : "password"}
                                         value={data.password}
                                         onChange={(e) => setData('password', e.target.value)}
-                                        className="w-full px-4 py-3 pr-12 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-gray-500 transition-all duration-300 bg-gray-700 text-white placeholder-gray-400"
+                                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ${isDark ? 'border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:border-gray-500' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:border-gray-400'}`}
                                         required
                                         data-testid="password-input"
                                     />
@@ -245,7 +285,7 @@ export default function Login({ status, canResetPassword }) {
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-blue-400 transition-colors duration-300"
                                     >
-                                        <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className={`h-5 w-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             {showPassword ? (
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
                                             ) : (
@@ -264,15 +304,15 @@ export default function Login({ status, canResetPassword }) {
                                         type="checkbox"
                                         checked={data.remember}
                                         onChange={(e) => setData('remember', e.target.checked)}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-500 rounded transition-all duration-300"
+                                        className={`h-4 w-4 text-blue-600 focus:ring-blue-500 rounded transition-all duration-300 ${isDark ? 'border-gray-500' : 'border-gray-300'}`}
                                     />
-                                    <span className="ml-2 text-sm text-gray-300">Keep me logged in</span>
+                                    <span className={`ml-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Keep me logged in</span>
                                 </label>
 
                                 {canResetPassword && (
                                     <Link
                                         href={route('password.request')}
-                                        className="text-sm text-blue-400 hover:text-blue-300 transition-all duration-300"
+                                        className={`text-sm transition-all duration-300 ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
                                     >
                                         Forgot password?
                                     </Link>
@@ -283,7 +323,7 @@ export default function Login({ status, canResetPassword }) {
                             <button
                                 type="submit"
                                 disabled={processing || isSupabaseProcessing}
-                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105"
+                                className={`w-full text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 ${isDark ? 'disabled:bg-gray-600 disabled:text-gray-400' : 'disabled:bg-gray-200 disabled:text-gray-500'}`}
                                 data-testid="login-submit"
                             >
                                 {processing || isSupabaseProcessing ? 'Logging in...' : 'Log in'}
@@ -299,9 +339,9 @@ export default function Login({ status, canResetPassword }) {
 
                             {/* Sign up Link */}
                             <div className="text-center">
-                                <span className="text-sm text-gray-400">
+                                <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                     Don't have a WorkWise account?{' '}
-                                    <Link href={route('role.selection')} className="text-blue-400 hover:text-blue-300 font-medium transition-all duration-300">
+                                    <Link href={route('role.selection')} className={`font-medium transition-all duration-300 ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
                                         Sign up
                                     </Link>
                                 </span>
@@ -312,12 +352,6 @@ export default function Login({ status, canResetPassword }) {
             </div>
 
             <style>{`
-                body {
-                    background: #111827;
-                    color: #e5e7eb;
-                    font-family: 'Inter', sans-serif;
-                }
-
                 [data-observer-target] {
                     opacity: 0;
                     transform: translateY(20px);
