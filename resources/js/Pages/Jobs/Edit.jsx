@@ -377,42 +377,22 @@ export default function JobEdit({ job }) {
                                     {errors.budget_max && <p className="mt-2 text-sm text-red-400">{errors.budget_max}</p>}
                                 </div>
 
-                                {/* Experience Level & Duration */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label htmlFor="experience_level" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                                            Experience Level *
-                                        </label>
-                                        <select
-                                            id="experience_level"
-                                            value={data.experience_level}
-                                            onChange={(e) => setData('experience_level', e.target.value)}
-                                            className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
-                                            required
-                                        >
-                                            <option value="beginner">Beginner (0-1 years)</option>
-                                            <option value="intermediate">Intermediate (2-5 years)</option>
-                                            <option value="expert">Expert (5+ years)</option>
-                                        </select>
-                                        {errors.experience_level && <p className="mt-2 text-sm text-red-400">{errors.experience_level}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="estimated_duration_days" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                                            Estimated Duration (Days) *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            id="estimated_duration_days"
-                                            value={data.estimated_duration_days}
-                                            onChange={(e) => setData('estimated_duration_days', e.target.value)}
-                                            className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
-                                            placeholder="e.g., 30"
-                                            min="1"
-                                            required
-                                        />
-                                        {errors.estimated_duration_days && <p className="mt-2 text-sm text-red-400">{errors.estimated_duration_days}</p>}
-                                    </div>
+                                {/* Estimated Duration */}
+                                <div>
+                                    <label htmlFor="estimated_duration_days" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                                        Estimated Duration (Days) *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="estimated_duration_days"
+                                        value={data.estimated_duration_days}
+                                        onChange={(e) => setData('estimated_duration_days', e.target.value)}
+                                        className={isDark ? 'w-full border border-gray-600 rounded-lg bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50' : 'w-full border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}
+                                        placeholder="e.g., 30"
+                                        min="1"
+                                        required
+                                    />
+                                    {errors.estimated_duration_days && <p className="mt-2 text-sm text-red-400">{errors.estimated_duration_days}</p>}
                                 </div>
 
                                 {/* Location & Remote */}

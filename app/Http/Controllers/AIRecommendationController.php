@@ -8,6 +8,7 @@ use App\Services\RecommendationService;
 use App\Models\GigJob;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use App\Services\AIJobMatchingService;
 
@@ -27,6 +28,10 @@ class AIRecommendationController extends Controller
      */
     public function employerMatches(Request $request): Response
     {
+        // #region agent log
+        $logPath = base_path('debug-385a6b.log');
+        @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H1','location'=>'AIRecommendationController::employerMatches','message'=>'entry','data'=>['job_id'=>$request->query('job_id'),'user_id'=>auth()->id()],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         $user = auth()->user();
         if ($user->user_type !== 'employer') {
             return redirect()->route('ai.recommendations');
@@ -36,30 +41,46 @@ class AIRecommendationController extends Controller
         $singleJobId = null;
 
         try {
-            set_time_limit(25);
+            set_time_limit(90);
 
             $refresh = $request->query('refresh') === '1';
             $requestedJobId = $request->query('job_id');
+            $jobIdInt = $requestedJobId !== null && $requestedJobId !== '' && filter_var($requestedJobId, FILTER_VALIDATE_INT) !== false
+                ? (int) $requestedJobId
+                : null;
 
-            if ($requestedJobId) {
+            if ($jobIdInt !== null) {
                 $job = $user->postedJobs()
                     ->where('status', 'open')
-                    ->where('id', $requestedJobId)
+                    ->where('id', $jobIdInt)
                     ->first();
 
+                // #region agent log
+                @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H2','location'=>'AIRecommendationController::employerMatches','message'=>'job lookup','data'=>['job_id'=>$requestedJobId,'found'=>!!$job],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+                // #endregion
                 if ($job) {
                     $singleJobId = $job->id;
                     $recommendations[$job->id] = [
                         'job' => $job,
                         'matches' => $this->matchService->getJobMatches($job, 5, $refresh)
                     ];
+                    // #region agent log
+                    @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H1','location'=>'AIRecommendationController::employerMatches','message'=>'after getJobMatches','data'=>['matches_count'=>count($recommendations[$job->id]['matches'])],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+                    // #endregion
                 }
             }
             // When no job_id: do not load any matches; employer must choose a job first
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // #region agent log
+            @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H1,H4','location'=>'AIRecommendationController::employerMatches','message'=>'catch','data'=>['exception'=>get_class($e),'message'=>$e->getMessage(),'file'=>$e->getFile(),'line'=>$e->getLine()],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
             \Log::error('Employer AI matches error: ' . $e->getMessage());
+            throw $e;
         }
 
+        // #region agent log
+        @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H3','location'=>'AIRecommendationController::employerMatches','message'=>'before token loop','data'=>['recommendations_keys'=>array_keys($recommendations)],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         $openJobs = $user->postedJobs()->where('status', 'open')->orderByDesc('created_at')->get(['id', 'title', 'created_at']);
 
         // Add encrypted context token to each match so "View Profile" uses ?ctx= instead of raw query params
@@ -79,9 +100,16 @@ class AIRecommendationController extends Controller
             }, $data['matches']);
         }
 
+        // #region agent log
+        @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H2,H5','location'=>'AIRecommendationController::employerMatches','message'=>'before getUniqueSkills','data'=>[],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+        $skills = $this->getUniqueSkills();
+        // #region agent log
+        @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H2','location'=>'AIRecommendationController::employerMatches','message'=>'before render','data'=>['skills_count'=>count($skills)],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         return Inertia::render('AI/AimatchEmployer', [
             'recommendations' => $recommendations,
-            'skills' => $this->getUniqueSkills(),
+            'skills' => $skills,
             'singleJobId' => $singleJobId,
             'openJobs' => $openJobs,
         ]);
@@ -118,6 +146,10 @@ class AIRecommendationController extends Controller
      */
     public function employerRecommendations(Request $request): Response
     {
+        // #region agent log
+        $logPath = base_path('debug-385a6b.log');
+        @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H1','location'=>'AIRecommendationController::employerRecommendations','message'=>'entry','data'=>['job_id'=>$request->query('job_id'),'user_id'=>auth()->id()],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         $user = auth()->user();
         if ($user->user_type !== 'employer') {
             return redirect()->route('ai.recommendations');
@@ -127,16 +159,22 @@ class AIRecommendationController extends Controller
         $singleJobId = null;
 
         try {
-            set_time_limit(25);
+            set_time_limit(90);
             $refresh = in_array($request->query('refresh'), [1, '1', true], true);
             $requestedJobId = $request->query('job_id');
+            $jobIdInt = $requestedJobId !== null && $requestedJobId !== '' && filter_var($requestedJobId, FILTER_VALIDATE_INT) !== false
+                ? (int) $requestedJobId
+                : null;
 
-            if ($requestedJobId) {
+            if ($jobIdInt !== null) {
                 $job = $user->postedJobs()
                     ->where('status', 'open')
-                    ->where('id', $requestedJobId)
+                    ->where('id', $jobIdInt)
                     ->first();
 
+                // #region agent log
+                @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H2','location'=>'AIRecommendationController::employerRecommendations','message'=>'job lookup','data'=>['job_id'=>$requestedJobId,'found'=>!!$job],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+                // #endregion
                 if ($job) {
                     $singleJobId = $job->id;
                     $matches = $this->recommendationService->getJobRecommendationsForEmployer($job, 5, $refresh);
@@ -144,13 +182,23 @@ class AIRecommendationController extends Controller
                         'job' => $job,
                         'matches' => $matches,
                     ];
+                    // #region agent log
+                    @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H1','location'=>'AIRecommendationController::employerRecommendations','message'=>'after getJobRecommendationsForEmployer','data'=>['matches_count'=>count($matches)],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+                    // #endregion
                 }
             }
             // When no job_id: do not load any matches; employer must choose a job first
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // #region agent log
+            @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H1,H4','location'=>'AIRecommendationController::employerRecommendations','message'=>'catch','data'=>['exception'=>get_class($e),'message'=>$e->getMessage(),'file'=>$e->getFile(),'line'=>$e->getLine()],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
             \Log::error('Employer AI recommendations error: ' . $e->getMessage());
+            throw $e;
         }
 
+        // #region agent log
+        @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H3','location'=>'AIRecommendationController::employerRecommendations','message'=>'before token loop','data'=>['recommendations_keys'=>array_keys($recommendations)],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         $openJobs = $user->postedJobs()->where('status', 'open')->orderByDesc('created_at')->get(['id', 'title', 'created_at']);
 
         foreach ($recommendations as $jobId => $data) {
@@ -169,9 +217,16 @@ class AIRecommendationController extends Controller
             }, $data['matches']);
         }
 
+        // #region agent log
+        @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H2,H5','location'=>'AIRecommendationController::employerRecommendations','message'=>'before getUniqueSkills','data'=>[],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+        $skills = $this->getUniqueSkills();
+        // #region agent log
+        @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'H2','location'=>'AIRecommendationController::employerRecommendations','message'=>'before render','data'=>['skills_count'=>count($skills)],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         return Inertia::render('AI/RecommendationsEmployer', [
             'recommendations' => $recommendations,
-            'skills' => $this->getUniqueSkills(),
+            'skills' => $skills,
             'singleJobId' => $singleJobId,
             'openJobs' => $openJobs,
         ]);
@@ -191,7 +246,7 @@ class AIRecommendationController extends Controller
         $recommendations = [];
         $hasError = false;
         try {
-            set_time_limit(90);
+            set_time_limit(30);
             $refresh = in_array($request->query('refresh'), [1, '1', true], true);
             $recommendations = $this->recommendationService->getJobRecommendationsForWorker($user, 10, $refresh);
         } catch (\Exception $e) {
@@ -223,38 +278,40 @@ class AIRecommendationController extends Controller
     }
 
     /**
-     * Helper to get unique skills from jobs
+     * Helper to get unique skills from jobs (cached 1 hour; invalidated on job create/update/delete).
      */
     private function getUniqueSkills(): array
     {
-        $skills = collect(
-            GigJob::query()
-                ->whereNotNull('required_skills')
-                ->pluck('required_skills')
-                ->toArray()
-        )
-            ->filter()
-            ->reduce(function (array $unique, $skillSet) {
-                $skillsArray = is_array($skillSet)
-                    ? $skillSet
-                    : (json_decode($skillSet, true) ?: []);
+        return Cache::remember('ai_recommendations_unique_skills', now()->addHours(1), function () {
+            $skills = collect(
+                GigJob::query()
+                    ->whereNotNull('required_skills')
+                    ->pluck('required_skills')
+                    ->toArray()
+            )
+                ->filter()
+                ->reduce(function (array $unique, $skillSet) {
+                    $skillsArray = is_array($skillSet)
+                        ? $skillSet
+                        : (json_decode($skillSet, true) ?: []);
 
-                foreach ($skillsArray as $skill) {
-                    $trimmed = $this->normalizeSkillElement($skill);
-                    if ($trimmed === '') continue;
-                    $normalized = strtolower($trimmed);
-                    if (!array_key_exists($normalized, $unique)) {
-                        $unique[$normalized] = $trimmed;
+                    foreach ($skillsArray as $skill) {
+                        $trimmed = $this->normalizeSkillElement($skill);
+                        if ($trimmed === '') continue;
+                        $normalized = strtolower($trimmed);
+                        if (!array_key_exists($normalized, $unique)) {
+                            $unique[$normalized] = $trimmed;
+                        }
                     }
-                }
-                return $unique;
-            }, []);
+                    return $unique;
+                }, []);
 
-        return collect($skills)
-            ->values()
-            ->sort(fn ($a, $b) => strcasecmp($a, $b))
-            ->values()
-            ->all();
+            return collect($skills)
+                ->values()
+                ->sort(fn ($a, $b) => strcasecmp($a, $b))
+                ->values()
+                ->all();
+        });
     }
 
     /**
@@ -331,46 +388,11 @@ class AIRecommendationController extends Controller
     }
 
     /**
-     * Retrieve all unique required skills across all jobs.
+     * Retrieve all unique required skills across all jobs (uses same cache as getUniqueSkills).
      */
     public function allSkills()
     {
-        $skills = collect(
-            GigJob::query()
-                ->whereNotNull('required_skills')
-                ->pluck('required_skills')
-                ->toArray()
-        )
-            ->filter()
-            ->reduce(function (array $unique, $skillSet) {
-                $skillsArray = is_array($skillSet)
-                    ? $skillSet
-                    : (json_decode($skillSet, true) ?: []);
-
-                foreach ($skillsArray as $skill) {
-                    $trimmed = $this->normalizeSkillElement($skill);
-
-                    if ($trimmed === '') {
-                        continue;
-                    }
-
-                    $normalized = strtolower($trimmed);
-
-                    if (!array_key_exists($normalized, $unique)) {
-                        $unique[$normalized] = $trimmed;
-                    }
-                }
-
-                return $unique;
-            }, []);
-
-        $skills = collect($skills)
-            ->values()
-            ->sort(fn ($a, $b) => strcasecmp($a, $b))
-            ->values()
-            ->all();
-
-        return response()->json($skills);
+        return response()->json($this->getUniqueSkills());
     }
 
     public function recommendSkills(Request $request)

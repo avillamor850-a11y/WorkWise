@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class GigJob extends Model
 {
@@ -44,6 +45,22 @@ class GigJob extends Model
             'is_remote' => 'boolean',
             'hidden_by_admin' => 'boolean',
         ];
+    }
+
+    /**
+     * Invalidate AI recommendations skills cache when job skills may have changed.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (): void {
+            Cache::forget('ai_recommendations_unique_skills');
+        });
+        static::updated(function (): void {
+            Cache::forget('ai_recommendations_unique_skills');
+        });
+        static::deleted(function (): void {
+            Cache::forget('ai_recommendations_unique_skills');
+        });
     }
 
     /**

@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTheme } from '@/Contexts/ThemeContext';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 import { EmployerStep1Welcome, EmployerStep2Identity } from './EmployerSteps12';
 import { EmployerStep3Bio, EmployerStep4Preferences } from './EmployerSteps34';
 import EmployerStep5Review from './EmployerStep5';
@@ -208,9 +209,15 @@ export default function EmployerOnboarding({ user, industries, serviceCategories
                             </button>
                             <div className={`h-8 w-[1px] hidden sm:block ${isDark ? 'bg-gray-600' : 'bg-gray-200'}`} />
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white flex items-center justify-center text-sm font-bold shadow-md">
-                                {data.profile_picture_preview
-                                    ? <img src={data.profile_picture_preview} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                                    : initials}
+                                {(() => {
+                                    // #region agent log
+                                    const raw = data.profile_picture_preview;
+                                    const resolved = resolveProfileImageUrl(raw);
+                                    if (raw || resolved) fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cc0bd8'},body:JSON.stringify({sessionId:'cc0bd8',location:'EmployerOnboarding.jsx:header_avatar',message:'Header avatar URL',data:{raw,resolved,step},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+                                    // #endregion
+                                    const src = resolved || raw;
+                                    return src ? <img src={src} alt="Avatar" className="w-full h-full rounded-full object-cover" /> : initials;
+                                })()}
                             </div>
                         </div>
                     </div>

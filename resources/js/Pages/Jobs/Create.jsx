@@ -852,49 +852,22 @@ export default function JobCreate() {
                                     {errors.budget_max && <p className="mt-2 text-sm text-red-400">{errors.budget_max}</p>}
                                 </div>
 
-                                {/* Experience Level & Duration */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label htmlFor="experience_level" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                                            Experience Level *
-                                        </label>
-                                        <select
-                                            id="experience_level"
-                                            value={data.experience_level}
-                                            onChange={(e) => {
-                                                const value = e.target.value;
-                                                setData('experience_level', value);
-                                                if (data.skills_requirements.length > 0) {
-                                                    const valid = data.skills_requirements.filter(s => s != null && typeof s.skill === 'string');
-                                                    setData('skills_requirements', valid.map(s => ({ ...s, experience_level: value })));
-                                                }
-                                            }}
-                                            className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
-                                            required
-                                        >
-                                            <option value="beginner" style={isDark ? { backgroundColor: '#1f2937', color: '#e5e7eb' } : undefined}>Beginner (0-1 years)</option>
-                                            <option value="intermediate" style={isDark ? { backgroundColor: '#1f2937', color: '#e5e7eb' } : undefined}>Intermediate (2-5 years)</option>
-                                            <option value="expert" style={isDark ? { backgroundColor: '#1f2937', color: '#e5e7eb' } : undefined}>Expert (5+ years)</option>
-                                        </select>
-                                        {errors.experience_level && <p className="mt-2 text-sm text-red-400">{errors.experience_level}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="estimated_duration_days" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                                            Estimated Duration (Days) *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            id="estimated_duration_days"
-                                            value={data.estimated_duration_days}
-                                            onChange={(e) => setData('estimated_duration_days', e.target.value)}
-                                            className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
-                                            placeholder="e.g., 30"
-                                            min="1"
-                                            required
-                                        />
-                                        {errors.estimated_duration_days && <p className="mt-2 text-sm text-red-400">{errors.estimated_duration_days}</p>}
-                                    </div>
+                                {/* Estimated Duration */}
+                                <div>
+                                    <label htmlFor="estimated_duration_days" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                                        Estimated Duration (Days) *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="estimated_duration_days"
+                                        value={data.estimated_duration_days}
+                                        onChange={(e) => setData('estimated_duration_days', e.target.value)}
+                                        className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
+                                        placeholder="e.g., 30"
+                                        min="1"
+                                        required
+                                    />
+                                    {errors.estimated_duration_days && <p className="mt-2 text-sm text-red-400">{errors.estimated_duration_days}</p>}
                                 </div>
 
                                 {/* Project Category (Optional) */}
@@ -937,7 +910,6 @@ export default function JobCreate() {
                                         onChange={(skills) => setData('skills_requirements', skills)}
                                         type="required"
                                         maxSkills={10}
-                                        defaultExperienceLevel={data.experience_level}
                                         variant={isDark ? "dark" : "light"}
                                     />
                                     {errors.skills_requirements && (

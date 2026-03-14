@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 // ─── Step 1: Welcome ─────────────────────────────────────────────────────────
 function Step1Welcome({ onNext, onSkip, darkMode = false }) {
@@ -98,16 +99,57 @@ function Step1Welcome({ onNext, onSkip, darkMode = false }) {
 }
 
 // ─── Step 2: Professional Info ────────────────────────────────────────────────
-function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDraft, saving, darkMode = false }) {
+function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDraft, saving, darkMode = false, csrfToken = '' }) {
     const fileRef = useRef(null);
     const [preview, setPreview] = useState(data.profile_picture_preview || null);
     const [charCount, setCharCount] = useState((data.bio || '').length);
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
+
+    // Sync local preview when parent gets new profile_picture_preview (e.g. after refresh with saved photo)
+    useEffect(() => {
+        if (data.profile_picture_preview) setPreview(data.profile_picture_preview);
+        else if (!data.profile_picture_file) setPreview(null);
+    }, [data.profile_picture_preview, data.profile_picture_file]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        const blobUrl = URL.createObjectURL(file);
         setData('profile_picture_file', file);
-        setPreview(URL.createObjectURL(file));
+        setData('profile_picture_preview', blobUrl);
+        setPreview(blobUrl);
+        setUploadError(null);
+        setUploading(true);
+
+        const formData = new FormData();
+        formData.append('profile_picture', file);
+        if (csrfToken) formData.append('_token', csrfToken);
+
+        const url = typeof route !== 'undefined' ? route('gig-worker.onboarding.upload-profile-picture') : '/onboarding/gig-worker/upload-profile-picture';
+        const headers = { Accept: 'application/json' };
+        if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers,
+        })
+            .then((res) => res.json())
+            .then((json) => {
+                if (json.success && json.url) {
+                    setData('profile_picture_preview', json.url);
+                    setData('profile_picture_file', null);
+                    setPreview(json.url);
+                    URL.revokeObjectURL(blobUrl);
+                } else {
+                    setUploadError('Upload failed. You can try again or click Next to save.');
+                }
+            })
+            .catch(() => {
+                setUploadError('Upload failed. You can try again or click Next to save.');
+            })
+            .finally(() => setUploading(false));
     };
 
     const inputClass = darkMode
@@ -222,17 +264,22 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                             <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
                                 <div className={`w-48 h-48 rounded-full border-4 border-dashed flex items-center justify-center transition-all overflow-hidden relative ${darkMode ? 'border-gray-600 bg-gray-700 group-hover:bg-gray-600' : 'border-gray-300 bg-gray-50 group-hover:bg-gray-100'}`}>
                                     {preview ? (
-                                        <img src={preview} alt="Profile" className="w-full h-full object-cover" />
+                                        <img src={typeof preview === 'string' && preview.startsWith('blob:') ? preview : (resolveProfileImageUrl(preview) || preview)} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="text-center p-4">
                                             <span className={`material-icons text-5xl mb-2 group-hover:text-blue-500 transition-colors block ${darkMode ? 'text-gray-500' : 'text-gray-300'}`}>account_circle</span>
                                             <p className={`text-xs font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>No photo uploaded</p>
                                         </div>
                                     )}
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    {uploading && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                            <span className="text-white text-sm font-medium">Uploading…</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                         <span className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-800'}`}>Upload</span>
                                     </div>
-                                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
                                 </div>
                                 <div className="absolute bottom-2 right-2 bg-blue-600 text-white p-2 rounded-full shadow-lg pointer-events-none group-hover:scale-110 transition-transform">
                                     <span className="material-icons text-lg leading-none">edit</span>
@@ -247,6 +294,7 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                                     JPG, PNG or GIF. Max size of 2MB.<br />
                                     <span className="text-green-400 mt-1 block">Profiles with photos get 40% more views.</span>
                                 </p>
+                                {uploadError && <p className="text-xs text-amber-600 mt-2">{uploadError}</p>}
                                 {errors.profile_picture && <p className="text-xs text-red-500 mt-2">{errors.profile_picture}</p>}
                             </div>
                         </div>

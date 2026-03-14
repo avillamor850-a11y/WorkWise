@@ -253,7 +253,7 @@ class WorkWiseComprehensiveUnitTest extends TestCase
             'estimated_duration_days' => -1,
         ]);
 
-        $response->assertSessionHasErrors(['description', 'required_skills', 'budget_type', 'budget_min', 'experience_level', 'estimated_duration_days']);
+        $response->assertSessionHasErrors(['description', 'skills_requirements', 'budget_type', 'budget_min', 'experience_level', 'estimated_duration_days']);
     }
 
     // ============================================
@@ -272,7 +272,7 @@ class WorkWiseComprehensiveUnitTest extends TestCase
             'budget_max' => '',
         ]);
 
-        $response->assertSessionHasErrors(['title', 'description', 'required_skills', 'budget_type', 'budget_min', 'budget_max']);
+        $response->assertSessionHasErrors(['title', 'description', 'skills_requirements', 'budget_type', 'budget_min', 'budget_max']);
     }
 
     // ============================================
@@ -285,11 +285,14 @@ class WorkWiseComprehensiveUnitTest extends TestCase
         $response = $this->post('/jobs', [
             'title' => 'New Test Job',
             'description' => 'This is a comprehensive test job description that meets the minimum character requirements for posting a job.',
-            'required_skills' => ['PHP', 'Laravel', 'Vue.js'],
+            'skills_requirements' => [
+                ['skill' => 'PHP', 'experience_level' => 'intermediate', 'importance' => 'required'],
+                ['skill' => 'Laravel', 'experience_level' => 'intermediate', 'importance' => 'required'],
+                ['skill' => 'Vue.js', 'experience_level' => 'intermediate', 'importance' => 'required'],
+            ],
             'budget_type' => 'fixed',
             'budget_min' => 500,
             'budget_max' => 1000,
-            'experience_level' => 'intermediate',
             'estimated_duration_days' => 15,
             'is_remote' => true,
         ]);

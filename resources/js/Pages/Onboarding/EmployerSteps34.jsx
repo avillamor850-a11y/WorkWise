@@ -102,14 +102,35 @@ function EmployerStep3Bio({ data, setData, errors, onNext, onBack, darkMode = fa
 
 // ─── Step 4: Hiring Preferences ──────────────────────────────────────────────
 function EmployerStep4Preferences({ data, setData, errors, serviceCategories, onNext, onBack, darkMode = false }) {
-    const toggleHiringNeed = (category) => {
-        const current = data.primary_hiring_needs || [];
-        if (current.includes(category)) {
-            setData('primary_hiring_needs', current.filter(c => c !== category));
-        } else {
-            setData('primary_hiring_needs', [...current, category]);
+    const [serviceSearch, setServiceSearch] = useState('');
+    const hiringNeeds = data.primary_hiring_needs || [];
+
+    const addService = (category) => {
+        const trimmed = (category || '').trim();
+        if (!trimmed || hiringNeeds.some(n => n.toLowerCase() === trimmed.toLowerCase())) {
+            setServiceSearch('');
+            return;
         }
+        const canonical = (serviceCategories || []).find(c => c.toLowerCase() === trimmed.toLowerCase());
+        if (!canonical) return;
+        setData('primary_hiring_needs', [...hiringNeeds, canonical]);
+        setServiceSearch('');
     };
+
+    const removeService = (index) => {
+        setData('primary_hiring_needs', hiringNeeds.filter((_, i) => i !== index));
+    };
+
+    const filteredServices = serviceSearch.trim()
+        ? (serviceCategories || []).filter(c =>
+            c.toLowerCase().includes(serviceSearch.toLowerCase()) &&
+            !hiringNeeds.some(n => n.toLowerCase() === c.toLowerCase())
+        )
+        : [];
+
+    const hasExactMatch = serviceSearch.trim() && (serviceCategories || []).some(c =>
+        c.toLowerCase() === serviceSearch.trim().toLowerCase()
+    );
 
     const budgetOptions = [
         { value: 'under_500', label: 'Under ₱500' },
@@ -165,24 +186,78 @@ function EmployerStep4Preferences({ data, setData, errors, serviceCategories, on
                             <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>SELECT AT LEAST ONE</span>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {serviceCategories.map((category) => (
-                                <button
-                                    key={category}
-                                    type="button"
-                                    onClick={() => toggleHiringNeed(category)}
-                                    className={`px-4 py-3 rounded-xl border-2 text-xs font-medium transition-all flex items-center justify-between gap-2 overflow-hidden ${(data.primary_hiring_needs || []).includes(category)
-                                        ? darkMode ? 'border-blue-500 bg-blue-900/40 text-blue-400 shadow-sm' : 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
-                                        : darkMode ? 'border-gray-600 bg-gray-800 text-gray-400 hover:border-gray-500 hover:bg-gray-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    <span className="truncate">{category}</span>
-                                    {(data.primary_hiring_needs || []).includes(category) && (
-                                        <span className="material-icons text-base shrink-0">check_circle</span>
-                                    )}
-                                </button>
-                            ))}
+                        <div className="relative mb-4">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span className={`material-icons text-lg ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>search</span>
+                            </div>
+                            <input
+                                type="text"
+                                value={serviceSearch}
+                                onChange={e => setServiceSearch(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && (hasExactMatch ? addService(serviceSearch) : (filteredServices[0] && addService(filteredServices[0])))}
+                                placeholder="Search and select a service..."
+                                className={darkMode ? 'block w-full pl-11 pr-16 py-3 rounded-lg border border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm' : 'block w-full pl-11 pr-16 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm'}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => addService(hasExactMatch ? serviceSearch : (filteredServices[0] ?? null))}
+                                disabled={!hasExactMatch && filteredServices.length === 0}
+                                className="absolute right-2 top-2 bottom-2 bg-gray-900 text-white px-4 rounded-lg text-xs font-medium hover:bg-gray-800 transition disabled:opacity-40"
+                            >
+                                Add
+                            </button>
                         </div>
+
+                        {serviceSearch.trim() && filteredServices.length > 0 && (
+                            <div className={`mb-4 border rounded-xl shadow-lg overflow-hidden max-h-40 overflow-y-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                                {filteredServices.slice(0, 6).map(c => (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => addService(c)}
+                                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-50 text-gray-700'}`}
+                                    >
+                                        <span>{c}</span>
+                                        <span className={`material-icons text-sm ${darkMode ? 'text-gray-500' : 'text-gray-300'}`}>add</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {hiringNeeds.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {hiringNeeds.map((need, i) => (
+                                    <span
+                                        key={i}
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${darkMode ? 'bg-blue-900/40 border-blue-700 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700'}`}
+                                    >
+                                        {need}
+                                        <button type="button" onClick={() => removeService(i)} className="hover:text-red-500 transition">
+                                            <span className="material-icons text-sm">close</span>
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
+                        {(serviceCategories || []).length > 0 && (
+                            <div>
+                                <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>Browse all services</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {(serviceCategories || []).filter(c => !hiringNeeds.some(n => n.toLowerCase() === c.toLowerCase())).map(cat => (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => addService(cat)}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${darkMode ? 'bg-gray-800 text-gray-400 border-gray-600 hover:border-gray-500 hover:bg-gray-700' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                                        >
+                                            + {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {errors.primary_hiring_needs && <p className="text-xs text-red-500 mt-4">{errors.primary_hiring_needs}</p>}
                     </div>
                 </div>
@@ -202,6 +277,7 @@ function EmployerStep4Preferences({ data, setData, errors, serviceCategories, on
                                 <option value="">Select Range</option>
                                 {budgetOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                             </select>
+                            {errors.typical_project_budget && <p className="text-xs text-red-500">{errors.typical_project_budget}</p>}
                         </div>
 
                         <div className="space-y-2">
@@ -217,6 +293,7 @@ function EmployerStep4Preferences({ data, setData, errors, serviceCategories, on
                                 <option value="">Select Duration</option>
                                 {durationOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                             </select>
+                            {errors.typical_project_duration && <p className="text-xs text-red-500">{errors.typical_project_duration}</p>}
                         </div>
 
                         <div className="space-y-2">
@@ -232,6 +309,7 @@ function EmployerStep4Preferences({ data, setData, errors, serviceCategories, on
                                 <option value="">Select Experience</option>
                                 {experienceOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                             </select>
+                            {errors.preferred_experience_level && <p className="text-xs text-red-500">{errors.preferred_experience_level}</p>}
                         </div>
 
                         <div className="space-y-2">
@@ -247,6 +325,7 @@ function EmployerStep4Preferences({ data, setData, errors, serviceCategories, on
                                 <option value="">Select Frequency</option>
                                 {frequencyOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                             </select>
+                            {errors.hiring_frequency && <p className="text-xs text-red-500">{errors.hiring_frequency}</p>}
                         </div>
                     </div>
                 </div>
@@ -262,7 +341,7 @@ function EmployerStep4Preferences({ data, setData, errors, serviceCategories, on
                     </button>
                     <button
                         onClick={onNext}
-                        disabled={(data.primary_hiring_needs || []).length === 0}
+                        disabled={(data.primary_hiring_needs || []).length === 0 || !(data.typical_project_budget || '').trim() || !(data.typical_project_duration || '').trim() || !(data.preferred_experience_level || '').trim() || !(data.hiring_frequency || '').trim()}
                         className="inline-flex items-center px-8 py-2.5 text-sm font-medium rounded-lg shadow-md text-white bg-blue-600 hover:bg-blue-700 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Review Profile

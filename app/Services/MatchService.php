@@ -475,8 +475,9 @@ class MatchService
      * Get match score between a job and a gig worker
      *
      * @param string $audience 'worker' (you/your) or 'employer' (candidate/they)
+     * @param bool $refresh when true, bypass cache and regenerate insight/score from latest data
      */
-    public function getJobMatch(GigJob $job, User $gigWorker, string $audience = 'worker'): array
+    public function getJobMatch(GigJob $job, User $gigWorker, string $audience = 'worker', bool $refresh = false): array
     {
         // If OpenRouter is not configured, use fallback matching
         if (!$this->isConfigured) {
@@ -488,8 +489,8 @@ class MatchService
             ? "match_score_{$job->id}_{$gigWorker->id}_employer"
             : "match_score_{$job->id}_{$gigWorker->id}";
 
-        // Check cache first
-        if (Cache::has($cacheKey)) {
+        // When refresh=1, skip cache so we read latest DB data and regenerate insight/score
+        if (!$refresh && Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
         }
 
@@ -529,7 +530,6 @@ class MatchService
 
             // Prepare gig worker profile with structured skills if available
             $workerSkills = $this->normalizeSkills($gigWorker->skills_with_experience);
-            $experienceLevel = $gigWorker->experience_level ?? 'Not specified';
             $hourlyRate = $gigWorker->hourly_rate ?? 'Not set';
             $professionalTitle = $gigWorker->professional_title ?? 'Not specified';
             
@@ -552,7 +552,6 @@ class MatchService
             $gigWorkerText = ($audience === 'employer' ? "CANDIDATE PROFILE:\n" : "Your Profile:\n") .
                             "Professional Title: {$professionalTitle}\n" .
                             "Skills: {$workerSkillsText}\n" .
-                            "Experience Level: {$experienceLevel}\n" .
                             "Hourly Rate: ₱{$hourlyRate}\n" .
                             "Bio: " . substr($gigWorker->bio ?? 'No bio provided', 0, 150);
 
@@ -712,9 +711,16 @@ class MatchService
 
     /**
      * Get recommended jobs for a gig worker with AI-powered matching
+     *
+     * @param bool $refresh when true, re-read worker from DB and bypass match cache to regenerate insights/scores
      */
-    public function getRecommendedJobs(User $gigWorker, int $limit = 5, bool $randomize = false): array
+    public function getRecommendedJobs(User $gigWorker, int $limit = 5, bool $refresh = false): array
     {
+        // When refresh=1, re-load worker from DB so we use latest skills/profile for matching
+        if ($refresh) {
+            $gigWorker->refresh();
+        }
+
         // Limit the number of jobs to process to prevent timeouts
         // Include jobs that have skills in either required_skills or skills_requirements
         $query = GigJob::with(['employer'])
@@ -724,8 +730,8 @@ class MatchService
                     ->orWhereNotNull('skills_requirements');
             });
 
-        if ($randomize) {
-            $query->inRandomOrder();
+        if ($refresh) {
+            $query->inRandomOrder(); // optional: vary job order on refresh
         } else {
             $query->latest();
         }
@@ -748,8 +754,8 @@ class MatchService
                 break;
             }
             
-            // Use AI matching for better accuracy
-            $match = $this->getJobMatch($job, $gigWorker);
+            // Use AI matching; when refresh=1 bypass cache to regenerate insight and score
+            $match = $this->getJobMatch($job, $gigWorker, 'worker', $refresh);
             $processedCount++;
             
             if ($match['success'] && $match['score'] > 0) {
@@ -773,6 +779,7 @@ class MatchService
             'gig_worker_id' => $gigWorker->id,
             'processed_jobs' => $processedCount,
             'matches_found' => count($matches),
+            'refresh' => $refresh,
             'time_taken' => round(microtime(true) - $startTime, 2) . 's'
         ]);
 

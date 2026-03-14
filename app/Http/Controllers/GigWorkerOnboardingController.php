@@ -49,6 +49,15 @@ class GigWorkerOnboardingController extends Controller
         $step = $request->input('step', 1);
         $isDraft = $request->boolean('is_draft', false);
 
+        // #region agent log
+        $logPath = base_path('debug-683d70.log');
+        $log = function ($msg, $data = [], $hypothesisId = '') use ($logPath) {
+            $payload = array_filter(['sessionId' => '683d70', 'location' => 'GigWorkerOnboardingController::store', 'message' => $msg, 'data' => $data, 'timestamp' => (int)(microtime(true) * 1000), 'hypothesisId' => $hypothesisId ?: null]);
+            @file_put_contents($logPath, json_encode($payload) . "\n", FILE_APPEND | LOCK_EX);
+        };
+        $log('store entry', ['step' => $step, 'isDraft' => $isDraft], 'H4');
+        // #endregion
+
         try {
             match ((int) $step) {
                 2 => $this->saveStep2($request, $user),
@@ -58,9 +67,13 @@ class GigWorkerOnboardingController extends Controller
                 default => null,
             };
 
-            // Update onboarding step progress
-            if (!$isDraft && $user->onboarding_step < $step) {
-                $user->onboarding_step = $step;
+            // Update onboarding step progress (so refresh restores the correct step)
+            $stepInt = (int) $step;
+            if ($isDraft && $stepInt >= 2 && $stepInt <= 5) {
+                $user->onboarding_step = $stepInt;
+                $user->save();
+            } elseif (!$isDraft && $user->onboarding_step < $stepInt) {
+                $user->onboarding_step = $stepInt;
                 $user->save();
             }
 
@@ -85,6 +98,11 @@ class GigWorkerOnboardingController extends Controller
             return back()->with('success', "Step {$step} saved successfully.");
 
         } catch (\Throwable $e) {
+            // #region agent log
+            $logPath = base_path('debug-683d70.log');
+            $payload = ['sessionId' => '683d70', 'location' => 'GigWorkerOnboardingController::store catch', 'message' => $e->getMessage(), 'data' => ['exception' => get_class($e), 'file' => $e->getFile(), 'line' => $e->getLine(), 'step' => $step], 'timestamp' => (int)(microtime(true) * 1000), 'hypothesisId' => 'H_ALL'];
+            @file_put_contents($logPath, json_encode($payload) . "\n", FILE_APPEND | LOCK_EX);
+            // #endregion
             if ($e instanceof ValidationException) {
                 return redirect()->route('gig-worker.onboarding', ['step' => $step])
                     ->withErrors($e->errors());
@@ -114,16 +132,75 @@ class GigWorkerOnboardingController extends Controller
             ->with('message', 'You can complete your profile anytime from the Profile page.');
     }
 
+    /**
+     * Upload profile picture to Supabase immediately (e.g. on file select in Step 2).
+     * Returns a display-ready URL for the frontend.
+     */
+    public function uploadProfilePicture(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'profile_picture' => 'required|image|max:5120',
+        ]);
+
+        $user = $request->user();
+
+        try {
+            if ($user->profile_picture) {
+                try {
+                    $oldPath = ltrim(str_replace('/supabase/', '', $user->profile_picture), '/');
+                    if (Storage::disk('supabase')->exists($oldPath)) {
+                        Storage::disk('supabase')->delete($oldPath);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Onboarding upload profile picture: could not delete old: ' . $e->getMessage());
+                }
+            }
+
+            $path = Storage::disk('supabase')->putFile('profiles/' . $user->id, $request->file('profile_picture'));
+            if (!$path) {
+                Log::error('Onboarding upload profile picture: Supabase putFile returned null', ['user_id' => $user->id]);
+                return response()->json(['success' => false, 'message' => 'Upload failed.'], 500);
+            }
+
+            $storedPath = '/supabase/' . $path;
+            $user->profile_picture = $storedPath;
+            $user->profile_photo = $storedPath;
+            $user->save();
+
+            $displayUrl = url('/storage/supabase/' . $path);
+            Log::info('Onboarding: profile picture uploaded via uploadProfilePicture', ['user_id' => $user->id, 'path' => $path]);
+
+            return response()->json([
+                'success' => true,
+                'url'     => $displayUrl,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Onboarding upload profile picture failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+            return response()->json(['success' => false, 'message' => 'Upload failed. Please try again.'], 500);
+        }
+    }
+
     // ─── Step Handlers ───────────────────────────────────────────────────────
+
+    // #region agent log
+    private function agentLog(string $path, string $msg, array $data, string $hypothesisId = ''): void
+    {
+        $logPath = base_path('debug-683d70.log');
+        $payload = array_filter(['sessionId' => '683d70', 'location' => $path, 'message' => $msg, 'data' => $data, 'timestamp' => (int)(microtime(true) * 1000), 'hypothesisId' => $hypothesisId ?: null]);
+        @file_put_contents($logPath, json_encode($payload) . "\n", FILE_APPEND | LOCK_EX);
+    }
+    // #endregion
 
     private function saveStep2(Request $request, User $user): void
     {
+        $this->agentLog('GigWorkerOnboardingController::saveStep2', 'saveStep2 entry', ['user_id' => $user->id, 'hasFile' => $request->hasFile('profile_picture'), 'hourly_rate_raw' => $request->input('hourly_rate')], 'H1');
         $validated = $request->validate([
             'professional_title' => 'required|string|max:150',
             'hourly_rate'        => 'nullable|numeric|min:0|max:99999',
             'bio'                => 'required|string|max:1000',
             'profile_picture'    => 'nullable|image|max:5120',
         ]);
+        $this->agentLog('GigWorkerOnboardingController::saveStep2', 'after validate', ['validated_keys' => array_keys($validated), 'hourly_rate' => $validated['hourly_rate'] ?? 'NOT_SET'], 'H1');
 
         if ($request->hasFile('profile_picture')) {
             try {
@@ -158,6 +235,7 @@ class GigWorkerOnboardingController extends Controller
         $user->professional_title = $validated['professional_title'];
         $user->hourly_rate        = $validated['hourly_rate'] ?? null;
         $user->bio                = $validated['bio'];
+        $this->agentLog('GigWorkerOnboardingController::saveStep2', 'before user save', ['hourly_rate_assign' => $user->hourly_rate], 'H3');
         $user->save();
     }
 

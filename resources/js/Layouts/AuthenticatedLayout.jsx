@@ -1074,7 +1074,7 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                     </div>
                                                 );
                                             })()}
-                                            <span className="hidden md:block text-gray-100">{user.first_name || user.name}</span>
+                                            <span className={`hidden md:block uppercase ${effectiveTheme === 'dark' ? 'text-gray-100' : 'text-gray-700'}`}>{user.first_name || user.name}</span>
                                             <svg className={`w-4 h-4 ${effectiveTheme === 'dark' ? 'text-gray-200' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                             </svg>

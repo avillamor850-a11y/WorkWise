@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\GigJob;
 use App\Models\User;
+use App\Services\AIJobMatchingService;
 
 class RecommendationService
 {
+    private AIJobMatchingService $aiJobMatchingService;
     private ?string $apiKey;
     private string $baseUrl;
     private string $certPath;
@@ -21,11 +23,14 @@ class RecommendationService
     private const REVIEW_COMMENT_MAX_LEN = 200;
     private const CACHE_TTL_HOURS = 24;
     private const MAX_PROCESS_TIME = 20;
-    private const EMPLOYER_WORKER_LIMIT = 15;
-    private const WORKER_JOB_LIMIT = 25;
+    /** Max seconds for employer recommendation loop (must stay under PHP time_limit to avoid fatal) */
+    private const EMPLOYER_REQUEST_DEADLINE_SEC = 50;
+    private const EMPLOYER_WORKER_LIMIT = 12;
+    private const WORKER_JOB_LIMIT = 15;
 
-    public function __construct()
+    public function __construct(AIJobMatchingService $aiJobMatchingService)
     {
+        $this->aiJobMatchingService = $aiJobMatchingService;
         $this->apiKey = config('services.groq.api_key');
         $this->baseUrl = rtrim(config('services.groq.base_url', 'https://api.groq.com/openai/v1'), '/');
         $this->certPath = base_path('cacert.pem');
@@ -140,46 +145,70 @@ class RecommendationService
      */
     public function getJobRecommendationsForEmployer(GigJob $job, int $limit = 5, bool $refresh = false): array
     {
-        $query = User::query()
-            ->where('user_type', 'gig_worker')
-            ->whereNotNull('skills_with_experience')
-            ->with(['receivedReviews' => fn($q) => $q->latest()->limit(self::REVIEW_SNIPPET_LIMIT)]);
+        $logPath = base_path('debug-385a6b.log');
+        try {
+            $rankedMatches = $this->aiJobMatchingService->findMatchingFreelancers($job, self::EMPLOYER_WORKER_LIMIT);
+            $bidderIds = $job->bids()->pluck('gig_worker_id')->toArray();
+            $workers = $rankedMatches->pluck('gig_worker')->filter(fn($w) => !in_array($w->id, $bidderIds))->values();
 
-        $workers = $query->limit(self::EMPLOYER_WORKER_LIMIT)->get();
+            // #region agent log
+            @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'S1','location'=>'RecommendationService::getJobRecommendationsForEmployer','message'=>'workers loaded','data'=>['workers_count'=>$workers->count()],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
 
-        $jobSkills = $this->getJobSkillsForPrompt($job);
-        $jobText = $this->buildJobText($job, $jobSkills);
+            $jobSkills = $this->getJobSkillsForPrompt($job);
+            // #region agent log
+            @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'S2','location'=>'RecommendationService::getJobRecommendationsForEmployer','message'=>'after getJobSkillsForPrompt','data'=>['required_count'=>count($jobSkills['required']??[])],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
+            $jobText = $this->buildJobText($job, $jobSkills);
+            // #region agent log
+            @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'S3','location'=>'RecommendationService::getJobRecommendationsForEmployer','message'=>'after buildJobText','data'=>['jobText_len'=>strlen($jobText)],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
 
-        $matches = [];
-        $startTime = microtime(true);
-
-        foreach ($workers as $worker) {
-            if ((microtime(true) - $startTime) > self::MAX_PROCESS_TIME) {
-                Log::warning('RecommendationService employer timeout', ['job_id' => $job->id]);
-                break;
+            $matches = [];
+            $startTime = microtime(true);
+            $deadline = $startTime + self::EMPLOYER_REQUEST_DEADLINE_SEC;
+            $workerIndex = 0;
+            foreach ($workers as $worker) {
+                if (microtime(true) >= $deadline) {
+                    Log::warning('RecommendationService employer deadline', ['job_id' => $job->id, 'matches_so_far' => count($matches)]);
+                    break;
+                }
+                if ((microtime(true) - $startTime) > self::MAX_PROCESS_TIME) {
+                    Log::warning('RecommendationService employer timeout', ['job_id' => $job->id]);
+                    break;
+                }
+                // #region agent log
+                if ($workerIndex === 0) {
+                    @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'S4','location'=>'RecommendationService::getJobRecommendationsForEmployer','message'=>'first worker start','data'=>['worker_id'=>$worker->id],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+                }
+                $workerIndex++;
+                // #endregion
+                $result = $this->getWorkerRecommendationScore($job, $jobText, $jobSkills, $worker, $refresh, $deadline);
+                if ($result['success'] && $result['score'] > 0) {
+                    $matches[] = [
+                        'gig_worker' => $worker,
+                        'score' => $result['score'],
+                        'reason' => $result['reason'],
+                    ];
+                }
+                if (count($matches) >= $limit * 2 && ($result['score'] ?? 0) >= 70) {
+                    break;
+                }
             }
 
-            $result = $this->getWorkerRecommendationScore($job, $jobText, $jobSkills, $worker, $refresh);
-            if ($result['success'] && $result['score'] > 0) {
-                $matches[] = [
-                    'gig_worker' => $worker,
-                    'score' => $result['score'],
-                    'reason' => $result['reason'],
-                ];
-            }
-            if (count($matches) >= $limit * 2 && ($result['score'] ?? 0) >= 70) {
-                break;
-            }
+            usort($matches, fn($a, $b) => $b['score'] - $a['score']);
+            return array_slice($matches, 0, $limit);
+        } catch (\Throwable $e) {
+            @file_put_contents($logPath, json_encode(['sessionId'=>'385a6b','hypothesisId'=>'S5','location'=>'RecommendationService::getJobRecommendationsForEmployer','message'=>'catch','data'=>['exception'=>get_class($e),'msg'=>substr($e->getMessage(),0,200),'file'=>$e->getFile(),'line'=>$e->getLine()],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+            throw $e;
         }
-
-        usort($matches, fn($a, $b) => $b['score'] - $a['score']);
-        return array_slice($matches, 0, $limit);
     }
 
     /**
      * Single worker recommendation score for employer (competence + trust)
+     * @param float|null $deadline Optional Unix timestamp; if within 12s of deadline, skip Groq and use fallback
      */
-    private function getWorkerRecommendationScore(GigJob $job, string $jobText, array $jobSkills, User $worker, bool $refresh): array
+    private function getWorkerRecommendationScore(GigJob $job, string $jobText, array $jobSkills, User $worker, bool $refresh, ?float $deadline = null): array
     {
         $cacheKey = "recommendation_employer_{$job->id}_{$worker->id}";
         if (!$refresh && Cache::has($cacheKey)) {
@@ -187,6 +216,10 @@ class RecommendationService
         }
 
         if (!$this->isConfigured) {
+            return $this->fallbackEmployerScore($job, $jobSkills, $worker);
+        }
+
+        if ($deadline !== null && microtime(true) >= $deadline - 12) {
             return $this->fallbackEmployerScore($job, $jobSkills, $worker);
         }
 
@@ -198,7 +231,6 @@ class RecommendationService
 
         $workerText = "Worker: {$worker->professional_title}\n"
             . "Skills: {$workerSkillsText}\n"
-            . "Experience level: " . ($worker->experience_level ?? 'Not specified') . "\n"
             . "Hourly rate: ₱" . ($worker->hourly_rate ?? 'Not set') . "\n"
             . "Bio: " . \Illuminate\Support\Str::limit($worker->bio ?? 'None', 150) . "\n"
             . "--- TRUST ---\n"
@@ -274,7 +306,7 @@ class RecommendationService
 
         $workerSkills = $this->normalizeWorkerSkills($gigWorker->skills_with_experience);
         $workerText = "Worker profile: {$gigWorker->professional_title}\nSkills: " . $this->formatSkillsForPrompt($workerSkills)
-            . "\nExperience: " . ($gigWorker->experience_level ?? 'Not specified') . "\nRate: ₱" . ($gigWorker->hourly_rate ?? 'Not set');
+            . "\nRate: ₱" . ($gigWorker->hourly_rate ?? 'Not set');
 
         $matches = [];
         $startTime = microtime(true);
@@ -403,13 +435,21 @@ class RecommendationService
     /**
      * Call Groq with failover
      */
+    /** Max seconds for a single callGroq attempt (avoids one call exhausting request time via model failover) */
+    private const GROQ_CALL_MAX_SEC = 18;
+
     private function callGroq(string $systemPrompt, string $userPrompt, string $context): ?array
     {
+        $callStart = microtime(true);
         foreach ($this->models as $modelConfig) {
+            if (microtime(true) - $callStart > self::GROQ_CALL_MAX_SEC) {
+                Log::warning('RecommendationService Groq call time cap reached', ['context' => $context]);
+                return null;
+            }
             try {
                 $response = Http::withToken($this->apiKey)
                     ->withOptions(['verify' => file_exists($this->certPath) ? $this->certPath : true])
-                    ->timeout(str_contains($modelConfig['name'], 'qwen') ? 25 : 15)
+                    ->timeout(12)
                     ->post($this->baseUrl . '/chat/completions', [
                         'model' => $modelConfig['name'],
                         'messages' => [

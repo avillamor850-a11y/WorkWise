@@ -1,3 +1,5 @@
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
+
 // ─── Stat Item (Reusable for review) ──────────────────────────────────────────
 function ReviewItem({ label, value, icon, darkMode = false }) {
     return (
@@ -42,13 +44,16 @@ export default function EmployerStep5Review({ data, onSubmit, onBack, submitting
                     <div className="p-5 space-y-4">
                         <div className="flex flex-col md:flex-row gap-6 items-start">
                             <div className={`w-24 h-24 rounded-full border-2 overflow-hidden shrink-0 ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-100'}`}>
-                                {data.profile_picture_preview ? (
-                                    <img src={data.profile_picture_preview} alt="Profile" className="w-full h-full object-cover" />
+                                {(() => {
+                                    const src = resolveProfileImageUrl(data.profile_picture_preview) || data.profile_picture_preview;
+                                    return src ? (
+                                    <img src={src} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className={`w-full h-full flex items-center justify-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                                         <span className="material-icons text-4xl">business</span>
                                     </div>
-                                )}
+                                );
+                                })()}
                             </div>
                             <div className="flex-grow min-w-0">
                                 <p className={`text-base font-medium ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{data.company_name || 'Individual Employer'}</p>

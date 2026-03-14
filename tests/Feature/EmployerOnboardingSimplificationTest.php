@@ -346,6 +346,46 @@ class EmployerOnboardingSimplificationTest extends TestCase
     }
 
     /**
+     * Test that primary_hiring_needs must be from the allowed service list
+     */
+    public function test_primary_hiring_needs_rejects_invalid_services(): void
+    {
+        $data = $this->getValidEmployerData();
+        $data['step'] = 4;
+        $data['primary_hiring_needs'] = ['Invalid Service Not In List'];
+
+        $response = $this->actingAs($this->employer)
+            ->post(route('employer.onboarding.store'), $data);
+
+        $response->assertSessionHasErrors();
+        $errors = session('errors');
+        $this->assertTrue(
+            $errors->has('primary_hiring_needs.0') || $errors->has('primary_hiring_needs'),
+            'Expected validation error for invalid service'
+        );
+    }
+
+    /**
+     * Test that valid service names are normalized to canonical casing
+     */
+    public function test_primary_hiring_needs_normalized_to_canonical_names(): void
+    {
+        $data = $this->getValidEmployerData();
+        $data['step'] = 4;
+        $data['primary_hiring_needs'] = ['web development', 'content writing', 'SEO & Digital Marketing'];
+
+        $response = $this->actingAs($this->employer)
+            ->post(route('employer.onboarding.store'), $data);
+
+        $response->assertSessionHasNoErrors();
+        $this->employer->refresh();
+        $this->assertEqualsCanonicalizing(
+            ['Web Development', 'Content Writing', 'SEO & Digital Marketing'],
+            $this->employer->primary_hiring_needs
+        );
+    }
+
+    /**
      * Helper method to get valid employer onboarding data
      */
     protected function getValidEmployerData(): array

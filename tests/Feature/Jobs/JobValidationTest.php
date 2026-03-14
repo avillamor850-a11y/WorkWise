@@ -115,6 +115,32 @@ class JobValidationTest extends TestCase
         $this->assertContains('Laravel', $job->required_skills);
     }
 
+    public function test_experience_level_is_derived_from_skills_requirements_when_omitted(): void
+    {
+        $employer = $this->createEmployer();
+        $this->actingAs($employer);
+
+        $response = $this->post('/jobs', [
+            'title' => 'Derived Experience Job',
+            'description' => str_repeat('a', 120),
+            'skills_requirements' => [
+                ['skill' => 'PHP', 'experience_level' => 'expert', 'importance' => 'required'],
+                ['skill' => 'Laravel', 'experience_level' => 'expert', 'importance' => 'required'],
+                ['skill' => 'Vue.js', 'experience_level' => 'intermediate', 'importance' => 'required'],
+            ],
+            'budget_type' => 'fixed',
+            'budget_min' => 50,
+            'budget_max' => 100,
+            'estimated_duration_days' => 7,
+            'is_remote' => true,
+        ]);
+
+        $response->assertStatus(302);
+        $job = \App\Models\GigJob::where('title', 'Derived Experience Job')->firstOrFail();
+        // Derived from required skills: most common is expert (2), so job.experience_level should be expert
+        $this->assertEquals('expert', $job->experience_level);
+    }
+
     // Task 6.1: Test job creation flow
     public function test_create_job_with_only_required_skills(): void
     {

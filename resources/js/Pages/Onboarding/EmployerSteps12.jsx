@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 // ─── Step 1: Welcome ─────────────────────────────────────────────────────────
 function EmployerStep1Welcome({ onNext, onSkip, darkMode = false }) {
@@ -100,6 +101,18 @@ function EmployerStep1Welcome({ onNext, onSkip, darkMode = false }) {
 function EmployerStep2Identity({ data, setData, errors, industries, onNext, onBack, darkMode = false }) {
     const fileRef = useRef(null);
     const [preview, setPreview] = useState(data.profile_picture_preview || null);
+
+    // Sync preview when parent has server URL (e.g. after refresh or going back)
+    useEffect(() => {
+        const fromParent = data.profile_picture_preview;
+        if (!fromParent) return;
+        if (fromParent.startsWith('blob:')) return; // keep local blob
+        const resolved = resolveProfileImageUrl(fromParent);
+        // #region agent log
+        if (fromParent || resolved) fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cc0bd8'},body:JSON.stringify({sessionId:'cc0bd8',location:'EmployerSteps12.jsx:step2_sync',message:'Step2 preview sync',data:{fromParent,resolved},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+        // #endregion
+        setPreview(resolved || fromParent);
+    }, [data.profile_picture_preview]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -206,14 +219,20 @@ function EmployerStep2Identity({ data, setData, errors, industries, onNext, onBa
                             <h3 className={`text-sm font-semibold mb-6 self-start lg:self-center ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Logo / Avatar (Optional)</h3>
                             <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
                                 <div className={`w-48 h-48 rounded-full border-4 border-dashed flex items-center justify-center transition-all overflow-hidden relative ${darkMode ? 'border-gray-600 bg-gray-700 group-hover:bg-gray-600' : 'border-gray-300 bg-gray-50 group-hover:bg-gray-100'}`}>
-                                    {preview ? (
-                                        <img src={preview} alt="Profile" className="w-full h-full object-cover" />
+                                    {(() => {
+                                        const displayUrl = preview && preview.startsWith('blob:') ? preview : (resolveProfileImageUrl(data.profile_picture_preview) || data.profile_picture_preview || preview);
+                                        // #region agent log
+                                        if (displayUrl) fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cc0bd8'},body:JSON.stringify({sessionId:'cc0bd8',location:'EmployerSteps12.jsx:step2_display',message:'Step2 display URL',data:{preview: preview?.slice(0,50), displayUrl: displayUrl?.slice(0,80), fromData: data.profile_picture_preview?.slice(0,50)},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+                                        // #endregion
+                                        return displayUrl ? (
+                                        <img src={displayUrl} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="text-center p-4">
                                             <span className={`material-icons text-5xl mb-2 group-hover:text-blue-500 transition-colors block ${darkMode ? 'text-gray-500' : 'text-gray-300'}`}>business</span>
                                             <p className={`text-xs font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>No photo uploaded</p>
                                         </div>
-                                    )}
+                                    );
+                                    })()}
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                         <span className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-800'}`}>Upload</span>
                                     </div>

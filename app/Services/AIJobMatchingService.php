@@ -25,16 +25,27 @@ class AIJobMatchingService
     {
         $gigWorkers = User::where('user_type', 'gig_worker')
             ->where('profile_completed', true)
+            ->whereNotNull('skills_with_experience')
+            ->with(['receivedReviews', 'gigWorkerProjects'])
+            ->limit(500)
             ->get();
 
-        return $gigWorkers->map(function ($gigWorker) use ($job) {
+        $maxScoringSec = 25;
+        $scoringStart = microtime(true);
+        $scored = [];
+        foreach ($gigWorkers as $gigWorker) {
+            if (microtime(true) - $scoringStart > $maxScoringSec) {
+                break;
+            }
             $score = $this->calculateMatchScore($job, $gigWorker);
-            return [
+            $scored[] = [
                 'gig_worker' => $gigWorker,
                 'match_score' => $score,
                 'match_reasons' => $this->getMatchReasons($job, $gigWorker, $score)
             ];
-        })
+        }
+
+        return collect($scored)
         ->filter(fn($match) => $match['match_score'] > 0.1) // Show more matches (10% threshold)
         ->sortByDesc('match_score')
         ->take($limit)
@@ -74,22 +85,30 @@ class AIJobMatchingService
      */
     private function getFreelancerSkills(User $gigWorker): array
     {
-        if (empty($gigWorker->skills_with_experience)) {
+        $raw = $gigWorker->skills_with_experience;
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($raw) || empty($raw)) {
             return [];
         }
 
-        return array_map(function($item) {
+        return array_map(function ($item) {
+            $item = is_array($item) ? $item : ['skill' => (string) $item, 'experience_level' => 'intermediate'];
+            $skill = strtolower(trim($item['skill'] ?? ''));
+            $level = $item['experience_level'] ?? 'intermediate';
             return [
-                'skill' => strtolower(trim($item['skill'])),
-                'experience_level' => $item['experience_level'] ?? 'intermediate',
-                'weight' => match($item['experience_level'] ?? 'intermediate') {
+                'skill' => $skill,
+                'experience_level' => $level,
+                'weight' => match ($level) {
                     'beginner' => 1.0,
                     'intermediate' => 1.5,
                     'expert' => 2.0,
                     default => 1.0
                 }
             ];
-        }, $gigWorker->skills_with_experience);
+        }, $raw);
     }
 
     /**

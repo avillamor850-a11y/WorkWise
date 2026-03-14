@@ -256,6 +256,7 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
     // Onboarding routes - Gig Worker
     Route::get('/onboarding/gig-worker', [GigWorkerOnboardingController::class, 'show'])->name('gig-worker.onboarding');
     Route::post('/onboarding/gig-worker', [GigWorkerOnboardingController::class, 'store'])->name('gig-worker.onboarding.store');
+    Route::post('/onboarding/gig-worker/upload-profile-picture', [GigWorkerOnboardingController::class, 'uploadProfilePicture'])->name('gig-worker.onboarding.upload-profile-picture');
     Route::post('/onboarding/gig-worker/skip', [GigWorkerOnboardingController::class, 'skip'])->name('gig-worker.onboarding.skip');
 
     Route::get('/onboarding/employer', [EmployerOnboardingController::class, 'show'])->name('employer.onboarding');

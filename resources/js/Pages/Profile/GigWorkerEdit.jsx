@@ -1,17 +1,9 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
-import { useState, useRef, useCallback } from 'react';
-
-// ─── Skill tag list (reused from onboarding) ─────────────────────────────────
-const SUGGESTED_SKILLS = [
-    'JavaScript', 'TypeScript', 'React', 'Vue.js', 'PHP', 'Laravel', 'Python',
-    'Node.js', 'SQL', 'UI Design', 'UX Research', 'Figma', 'Photoshop',
-    'Video Editing', 'Content Writing', 'SEO', 'Social Media', 'Data Entry',
-    'Customer Support', 'Excel', 'Project Management', 'Accounting', 'Marketing',
-    'Mobile Development', 'Android', 'iOS', 'Flutter', 'Graphic Design',
-    'Illustration', 'Branding', 'Copywriting', 'Translation',
-];
+import { useState, useRef, useCallback, useEffect } from 'react';
+import useSkillPipeline from '@/Hooks/useSkillPipeline.js';
+import FuzzySkillPrompt from '@/Components/FuzzySkillPrompt';
 
 const PROFICIENCY_OPTIONS = [
     { value: 'beginner', label: 'Beginner', color: 'bg-green-100 text-green-700' },
@@ -49,26 +41,69 @@ function Section({ title, icon, children, dark = false }) {
 // ─── Skills editor ────────────────────────────────────────────────────────────
 function SkillsEditor({ skills, onChange, dark = false }) {
     const [search, setSearch] = useState('');
+    const debounceRef = useRef(null);
+
+    const {
+        suggestions,
+        loadSuggestions,
+        validateAndAdd,
+        isValidating,
+        validationError,
+        setValidationError,
+        fuzzyPrompt,
+        acceptFuzzy,
+        rejectFuzzy,
+        dismissFuzzy,
+    } = useSkillPipeline();
+
+    useEffect(() => {
+        clearTimeout(debounceRef.current);
+        if (search.trim().length >= 1) {
+            debounceRef.current = setTimeout(() => loadSuggestions(search.trim()), 250);
+        }
+        return () => clearTimeout(debounceRef.current);
+    }, [search, loadSuggestions]);
 
     const filtered = search.trim()
-        ? SUGGESTED_SKILLS.filter(
-            (s) => s.toLowerCase().includes(search.toLowerCase()) && !skills.find(sk => sk.skill === s)
-        )
+        ? suggestions
+            .filter((s) => {
+                const str = typeof s === 'string' ? s : String(s);
+                return str.toLowerCase().includes(search.toLowerCase()) && !skills.find(sk => sk.skill && sk.skill.trim().toLowerCase() === str.trim().toLowerCase());
+            })
+            .map(s => typeof s === 'string' ? s : String(s))
+            .slice(0, 8)
         : [];
 
-    const addSkill = (skillName) => {
-        if (!skills.find(s => s.skill === skillName)) {
-            onChange([...skills, { skill: skillName, proficiency: 'beginner', category: null }]);
+    const addVerifiedSkill = useCallback((skillName) => {
+        const trimmed = (skillName || '').trim();
+        if (!trimmed) return;
+        if (skills.find(s => s.skill && s.skill.trim().toLowerCase() === trimmed.toLowerCase())) {
+            setSearch('');
+            return;
         }
+        onChange([...skills, { skill: trimmed, proficiency: 'intermediate', category: null }]);
         setSearch('');
-    };
+    }, [skills, onChange]);
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && search.trim()) {
-            e.preventDefault();
-            addSkill(search.trim());
+    const handleKeyDown = useCallback(async (e) => {
+        if (e.key !== 'Enter' || !search.trim()) return;
+        e.preventDefault();
+        const trimmed = search.trim();
+        if (skills.find(s => s.skill && s.skill.trim().toLowerCase() === trimmed.toLowerCase())) {
+            setSearch('');
+            return;
         }
-    };
+        const isVerified = suggestions.some(s => (typeof s === 'string' ? s : String(s)).toLowerCase() === trimmed.toLowerCase());
+        if (isVerified) {
+            const canonical = suggestions.find(s => (typeof s === 'string' ? s : String(s)).toLowerCase() === trimmed.toLowerCase()) || trimmed;
+            addVerifiedSkill(canonical);
+            return;
+        }
+        const result = await validateAndAdd(trimmed);
+        if (result && result.skill) {
+            addVerifiedSkill(result.skill);
+        }
+    }, [search, skills, suggestions, validateAndAdd, addVerifiedSkill]);
 
     const removeSkill = (idx) => {
         onChange(skills.filter((_, i) => i !== idx));
@@ -88,6 +123,26 @@ function SkillsEditor({ skills, onChange, dark = false }) {
 
     return (
         <div className="space-y-4">
+            {fuzzyPrompt && (
+                <FuzzySkillPrompt
+                    prompt={fuzzyPrompt}
+                    onAccept={acceptFuzzy}
+                    onReject={rejectFuzzy}
+                    onDismiss={dismissFuzzy}
+                    variant={dark ? 'dark' : 'light'}
+                />
+            )}
+
+            {validationError && (
+                <div className={`rounded-xl p-4 flex items-start gap-3 border ${dark ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-200'}`}>
+                    <span className="material-icons text-red-500 mt-0.5">error_outline</span>
+                    <p className={`flex-1 text-sm ${dark ? 'text-red-300' : 'text-red-700'}`}>{validationError}</p>
+                    <button type="button" onClick={() => setValidationError(null)} className={dark ? 'text-red-400 hover:text-red-300' : 'text-red-400 hover:text-red-600'}>
+                        <span className="material-icons text-sm">close</span>
+                    </button>
+                </div>
+            )}
+
             <div className="relative">
                 <span className={`absolute left-3 top-1/2 -translate-y-1/2 material-icons text-base ${dark ? 'text-gray-500' : 'text-gray-400'}`}>search</span>
                 <input
@@ -95,16 +150,17 @@ function SkillsEditor({ skills, onChange, dark = false }) {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Search or type a skill, press Enter to add"
-                    className={dark ? "w-full pl-9 pr-4 py-2.5 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none" : "w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"}
+                    placeholder={isValidating ? "Checking…" : "Search or type a skill, press Enter to add"}
+                    disabled={isValidating}
+                    className={dark ? "w-full pl-9 pr-4 py-2.5 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none disabled:opacity-70" : "w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-70"}
                 />
                 {filtered.length > 0 && (
                     <div className={`absolute top-full left-0 right-0 z-20 mt-1 rounded-lg shadow-lg max-h-40 overflow-y-auto ${dark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
-                        {filtered.slice(0, 8).map((s) => (
+                        {filtered.map((s) => (
                             <button
                                 key={s}
                                 type="button"
-                                onClick={() => addSkill(s)}
+                                onClick={() => addVerifiedSkill(s)}
                                 className={`w-full text-left px-3 py-2 text-sm ${dark ? 'text-gray-200 hover:bg-blue-500/20 hover:text-blue-400' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'}`}
                             >
                                 {s}

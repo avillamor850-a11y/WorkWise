@@ -348,7 +348,7 @@ export default function Recommendations({
                             return false;
                         }
 
-                        if (!matchesSkillFilter(gigWorker.skills)) {
+                        if (!matchesSkillFilter(gigWorker.skills_with_experience ?? gigWorker.skills)) {
                             return false;
                         }
 

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -205,7 +206,30 @@ class EmployerOnboardingController extends Controller
             'hiring_frequency' => 'required|in:one_time,occasional,regular,ongoing',
         ]);
 
-        $user->primary_hiring_needs = $validated['primary_hiring_needs'];
+        $allowed = $this->getServiceCategories();
+        $normalized = [];
+        $errors = [];
+        foreach ($validated['primary_hiring_needs'] as $index => $value) {
+            $trimmed = trim((string) $value);
+            $canonical = null;
+            foreach ($allowed as $c) {
+                if (strcasecmp($trimmed, $c) === 0) {
+                    $canonical = $c;
+                    break;
+                }
+            }
+            if ($canonical !== null) {
+                $normalized[] = $canonical;
+            } else {
+                $errors["primary_hiring_needs.{$index}"] = 'Select a service from the list.';
+            }
+        }
+        if (\count($errors) > 0) {
+            throw ValidationException::withMessages($errors);
+        }
+        $normalized = array_values(array_unique($normalized));
+
+        $user->primary_hiring_needs = $normalized;
         $user->primary_hiring_skills = $validated['primary_hiring_skills'] ?? [];
         $user->typical_project_budget = $validated['typical_project_budget'];
         $user->typical_project_duration = $validated['typical_project_duration'];

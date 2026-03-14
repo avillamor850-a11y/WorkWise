@@ -142,7 +142,7 @@ class GigJobController extends Controller
             'budget_type' => 'required|in:fixed,hourly',
             'budget_min' => 'required|numeric|min:5',
             'budget_max' => 'required|numeric|min:5|gte:budget_min',
-            'experience_level' => 'required|in:beginner,intermediate,expert',
+            'experience_level' => 'nullable|in:beginner,intermediate,expert',
             'job_complexity' => 'nullable|in:simple,moderate,complex,expert',
             'estimated_duration_days' => 'required|integer|min:1',
             'deadline' => 'nullable|date|after:today',
@@ -159,6 +159,9 @@ class GigJobController extends Controller
                 fn($skill) => $skill['skill'],
                 $validated['skills_requirements']
             );
+            $validated['experience_level'] = $this->deriveExperienceLevelFromSkills($validated['skills_requirements']);
+        } else {
+            $validated['experience_level'] = $validated['experience_level'] ?? 'intermediate';
         }
 
         $job = GigJob::create($validated);
@@ -245,7 +248,7 @@ class GigJobController extends Controller
             'budget_type' => 'sometimes|required|in:fixed,hourly',
             'budget_min' => 'sometimes|required|numeric|min:0',
             'budget_max' => 'sometimes|nullable|numeric|min:0|gte:budget_min',
-            'experience_level' => 'sometimes|required|in:beginner,intermediate,expert',
+            'experience_level' => 'sometimes|nullable|in:beginner,intermediate,expert',
             'job_complexity' => 'sometimes|nullable|in:simple,moderate,complex,expert',
             'estimated_duration_days' => 'sometimes|nullable|integer|min:1',
             'deadline' => 'sometimes|nullable|date|after:today',
@@ -260,6 +263,7 @@ class GigJobController extends Controller
                 fn($skill) => $skill['skill'],
                 $validated['skills_requirements']
             );
+            $validated['experience_level'] = $this->deriveExperienceLevelFromSkills($validated['skills_requirements']);
         }
 
         $job->update($validated);
@@ -268,6 +272,33 @@ class GigJobController extends Controller
 
         return redirect()->route('jobs.show', $job)
             ->with('success', 'Job updated successfully!');
+    }
+
+    /**
+     * Derive job-level experience from skills_requirements (required skills only).
+     * Returns most common experience_level; on tie, prefers expert > intermediate > beginner.
+     */
+    private function deriveExperienceLevelFromSkills(array $skillsRequirements): string
+    {
+        $required = array_filter($skillsRequirements, fn($s) => is_array($s) && (($s['importance'] ?? 'required') === 'required'));
+        if (empty($required)) {
+            return 'intermediate';
+        }
+        $levels = array_map(fn($s) => $s['experience_level'] ?? 'intermediate', $required);
+        $counts = array_count_values($levels);
+        $order = ['expert' => 3, 'intermediate' => 2, 'beginner' => 1];
+        $best = 'intermediate';
+        $bestCount = 0;
+        $bestOrder = 0;
+        foreach ($counts as $level => $count) {
+            $o = $order[$level] ?? 0;
+            if ($count > $bestCount || ($count === $bestCount && $o > $bestOrder)) {
+                $best = $level;
+                $bestCount = $count;
+                $bestOrder = $o;
+            }
+        }
+        return $best;
     }
 
     /**

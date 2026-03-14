@@ -13,6 +13,10 @@ return [
     | framework. This connection is utilized if another isn't explicitly
     | specified when running a cache operation inside the application.
     |
+    | For production, use a persistent driver (e.g. redis or file) so that
+    | AI recommendation and match caches survive deploys and reduce load time.
+    | Set CACHE_STORE=redis or CACHE_STORE=file in .env accordingly.
+    |
     */
 
     'default' => env('CACHE_STORE', 'database'),

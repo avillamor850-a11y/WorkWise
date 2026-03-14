@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import CsrfSync from '@/Components/CsrfSync';
 import { useTheme } from '@/Contexts/ThemeContext';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 import { Step1Welcome, Step2ProfessionalInfo } from './Steps12';
 import { Step3Skills, Step4Portfolio, Step5Review } from './Steps345';
 
@@ -25,26 +26,19 @@ export default function GigWorkerOnboarding({ user, currentStep = 1 }) {
         skills_with_experience: user.skills_with_experience || [],
         portfolio_link: user.portfolio_link || '',
         resume_file: null,
-        resume_file_name: null,
+        resume_file_name: user.resume_file ? (typeof user.resume_file === 'string' ? user.resume_file.split('/').pop() : 'Resume uploaded') : null,
     });
 
     const setData = (key, value) => setDataState(prev => ({ ...prev, [key]: value }));
 
     // Build FormData from current state.
-    // Files (profile_picture, resume_file) are only sent on the step where
-    // they were selected. Step 5 sends text-only data as a safety net, since
-    // File objects from earlier steps can't be reliably re-submitted.
-    const buildFormData = (stepNum, isDraft = false) => {
+    // When skipFiles is true (e.g. auto-save), only text/skills are sent so File objects are not re-submitted.
+    const buildFormData = (stepNum, isDraft = false, skipFiles = false) => {
         const fd = new FormData();
         fd.append('step', stepNum);
         fd.append('is_draft', isDraft ? '1' : '0');
 
         if (csrfToken) fd.append('_token', csrfToken);
-
-        // #region agent log
-        const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
-        fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9c1f58'},body:JSON.stringify({sessionId:'9c1f58',location:'GigWorkerOnboarding.jsx:buildFormData',message:'CSRF token source',data:{stepNum,propsPrefix:(props?.csrf_token||'').slice(0,8),metaPrefix:(metaToken||'').slice(0,8),usedPrefix:(csrfToken||'').slice(0,8)},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
 
         // Text fields — always send all of them so any step is a complete snapshot
         fd.append('professional_title', data.professional_title || '');
@@ -53,17 +47,45 @@ export default function GigWorkerOnboarding({ user, currentStep = 1 }) {
         fd.append('skills_with_experience', JSON.stringify(data.skills_with_experience || []));
         fd.append('portfolio_link', data.portfolio_link || '');
 
-        // File fields — only include on the step where they were selected.
-        // Do NOT re-send on step 5 (File objects may be stale/invalid by then).
-        if (stepNum <= 4 && data.profile_picture_file) {
-            fd.append('profile_picture', data.profile_picture_file);
-        }
-        if (stepNum === 4 && data.resume_file) {
-            fd.append('resume_file', data.resume_file);
+        if (!skipFiles) {
+            if (stepNum <= 4 && data.profile_picture_file) {
+                fd.append('profile_picture', data.profile_picture_file);
+            }
+            if (stepNum === 4 && data.resume_file) {
+                fd.append('resume_file', data.resume_file);
+            }
         }
 
         return fd;
     };
+
+    // Auto-save draft when form data changes (debounced). Skip step 1; do not send files.
+    // Use fetch() instead of router.post() so the server's JSON response is consumed here and
+    // Inertia does not show "plain JSON response" modal (draft endpoint returns JSON, not Inertia).
+    const autoSaveTimeoutRef = useRef(null);
+    useEffect(() => {
+        if (step === 1) return;
+        // Step 2 backend requires professional_title and bio; skip auto-save until they have minimal data
+        if (step === 2 && (!(data.professional_title || '').trim() || (data.bio || '').length < 10)) return;
+        autoSaveTimeoutRef.current = window.setTimeout(() => {
+            const body = buildFormData(step, true, true);
+            const headers = { Accept: 'application/json' };
+            if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
+            fetch(route('gig-worker.onboarding.store'), { method: 'POST', body, headers })
+                .then((res) => res.json())
+                .catch(() => {});
+        }, 1500);
+        return () => {
+            if (autoSaveTimeoutRef.current) window.clearTimeout(autoSaveTimeoutRef.current);
+        };
+    }, [
+        step,
+        data.professional_title,
+        data.hourly_rate,
+        data.bio,
+        data.portfolio_link,
+        JSON.stringify(data.skills_with_experience || []),
+    ]);
 
     // Validate current step before proceeding
     const validate = (stepNum) => {
@@ -98,6 +120,10 @@ export default function GigWorkerOnboarding({ user, currentStep = 1 }) {
         const currentStep = step;
         setStep(s => s + 1);
         window.scrollTo(0, 0);
+
+        // #region agent log
+        if (currentStep === 2) fetch('http://127.0.0.1:7560/ingest/bdc59389-da51-4b88-b2c4-11c7655b3c93',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'683d70'},body:JSON.stringify({sessionId:'683d70',location:'GigWorkerOnboarding.jsx:handleNext',message:'POST step 2',data:{currentStep,professional_title:(data.professional_title||'').slice(0,30),hourly_rate:data.hourly_rate,bioLen:(data.bio||'').length},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
 
         router.post(route('gig-worker.onboarding.store'), buildFormData(currentStep), {
             forceFormData: true,
@@ -208,7 +234,7 @@ export default function GigWorkerOnboarding({ user, currentStep = 1 }) {
                             <div className={`h-8 w-[1px] hidden sm:block ${isDark ? 'bg-gray-600' : 'bg-gray-200'}`} />
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white flex items-center justify-center text-sm font-bold shadow-md">
                                 {data.profile_picture_preview
-                                    ? <img src={data.profile_picture_preview} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                                    ? <img src={(data.profile_picture_preview.startsWith && data.profile_picture_preview.startsWith('blob:')) ? data.profile_picture_preview : (resolveProfileImageUrl(data.profile_picture_preview) || data.profile_picture_preview)} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                                     : initials}
                             </div>
                         </div>
@@ -241,6 +267,7 @@ export default function GigWorkerOnboarding({ user, currentStep = 1 }) {
                         onSaveDraft={handleSaveDraft}
                         saving={saving}
                         darkMode={isDark}
+                        csrfToken={csrfToken}
                     />
                 )}
                 {step === 3 && (

@@ -216,7 +216,7 @@ export default function GigWorkerProfile({ user, status, jobContext, pastProject
                                     )}
                                 </div>
                                 <div className="text-center md:text-left mb-0 md:mb-0">
-                                    <h1 className="text-2xl font-bold text-white flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                                    <h1 className="text-2xl font-bold text-white flex items-center justify-center md:justify-start gap-2 flex-wrap uppercase">
                                         {user.name}
                                         {user.profile_completed && (
                                             <span className="material-icons text-blue-400 text-xl" title="Verified">verified</span>
