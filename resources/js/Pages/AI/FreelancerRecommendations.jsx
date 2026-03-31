@@ -31,7 +31,7 @@ export default function FreelancerRecommendations({ recommendations, user }) {
             header={
                 <div>
                     <h2 className="font-semibold text-xl text-gray-800 leading-tight">
-                        🤖 AI Job Recommendations
+                        AI Job Recommendations
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">
                         Personalized job matches based on your skills and preferences

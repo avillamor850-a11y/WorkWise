@@ -2,11 +2,12 @@ import InputError from '@/Components/InputError';
 import GoogleAuthButton from '@/Components/GoogleAuthButton';
 import WorkWiseNavBrand from '@/Components/WorkWiseNavBrand';
 import { useTheme } from '@/Contexts/ThemeContext';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase';
 
 export default function Login({ status, canResetPassword }) {
+    const { flash } = usePage().props;
     const { theme, setTheme } = useTheme();
     const isDark = theme === 'dark';
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
@@ -241,6 +242,11 @@ export default function Login({ status, canResetPassword }) {
                             {status && (
                                 <div className={`mt-6 p-4 rounded-lg text-sm border ${isDark ? 'bg-blue-900/50 border-blue-700 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                                     {status}
+                                </div>
+                            )}
+                            {flash?.error && (
+                                <div className={`mt-6 p-4 rounded-lg text-sm border ${isDark ? 'bg-red-900/50 border-red-700 text-red-200' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                                    {flash.error}
                                 </div>
                             )}
                         </div>

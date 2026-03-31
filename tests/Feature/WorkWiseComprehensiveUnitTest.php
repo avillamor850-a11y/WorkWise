@@ -951,6 +951,16 @@ class WorkWiseComprehensiveUnitTest extends TestCase
         $response->assertRedirect();
     }
 
+    public function test_suspended_user_next_web_request_redirects_to_login_with_message()
+    {
+        $this->gigWorker->update(['profile_status' => 'rejected']);
+
+        $response = $this->actingAs($this->gigWorker)->get(route('dashboard'));
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error', 'Your account has been suspended. Please contact support.');
+    }
+
     // ============================================
     // CASE-052: User Management - Activate Suspended User
     // ============================================

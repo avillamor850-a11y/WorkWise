@@ -118,7 +118,7 @@ class NotificationService
         return $this->create([
             'user_id' => $user->id,
             'type' => 'ai_recommendation',
-            'title' => '🤖 AI Match Found!',
+            'title' => 'AI Match Found!',
             'message' => "We found a great match for you: '{$recommendationData['job_title']}'.",
             'data' => $recommendationData,
             'action_url' => route('jobs.show', $recommendationData['job_id']),

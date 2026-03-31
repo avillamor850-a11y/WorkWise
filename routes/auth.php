@@ -11,6 +11,8 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\RoleSelectionController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -19,7 +21,7 @@ Route::middleware('guest')->group(function () {
         ->name('role.selection');
 
     Route::post('role-selection', [RoleSelectionController::class, 'store'])
-        ->withoutMiddleware(['csrf'])
+        ->withoutMiddleware([ValidateCsrfToken::class, VerifyCsrfToken::class])
         ->name('role.store');
 
 

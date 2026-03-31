@@ -69,7 +69,7 @@ const NotificationIcon = ({ type }) => {
 };
 
 export default function AuthenticatedLayout({ header, children, pageTheme }) {
-    const { auth, flash: rawFlash, errors: pageErrors = {} } = usePage().props;
+    const { auth, flash: rawFlash, errors: pageErrors = {}, employerOpenJobsForNav = [] } = usePage().props;
     const flash = rawFlash || {};
     const user = auth.user;
     const { theme: globalTheme, setTheme } = useTheme();
@@ -129,7 +129,14 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
     const isDashboardActive = ['/dashboard', '/gig-worker/dashboard', '/employer/dashboard', '/admin']
         .some(prefix => window.location.pathname.startsWith(prefix));
 
+    const employerAiRecQualityBase = safeRoute('ai.recommendations.employer.quality', '/ai-recommendations/employer');
+    const employerAiRecJobsNav = Array.isArray(employerOpenJobsForNav) ? employerOpenJobsForNav : [];
+
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
+        useState(false);
+    const [showingEmployerAiRecNavDropdown, setShowingEmployerAiRecNavDropdown] =
+        useState(false);
+    const [showingMobileEmployerAiRecJobs, setShowingMobileEmployerAiRecJobs] =
         useState(false);
     const [showingNotificationsDropdown, setShowingNotificationsDropdown] =
         useState(false);
@@ -491,11 +498,23 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
             if (showingMessagesDropdown && !event.target.closest('.messages-dropdown')) {
                 setShowingMessagesDropdown(false);
             }
+            if (showingEmployerAiRecNavDropdown && !event.target.closest('.employer-ai-rec-nav-dropdown')) {
+                setShowingEmployerAiRecNavDropdown(false);
+            }
         };
 
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
-    }, [showingNotificationsDropdown, showingMessagesDropdown]);
+    }, [showingNotificationsDropdown, showingMessagesDropdown, showingEmployerAiRecNavDropdown]);
+
+    useEffect(() => {
+        if (!showingEmployerAiRecNavDropdown) return;
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') setShowingEmployerAiRecNavDropdown(false);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [showingEmployerAiRecNavDropdown]);
 
 
     // Real-time polling with consolidated heartbeat
@@ -684,15 +703,62 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                         >
                                             AI Match
                                         </Link>
-                                        <Link
-                                            href={safeRoute('ai.recommendations.employer.quality', '/ai-recommendations/employer')}
-                                            className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.employer.quality')
-                                                ? 'text-blue-400'
-                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
-                                                }`}
-                                        >
-                                            AI Recommendations
-                                        </Link>
+                                        <div className="relative employer-ai-rec-nav-dropdown">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setShowingEmployerAiRecNavDropdown((v) => !v);
+                                                }}
+                                                className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.employer.quality')
+                                                    ? 'text-blue-400'
+                                                    : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
+                                                    }`}
+                                                aria-expanded={showingEmployerAiRecNavDropdown}
+                                                aria-haspopup="true"
+                                            >
+                                                AI Recommendations
+                                            </button>
+                                            {showingEmployerAiRecNavDropdown && (
+                                                <div className={`absolute left-0 mt-2 min-w-[16rem] max-w-xs max-h-72 overflow-y-auto rounded-lg shadow-lg z-50 ${effectiveTheme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+                                                    {employerAiRecJobsNav.length === 0 ? (
+                                                        <div className={`px-4 py-3 text-sm ${effectiveTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                            <p className="mb-2">No open jobs yet.</p>
+                                                            <Link
+                                                                href="/jobs/create"
+                                                                onClick={() => setShowingEmployerAiRecNavDropdown(false)}
+                                                                className={`font-medium ${effectiveTheme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+                                                            >
+                                                                Post a Job
+                                                            </Link>
+                                                        </div>
+                                                    ) : (
+                                                        <ul className="py-1">
+                                                            {employerAiRecJobsNav.map((job) => (
+                                                                <li key={job.id}>
+                                                                    <Link
+                                                                        href={`${employerAiRecQualityBase}?job_id=${job.id}`}
+                                                                        onClick={() => setShowingEmployerAiRecNavDropdown(false)}
+                                                                        className={`block px-4 py-2.5 text-sm text-left transition-colors ${effectiveTheme === 'dark'
+                                                                            ? 'text-gray-100 hover:bg-gray-700'
+                                                                            : 'text-gray-900 hover:bg-gray-100'
+                                                                            }`}
+                                                                    >
+                                                                        <span className="font-medium line-clamp-2">{job.title}</span>
+                                                                        {job.created_at && (
+                                                                            <span className={`block text-xs mt-0.5 ${effectiveTheme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                                                {new Date(job.created_at).toLocaleDateString()}
+                                                                            </span>
+                                                                        )}
+                                                                    </Link>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </>
                                 )}
 
@@ -1211,6 +1277,67 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                             >
                                 Post a Job
                             </Link>
+                        )}
+
+                        {isEmployer && (
+                            <Link
+                                href={safeRoute('ai.recommendations.employer', '/aimatch/employer')}
+                                className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${window.route.current('ai.recommendations.employer') && !window.location.pathname.startsWith('/ai-recommendations')
+                                    ? 'text-blue-400 bg-gray-700'
+                                    : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
+                                    }`}
+                            >
+                                AI Match
+                            </Link>
+                        )}
+
+                        {isEmployer && (
+                            <div className="employer-ai-rec-nav-dropdown-mobile">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowingMobileEmployerAiRecJobs((v) => !v)}
+                                    className={`w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-left ${window.route.current('ai.recommendations.employer.quality')
+                                        ? 'text-blue-400 bg-gray-700'
+                                        : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
+                                        }`}
+                                    aria-expanded={showingMobileEmployerAiRecJobs}
+                                >
+                                    AI Recommendations
+                                </button>
+                                {showingMobileEmployerAiRecJobs && (
+                                    <div className={`mt-1 ml-2 pl-2 border-l ${effectiveTheme === 'dark' ? 'border-gray-700' : 'border-gray-200'} space-y-1`}>
+                                        {employerAiRecJobsNav.length === 0 ? (
+                                            <div className={`px-3 py-2 text-xs ${effectiveTheme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                <p className="mb-2">No open jobs.</p>
+                                                <Link
+                                                    href="/jobs/create"
+                                                    onClick={() => {
+                                                        setShowingMobileEmployerAiRecJobs(false);
+                                                        setShowingNavigationDropdown(false);
+                                                    }}
+                                                    className={`font-medium ${effectiveTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}
+                                                >
+                                                    Post a Job
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            employerAiRecJobsNav.map((job) => (
+                                                <Link
+                                                    key={job.id}
+                                                    href={`${employerAiRecQualityBase}?job_id=${job.id}`}
+                                                    onClick={() => {
+                                                        setShowingMobileEmployerAiRecJobs(false);
+                                                        setShowingNavigationDropdown(false);
+                                                    }}
+                                                    className={`block px-3 py-2 text-sm rounded-md transition-colors ${effectiveTheme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                                                >
+                                                    <span className="font-medium line-clamp-2">{job.title}</span>
+                                                </Link>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                         {/* Common mobile navigation */}

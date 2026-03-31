@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\GigJob;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -53,6 +54,10 @@ class HandleInertiaRequests extends Middleware
         }
         if (str_starts_with($stored, 'http://') || str_starts_with($stored, 'https://')) {
             return $stored;
+        }
+        // Local public disk (fallback when Supabase is unavailable)
+        if (str_starts_with($stored, '/storage/') && !str_starts_with($stored, '/storage/supabase/')) {
+            return url($stored);
         }
         $path = ltrim(str_replace('/supabase/', '', $stored), '/');
         if ($path === '') {
@@ -138,6 +143,26 @@ class HandleInertiaRequests extends Middleware
             ];
         }
 
+        $employerOpenJobsForNav = [];
+        if ($request->user() && $request->user()->user_type === 'employer') {
+            $employerOpenJobsForNav = GigJob::query()
+                ->where('employer_id', $request->user()->id)
+                ->where('status', 'open')
+                ->where(function ($q) {
+                    $q->where('hidden_by_admin', false)->orWhereNull('hidden_by_admin');
+                })
+                ->orderByDesc('created_at')
+                ->limit(50)
+                ->get(['id', 'title', 'created_at'])
+                ->map(fn (GigJob $job) => [
+                    'id' => $job->id,
+                    'title' => $job->title,
+                    'created_at' => $job->created_at?->toAtomString(),
+                ])
+                ->values()
+                ->all();
+        }
+
         return [
             ...parent::share($request),
             'csrf_token' => csrf_token(),
@@ -145,6 +170,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
                 'needsEmailVerification' => $request->user() ? is_null($request->user()->email_verified_at) : false,
             ],
+            'employerOpenJobsForNav' => $employerOpenJobsForNav,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

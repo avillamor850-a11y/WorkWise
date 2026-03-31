@@ -66,12 +66,42 @@ class ProfileController extends Controller
         if (str_starts_with($stored, 'http://') || str_starts_with($stored, 'https://')) {
             return $stored;
         }
+        // Local public disk (fallback when Supabase is unavailable)
+        if (str_starts_with($stored, '/storage/') && !str_starts_with($stored, '/storage/supabase/')) {
+            return url($stored);
+        }
         // Strip the leading /supabase/ prefix and build the proxy URL
         $path = ltrim(str_replace('/supabase/', '', $stored), '/');
         if ($path === '') {
             return null;
         }
         return url('/storage/supabase/' . $path);
+    }
+
+    /**
+     * Remove a previously stored profile picture or resume from Supabase or local public disk.
+     */
+    private function deleteGigWorkerStoredFile(?string $stored): void
+    {
+        if (!$stored || !is_string($stored)) {
+            return;
+        }
+        $stored = trim($stored);
+        if ($stored === '') {
+            return;
+        }
+        if (str_starts_with($stored, '/supabase/')) {
+            $oldPath = str_replace('/supabase/', '', $stored);
+            Storage::disk('supabase')->delete($oldPath);
+
+            return;
+        }
+        if (str_starts_with($stored, '/storage/') && !str_starts_with($stored, '/storage/supabase/')) {
+            $rel = ltrim(substr($stored, strlen('/storage/')), '/');
+            if ($rel !== '') {
+                Storage::disk('public')->delete($rel);
+            }
+        }
     }
 
     /**
@@ -395,19 +425,21 @@ class ProfileController extends Controller
         // ── Profile picture upload ─────────────────────────────────────────
         if ($request->hasFile('profile_picture')) {
             try {
-                if ($user->profile_picture && str_starts_with($user->profile_picture, '/supabase/')) {
-                    $oldPath = str_replace('/supabase/', '', $user->profile_picture);
-                    Storage::disk('supabase')->delete($oldPath);
-                }
+                $this->deleteGigWorkerStoredFile($user->profile_picture ?? $user->profile_photo);
                 $path = Storage::disk('supabase')->putFile('profiles/' . $user->id, $request->file('profile_picture'));
                 if ($path) {
                     $user->profile_picture = '/supabase/' . $path;
-                    $user->profile_photo   = '/supabase/' . $path;
+                    $user->profile_photo = '/supabase/' . $path;
                 } else {
-                    Log::error('GigWorkerEdit: profile picture upload returned null path', ['user_id' => $user->id]);
-                    throw ValidationException::withMessages([
-                        'profile_picture' => 'Profile picture upload failed. Please try again or use a different image.',
+                    Log::warning('GigWorkerEdit: Supabase profile picture upload returned empty; using public disk', [
+                        'user_id' => $user->id,
                     ]);
+                    $localPath = $request->file('profile_picture')->store('profiles/' . $user->id, 'public');
+                    if (!$localPath) {
+                        throw new \RuntimeException('Public disk profile picture store failed');
+                    }
+                    $user->profile_picture = '/storage/' . $localPath;
+                    $user->profile_photo = '/storage/' . $localPath;
                 }
             } catch (ValidationException $e) {
                 throw $e;
@@ -422,13 +454,18 @@ class ProfileController extends Controller
         // ── Resume upload ─────────────────────────────────────────────────
         if ($request->hasFile('resume_file')) {
             try {
-                if ($user->resume_file && str_starts_with($user->resume_file, '/supabase/')) {
-                    $oldPath = str_replace('/supabase/', '', $user->resume_file);
-                    Storage::disk('supabase')->delete($oldPath);
-                }
+                $this->deleteGigWorkerStoredFile($user->resume_file);
                 $path = Storage::disk('supabase')->putFile('resumes/' . $user->id, $request->file('resume_file'));
                 if ($path) {
                     $user->resume_file = '/supabase/' . $path;
+                } else {
+                    Log::warning('GigWorkerEdit: Supabase resume upload returned empty; using public disk', [
+                        'user_id' => $user->id,
+                    ]);
+                    $localPath = $request->file('resume_file')->store('resumes/' . $user->id, 'public');
+                    if ($localPath) {
+                        $user->resume_file = '/storage/' . $localPath;
+                    }
                 }
             } catch (\Exception $e) {
                 Log::error('GigWorkerEdit: resume upload failed (non-fatal): ' . $e->getMessage());

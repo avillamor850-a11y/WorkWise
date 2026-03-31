@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RejectSuspendedUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PaymentController;
@@ -25,8 +26,8 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working']);
 });
 
-// Authenticated API Routes
-Route::middleware('auth:sanctum')->group(function () {
+// Authenticated API Routes (RejectSuspendedUser after sanctum so $request->user() is set)
+Route::middleware(['auth:sanctum', RejectSuspendedUser::class])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -56,6 +57,6 @@ Route::match(['GET', 'POST'], '/ai/test-connection', [AIRecommendationController
 Route::get('/test-recommendations', function() {
     return response()->json(['test' => 'works']);
 });
-Route::post('/recommendations/skills', [AIRecommendationController::class, 'recommendSkills'])->middleware('auth');
-Route::post('/recommendations/skills/accept', [AIRecommendationController::class, 'acceptSuggestion'])->middleware('auth');
-Route::get('/recommendations/skills/all', [AIRecommendationController::class, 'allSkills'])->middleware('auth');
+Route::post('/recommendations/skills', [AIRecommendationController::class, 'recommendSkills'])->middleware(['auth', RejectSuspendedUser::class]);
+Route::post('/recommendations/skills/accept', [AIRecommendationController::class, 'acceptSuggestion'])->middleware(['auth', RejectSuspendedUser::class]);
+Route::get('/recommendations/skills/all', [AIRecommendationController::class, 'allSkills'])->middleware(['auth', RejectSuspendedUser::class]);

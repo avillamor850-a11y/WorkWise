@@ -2,28 +2,41 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Cache;
 use App\Models\GigJob;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class MatchService
 {
+    private GroqBatchJsonClient $groqBatch;
+
     private ?string $apiKey;
+
     private string $model;
+
     private string $baseUrl;
+
     private string $certPath;
+
     private bool $isConfigured;
 
     private array $models;
 
-    public function __construct()
+    private const EMPLOYER_MATCH_BATCH_HTTP_TIMEOUT = 55;
+
+    private const EMPLOYER_MATCH_BATCH_MAX_TOKENS = 4096;
+
+    private const EMPLOYER_MATCH_BATCH_BUDGET_SEC = 90;
+
+    public function __construct(?GroqBatchJsonClient $groqBatch = null)
     {
-        $this->apiKey = env('GROQ_API_KEY');
-        $this->baseUrl = 'https://api.groq.com/openai/v1';
+        $this->groqBatch = $groqBatch ?? app(GroqBatchJsonClient::class);
+        $this->apiKey = config('services.groq.api_key');
+        $this->baseUrl = rtrim(config('services.groq.base_url', 'https://api.groq.com/openai/v1'), '/');
         $this->certPath = base_path('cacert.pem');
-        $this->isConfigured = !empty($this->apiKey);
+        $this->isConfigured = ! empty($this->apiKey);
 
         // Define models and their parameters in priority order
         $this->models = [
@@ -56,13 +69,13 @@ class MatchService
                 'temperature' => 1.0,
                 'max_completion_tokens' => 1024,
                 'top_p' => 1.0,
-            ]
+            ],
         ];
 
         // Default to the first model just for logging purposes
         $this->model = $this->models[0]['name'];
 
-        if (!$this->isConfigured) {
+        if (! $this->isConfigured) {
             Log::warning('GROQ_API_KEY is not configured. AI matching will use fallback mode.');
         } else {
             Log::info('AI matching configured with Groq API and multi-model failover.');
@@ -71,8 +84,7 @@ class MatchService
 
     /**
      * Extract job skills for matching, prioritizing structured data
-     * 
-     * @param GigJob $job
+     *
      * @return array ['required' => [...], 'preferred' => [...], 'all_skill_names' => [...]]
      */
     private function getJobSkillsForMatching(GigJob $job): array
@@ -82,22 +94,21 @@ class MatchService
         if (is_string($skillsReqs)) {
             $skillsReqs = json_decode($skillsReqs, true);
         }
-        if (!is_array($skillsReqs)) {
+        if (! is_array($skillsReqs)) {
             $skillsReqs = [];
         }
 
         // Prioritize skills_requirements (structured data)
-        if (!empty($skillsReqs)) {
-            $required = array_filter($skillsReqs, fn($s) =>
-                is_array($s) && (($s['importance'] ?? 'required') === 'required')
+        if (! empty($skillsReqs)) {
+            $required = array_filter($skillsReqs, fn ($s) => is_array($s) && (($s['importance'] ?? 'required') === 'required')
             );
-            $preferred = array_filter($skillsReqs, fn($s) =>
-                is_array($s) && (($s['importance'] ?? 'required') === 'preferred')
+            $preferred = array_filter($skillsReqs, fn ($s) => is_array($s) && (($s['importance'] ?? 'required') === 'preferred')
             );
             $allSkillNames = array_values(array_map(function ($s) {
                 if (is_array($s)) {
                     return trim((string) ($s['skill'] ?? $s[0] ?? ''));
                 }
+
                 return trim((string) $s);
             }, $skillsReqs));
             $allSkillNames = array_filter($allSkillNames);
@@ -107,7 +118,7 @@ class MatchService
             $firstPref = array_values($preferred)[0] ?? null;
             $reqHasExp = $firstReq !== null ? array_key_exists('experience_level', $firstReq) : 'n/a';
             $prefHasExp = $firstPref !== null ? array_key_exists('experience_level', $firstPref) : 'n/a';
-            @file_put_contents(base_path('debug-8533e5.log'), json_encode(['sessionId'=>'8533e5','hypothesisId'=>'H3','location'=>'MatchService::getJobSkillsForMatching','message'=>'skills_requirements branch','data'=>['job_id'=>$job->id,'branch'=>'skills_requirements','required_count'=>count($required),'preferred_count'=>count($preferred),'first_required_has_experience_level'=>$reqHasExp,'first_preferred_has_experience_level'=>$prefHasExp],'timestamp'=>time()*1000])."\n", FILE_APPEND | LOCK_EX);
+            @file_put_contents(base_path('debug-8533e5.log'), json_encode(['sessionId' => '8533e5', 'hypothesisId' => 'H3', 'location' => 'MatchService::getJobSkillsForMatching', 'message' => 'skills_requirements branch', 'data' => ['job_id' => $job->id, 'branch' => 'skills_requirements', 'required_count' => count($required), 'preferred_count' => count($preferred), 'first_required_has_experience_level' => $reqHasExp, 'first_preferred_has_experience_level' => $prefHasExp], 'timestamp' => time() * 1000])."\n", FILE_APPEND | LOCK_EX);
             // #endregion
 
             $defaultLevel = $job->experience_level ?? 'intermediate';
@@ -124,10 +135,10 @@ class MatchService
             return [
                 'required' => $normalize($required),
                 'preferred' => $normalize($preferred),
-                'all_skill_names' => array_values($allSkillNames)
+                'all_skill_names' => array_values($allSkillNames),
             ];
         }
-        
+
         // Fallback to required_skills (legacy)
         $rawSkills = $job->required_skills ?? [];
 
@@ -145,29 +156,28 @@ class MatchService
             if (is_array($skill)) {
                 return trim((string) ($skill['skill'] ?? $skill[0] ?? ''));
             }
+
             return '';
         }, (array) $rawSkills)));
 
         $defaultExperienceLevel = $job->experience_level ?? 'intermediate';
 
-        $required = array_map(fn($skill) => [
-            'skill'            => $skill,
+        $required = array_map(fn ($skill) => [
+            'skill' => $skill,
             'experience_level' => $defaultExperienceLevel,
-            'importance'       => 'required',
+            'importance' => 'required',
         ], $requiredSkills);
-        
+
         return [
             'required' => $required,
             'preferred' => [],
-            'all_skill_names' => $requiredSkills
+            'all_skill_names' => $requiredSkills,
         ];
     }
 
     /**
      * Compare experience levels and return difference
-     * 
-     * @param string $workerLevel
-     * @param string $requiredLevel
+     *
      * @return int Positive if worker exceeds requirement, negative if below, 0 if equal
      */
     private function compareExperienceLevels(string $workerLevel, string $requiredLevel): int
@@ -175,17 +185,13 @@ class MatchService
         $levels = ['beginner' => 1, 'intermediate' => 2, 'expert' => 3];
         $workerValue = $levels[strtolower($workerLevel)] ?? 2;
         $requiredValue = $levels[strtolower($requiredLevel)] ?? 2;
-        
+
         return $workerValue - $requiredValue;
     }
 
     /**
      * Find a specific skill in worker's skill set.
      * Handles structured arrays, indexed arrays, and plain strings.
-     *
-     * @param array $workerSkills
-     * @param string $skillName
-     * @return array|null
      */
     private function findWorkerSkill(array $workerSkills, string $skillName): ?array
     {
@@ -201,7 +207,7 @@ class MatchService
                 $candidateName = $skill['skill'] ?? $skill[0] ?? null;
                 if ($candidateName !== null && strtolower((string) $candidateName) === $skillNameLower) {
                     return [
-                        'skill'            => (string) $candidateName,
+                        'skill' => (string) $candidateName,
                         'experience_level' => $skill['experience_level'] ?? $skill[1] ?? 'intermediate',
                     ];
                 }
@@ -213,34 +219,34 @@ class MatchService
 
     /**
      * Calculate skill match score with experience level consideration
-     * 
-     * @param array $jobSkills Result from getJobSkillsForMatching()
-     * @param array $workerSkills Worker's skills_with_experience array
+     *
+     * @param  array  $jobSkills  Result from getJobSkillsForMatching()
+     * @param  array  $workerSkills  Worker's skills_with_experience array
      * @return array ['score' => int, 'details' => array, 'required_matches' => int, 'required_total' => int, 'preferred_matches' => int]
      */
     private function calculateSkillMatchScore(array $jobSkills, array $workerSkills): array
     {
         $score = 0;
         $matchDetails = [];
-        
+
         // Required skills matching (70% weight)
         $requiredMatches = 0;
         $requiredTotal = count($jobSkills['required']);
-        
+
         foreach ($jobSkills['required'] as $requiredSkill) {
             $skillName = $requiredSkill['skill'];
             $requiredLevel = $requiredSkill['experience_level'] ?? 'intermediate';
-            
+
             // Check if worker has this skill
             $workerSkill = $this->findWorkerSkill($workerSkills, $skillName);
-            
+
             if ($workerSkill) {
                 $requiredMatches++;
                 $workerLevel = $workerSkill['experience_level'] ?? 'intermediate';
-                
+
                 // Bonus for experience level match
                 $levelComparison = $this->compareExperienceLevels($workerLevel, $requiredLevel);
-                
+
                 if ($levelComparison >= 0) {
                     $score += 10; // Experience level meets or exceeds requirement
                     $matchDetails[] = "✓ {$skillName} ({$workerLevel})";
@@ -250,45 +256,44 @@ class MatchService
                 }
             }
         }
-        
-        $requiredScore = $requiredTotal > 0 
-            ? ($requiredMatches / $requiredTotal) * 70 
+
+        $requiredScore = $requiredTotal > 0
+            ? ($requiredMatches / $requiredTotal) * 70
             : 0;
-        
+
         // Preferred skills matching (30% weight)
         $preferredMatches = 0;
         $preferredTotal = count($jobSkills['preferred']);
-        
+
         foreach ($jobSkills['preferred'] as $preferredSkill) {
             $skillName = $preferredSkill['skill'];
             $workerSkill = $this->findWorkerSkill($workerSkills, $skillName);
-            
+
             if ($workerSkill) {
                 $preferredMatches++;
                 $matchDetails[] = "+ {$skillName} (bonus)";
             }
         }
-        
-        $preferredScore = $preferredTotal > 0 
-            ? ($preferredMatches / $preferredTotal) * 30 
+
+        $preferredScore = $preferredTotal > 0
+            ? ($preferredMatches / $preferredTotal) * 30
             : 30; // Full bonus if no preferred skills specified
-        
+
         return [
             'score' => (int) min(100, $requiredScore + $preferredScore + $score),
             'details' => $matchDetails,
             'required_matches' => $requiredMatches,
             'required_total' => $requiredTotal,
-            'preferred_matches' => $preferredMatches
+            'preferred_matches' => $preferredMatches,
         ];
     }
 
     /**
      * Generate human-readable match explanation from match details
      *
-     * @param array $matchResult Result from calculateSkillMatchScore()
-     * @param array $jobSkills Result from getJobSkillsForMatching()
-     * @param string $audience 'worker' (you/your) or 'employer' (candidate/they)
-     * @return string
+     * @param  array  $matchResult  Result from calculateSkillMatchScore()
+     * @param  array  $jobSkills  Result from getJobSkillsForMatching()
+     * @param  string  $audience  'worker' (you/your) or 'employer' (candidate/they)
      */
     private function generateMatchExplanation(array $matchResult, array $jobSkills, string $audience = 'worker'): string
     {
@@ -307,8 +312,8 @@ class MatchService
                 $explanations[] = "Matches {$matchResult['required_matches']} of {$matchResult['required_total']} required skills ({$requiredPercent}%)";
             } else {
                 $explanations[] = $forEmployer
-                    ? "Missing required skills; candidate may need to upskill"
-                    : "Missing required skills - consider upskilling";
+                    ? 'Missing required skills; candidate may need to upskill'
+                    : 'Missing required skills - consider upskilling';
             }
         }
 
@@ -318,7 +323,7 @@ class MatchService
         }
 
         // Specific skill details
-        if (!empty($matchResult['details'])) {
+        if (! empty($matchResult['details'])) {
             $detailsText = implode(', ', array_slice($matchResult['details'], 0, 5));
             $explanations[] = $detailsText;
         }
@@ -335,12 +340,12 @@ class MatchService
                         break;
                     }
                 }
-                if (!$found) {
+                if (! $found) {
                     $missingSkills[] = $requiredSkill['skill'];
                 }
             }
 
-            if (!empty($missingSkills)) {
+            if (! empty($missingSkills)) {
                 $missingList = implode(', ', array_slice($missingSkills, 0, 3));
                 $explanations[] = $forEmployer
                     ? "Candidate could strengthen profile with: {$missingList}"
@@ -354,28 +359,28 @@ class MatchService
     /**
      * Get match score between a job and a gig worker using keyword matching as fallback
      *
-     * @param string $audience 'worker' (you/your) or 'employer' (candidate/they)
+     * @param  string  $audience  'worker' (you/your) or 'employer' (candidate/they)
      */
     private function getFallbackMatch(GigJob $job, User $gigWorker, string $audience = 'worker'): array
     {
         $forEmployer = $audience === 'employer';
         // Try to use structured skill matching if available
         $jobSkills = $this->getJobSkillsForMatching($job);
-        
+
         $workerSkills = $this->normalizeSkills($gigWorker->skills_with_experience);
-        
+
         // If worker has structured skills, use the new matching algorithm
-        if (is_array($workerSkills) && !empty($workerSkills) && !empty($jobSkills['all_skill_names'])) {
+        if (is_array($workerSkills) && ! empty($workerSkills) && ! empty($jobSkills['all_skill_names'])) {
             $matchResult = $this->calculateSkillMatchScore($jobSkills, $workerSkills);
             $explanation = $this->generateMatchExplanation($matchResult, $jobSkills, $audience);
-            
+
             return [
                 'score' => (int) round($matchResult['score']),
                 'reason' => $explanation,
-                'success' => true
+                'success' => true,
             ];
         }
-        
+
         // Legacy fallback for workers without structured skills
         $score = 0;
         $reasons = [];
@@ -388,7 +393,7 @@ class MatchService
                 'reason' => $forEmployer
                     ? 'Basic profile match - consider this candidate for general opportunities'
                     : 'Basic profile match - consider for general opportunities',
-                'success' => true
+                'success' => true,
             ];
         }
 
@@ -398,13 +403,13 @@ class MatchService
 
         // Direct matches (most important)
         $matchingSkills = array_intersect($gigWorkerSkills, $jobSkillsLower);
-        
+
         // Quick partial matching (limit to prevent timeout)
         $partialMatches = [];
         $maxPartialChecks = min(5, count($jobSkillsLower)); // Limit partial match checks
-        
+
         foreach (array_slice($jobSkillsLower, 0, $maxPartialChecks) as $jobSkill) {
-            if (!in_array($jobSkill, $matchingSkills)) {
+            if (! in_array($jobSkill, $matchingSkills)) {
                 foreach ($gigWorkerSkills as $gigWorkerSkill) {
                     if (strlen($jobSkill) > 3 && strlen($gigWorkerSkill) > 3) {
                         if (str_contains($gigWorkerSkill, $jobSkill) || str_contains($jobSkill, $gigWorkerSkill)) {
@@ -433,7 +438,7 @@ class MatchService
         $gigWorkerLevel = $experienceLevels[$gigWorker->experience_level] ?? 2; // Default to intermediate
 
         $levelDiff = abs($jobLevel - $gigWorkerLevel);
-        $experienceScore = match($levelDiff) {
+        $experienceScore = match ($levelDiff) {
             0 => 100, // Perfect match
             1 => 75,  // One level off
             default => 50 // Two or more levels off
@@ -442,45 +447,46 @@ class MatchService
 
         // Build reason text with more positive language
         if (count($matchingSkills) > 0) {
-            $reasons[] = "Strong match on " . count($matchingSkills) . " key skills: " . implode(', ', $matchingSkills);
+            $reasons[] = 'Strong match on '.count($matchingSkills).' key skills: '.implode(', ', $matchingSkills);
         }
         if (count($partialMatches) > 0) {
-            $reasons[] = "Partial match on " . count($partialMatches) . " related skills: " . implode(', ', $partialMatches);
+            $reasons[] = 'Partial match on '.count($partialMatches).' related skills: '.implode(', ', $partialMatches);
         }
         if ($levelDiff === 0) {
-            $reasons[] = "Perfect experience level alignment";
+            $reasons[] = 'Perfect experience level alignment';
         } elseif ($levelDiff === 1) {
-            $reasons[] = "Good experience level fit";
+            $reasons[] = 'Good experience level fit';
         } else {
-            $reasons[] = "Experience level considered";
+            $reasons[] = 'Experience level considered';
         }
 
         // Add bonus for having skills even if not perfect match
         if (count($gigWorkerSkills) > 0 && $score < 30) {
             $score += 20; // Bonus for having any relevant skills
-            $reasons[] = $forEmployer ? "Candidate shows relevant technical background" : "Shows relevant technical background";
+            $reasons[] = $forEmployer ? 'Candidate shows relevant technical background' : 'Shows relevant technical background';
         }
 
         $defaultReason = $forEmployer ? 'Candidate shows potential for this role' : 'Profile shows potential for this role';
+
         return [
             'score' => (int) min(100, round($score)), // Cap at 100
             'reason' => count($reasons) > 0
                 ? implode('. ', $reasons)
                 : $defaultReason,
-            'success' => true
+            'success' => true,
         ];
     }
 
     /**
      * Get match score between a job and a gig worker
      *
-     * @param string $audience 'worker' (you/your) or 'employer' (candidate/they)
-     * @param bool $refresh when true, bypass cache and regenerate insight/score from latest data
+     * @param  string  $audience  'worker' (you/your) or 'employer' (candidate/they)
+     * @param  bool  $refresh  when true, bypass cache and regenerate insight/score from latest data
      */
     public function getJobMatch(GigJob $job, User $gigWorker, string $audience = 'worker', bool $refresh = false): array
     {
         // If OpenRouter is not configured, use fallback matching
-        if (!$this->isConfigured) {
+        if (! $this->isConfigured) {
             return $this->getFallbackMatch($job, $gigWorker, $audience);
         }
 
@@ -490,55 +496,54 @@ class MatchService
             : "match_score_{$job->id}_{$gigWorker->id}";
 
         // When refresh=1, skip cache so we read latest DB data and regenerate insight/score
-        if (!$refresh && Cache::has($cacheKey)) {
+        if (! $refresh && Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
         }
 
         try {
             // Get structured job skills
             $jobSkills = $this->getJobSkillsForMatching($job);
-            
+
             // Build required skills text with experience levels
             $requiredSkillsText = '';
-            if (!empty($jobSkills['required'])) {
-                $requiredSkillsList = array_map(fn($s) => 
-                    "{$s['skill']} ({$s['experience_level']})", 
+            if (! empty($jobSkills['required'])) {
+                $requiredSkillsList = array_map(fn ($s) => "{$s['skill']} ({$s['experience_level']})",
                     $jobSkills['required']
                 );
                 $requiredSkillsText = implode(', ', $requiredSkillsList);
             } else {
                 $requiredSkillsText = implode(', ', $jobSkills['all_skill_names']);
             }
-            
+
             // Build preferred skills text if available
             $preferredSkillsText = '';
-            if (!empty($jobSkills['preferred'])) {
-                $preferredSkillsList = array_map(fn($s) => 
-                    "{$s['skill']} ({$s['experience_level']})", 
+            if (! empty($jobSkills['preferred'])) {
+                $preferredSkillsList = array_map(fn ($s) => "{$s['skill']} ({$s['experience_level']})",
                     $jobSkills['preferred']
                 );
-                $preferredSkillsText = "\nPreferred Skills: " . implode(', ', $preferredSkillsList);
+                $preferredSkillsText = "\nPreferred Skills: ".implode(', ', $preferredSkillsList);
             }
-            
+
             // Prepare job description
-            $jobText = "Job Title: {$job->title}\n" .
-                      "Description: {$job->description}\n" .
-                      "Required Skills: {$requiredSkillsText}" .
-                      $preferredSkillsText . "\n" .
-                      "Experience Level: {$job->experience_level}\n" .
+            $jobText = "Job Title: {$job->title}\n".
+                      "Description: {$job->description}\n".
+                      "Required Skills: {$requiredSkillsText}".
+                      $preferredSkillsText."\n".
+                      "Experience Level: {$job->experience_level}\n".
                       "Budget: ₱{$job->budget_min} - ₱{$job->budget_max} ({$job->budget_type})";
 
             // Prepare gig worker profile with structured skills if available
             $workerSkills = $this->normalizeSkills($gigWorker->skills_with_experience);
             $hourlyRate = $gigWorker->hourly_rate ?? 'Not set';
             $professionalTitle = $gigWorker->professional_title ?? 'Not specified';
-            
+
             // Format worker skills with experience levels
             $workerSkillsText = '';
-            if (!empty($workerSkills)) {
-                $workerSkillsList = array_map(function($s) {
+            if (! empty($workerSkills)) {
+                $workerSkillsList = array_map(function ($s) {
                     $name = is_array($s) ? ($s['skill'] ?? 'Unknown') : $s;
                     $level = is_array($s) ? ($s['experience_level'] ?? 'intermediate') : 'intermediate';
+
                     return "{$name} ({$level})";
                 }, $workerSkills);
                 $workerSkillsText = implode(', ', $workerSkillsList);
@@ -549,11 +554,11 @@ class MatchService
                     : implode(', ', array_column($legacySkills, 'skill'));
             }
 
-            $gigWorkerText = ($audience === 'employer' ? "CANDIDATE PROFILE:\n" : "Your Profile:\n") .
-                            "Professional Title: {$professionalTitle}\n" .
-                            "Skills: {$workerSkillsText}\n" .
-                            "Hourly Rate: ₱{$hourlyRate}\n" .
-                            "Bio: " . substr($gigWorker->bio ?? 'No bio provided', 0, 150);
+            $gigWorkerText = ($audience === 'employer' ? "CANDIDATE PROFILE:\n" : "Your Profile:\n").
+                            "Professional Title: {$professionalTitle}\n".
+                            "Skills: {$workerSkillsText}\n".
+                            "Hourly Rate: ₱{$hourlyRate}\n".
+                            'Bio: '.substr($gigWorker->bio ?? 'No bio provided', 0, 150);
 
             $forEmployer = $audience === 'employer';
             $systemPrompt = $forEmployer
@@ -568,54 +573,55 @@ class MatchService
                 try {
                     $response = Http::withToken($this->apiKey)
                         ->withOptions([
-                            'verify' => $this->certPath
+                            'verify' => $this->certPath,
                         ])
                         ->timeout($modelConfig['name'] === 'qwen/qwen3-32b' ? 45 : 30) // Wait longer for larger token outputs
-                        ->post($this->baseUrl . '/chat/completions', [
+                        ->post($this->baseUrl.'/chat/completions', [
                             'model' => $modelConfig['name'],
                             'messages' => [
                                 [
                                     'role' => 'system',
-                                    'content' => $systemPrompt
+                                    'content' => $systemPrompt,
                                 ],
                                 [
                                     'role' => 'user',
-                                    'content' => $userPrompt
-                                ]
+                                    'content' => $userPrompt,
+                                ],
                             ],
                             'temperature' => $modelConfig['temperature'],
                             'max_completion_tokens' => $modelConfig['max_completion_tokens'],
                             'top_p' => $modelConfig['top_p'],
-                            'stream' => false
+                            'stream' => false,
                         ]);
 
                     if ($response->successful()) {
                         $responseData = $response->json();
-                        
-                        if (!isset($responseData['choices'][0]['message']['content'])) {
+
+                        if (! isset($responseData['choices'][0]['message']['content'])) {
                             continue; // Try next model on invalid structure
                         }
-                        
+
                         $content = $responseData['choices'][0]['message']['content'];
-                        
+
                         preg_match('/Score:\s*(\d+)/i', $content, $scoreMatch);
                         preg_match('/Reason:\s*(.+?)(?=\n\n|\n*$)/ims', $content, $reasonMatch);
 
                         if (empty($scoreMatch[1])) {
-                             continue; // Try next model if parsing fails
+                            continue; // Try next model if parsing fails
                         }
 
                         $result = [
                             'score' => min(100, (int) $scoreMatch[1]), // Cap at 100
                             'reason' => trim($reasonMatch[1] ?? 'No explanation provided'),
                             'success' => true,
-                            'model_used' => $modelConfig['name']
+                            'model_used' => $modelConfig['name'],
                         ];
 
                         Cache::put($cacheKey, $result, now()->addHours(24));
+
                         return $result;
                     }
-                    
+
                     // Specific status code handling for logging
                     if ($response->status() === 429 || $response->status() === 503) {
                         Log::warning("Model {$modelConfig['name']} rate limited/unavailable. Attempting failover...");
@@ -629,15 +635,14 @@ class MatchService
 
             // If all models fail, throw exception to trigger fallback
             throw new \Exception('All Groq models failed to return a valid response.');
-
         } catch (\Exception $e) {
             // #region agent log
-            @file_put_contents(base_path('debug-8533e5.log'), json_encode(['sessionId'=>'8533e5','hypothesisId'=>'H1','location'=>'MatchService::getJobMatch catch','message'=>'AI Match Error caught','data'=>['job_id'=>$job->id,'gig_worker_id'=>$gigWorker->id,'error'=>$e->getMessage()],'timestamp'=>time()*1000])."\n", FILE_APPEND | LOCK_EX);
+            @file_put_contents(base_path('debug-8533e5.log'), json_encode(['sessionId' => '8533e5', 'hypothesisId' => 'H1', 'location' => 'MatchService::getJobMatch catch', 'message' => 'AI Match Error caught', 'data' => ['job_id' => $job->id, 'gig_worker_id' => $gigWorker->id, 'error' => $e->getMessage()], 'timestamp' => time() * 1000])."\n", FILE_APPEND | LOCK_EX);
             // #endregion
             Log::error('AI Match Error', [
                 'job_id' => $job->id,
                 'gig_worker_id' => $gigWorker->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             // Use fallback matching if AI fails
@@ -650,69 +655,161 @@ class MatchService
      */
     public function getJobMatches(GigJob $job, int $limit = 5, bool $randomize = false): array
     {
-        // Limit the number of gig workers to process to prevent timeouts
         $query = User::where('user_type', 'gig_worker')
             ->whereNotNull('skills_with_experience');
-            
+
         if ($randomize) {
             $query->inRandomOrder();
         }
 
-        $gigWorkers = $query->limit(15) // Process max 15 gig workers for AI analysis
-            ->get();
+        $gigWorkers = $query->limit(15)->get();
+
+        $startTime = microtime(true);
+        $byWorkerId = [];
+
+        /** @var list<User> $needAi */
+        $needAi = [];
+        foreach ($gigWorkers as $gigWorker) {
+            $cacheKey = "match_score_{$job->id}_{$gigWorker->id}_employer";
+            if (Cache::has($cacheKey)) {
+                $byWorkerId[$gigWorker->id] = Cache::get($cacheKey);
+            } else {
+                $needAi[] = $gigWorker;
+            }
+        }
+
+        if ($needAi !== [] && $this->isConfigured) {
+            $jobText = $this->buildEmployerJobTextForBatch($job);
+            $blocks = [];
+            foreach ($needAi as $gigWorker) {
+                $blocks[] = $this->buildEmployerWorkerBlockForBatch($gigWorker);
+            }
+
+            $systemPrompt = 'You are an expert AI career advisor for Philippine freelance job matching. You MUST analyze ONLY skills and experience compatibility. SCORING GUIDELINES: Give 80-100 for excellent skill matches (4+ direct skills), 60-79 for good matches (2-3 direct skills), 40-59 for fair matches (1-2 direct skills or many related skills), 20-39 for weak matches (only related/transferable skills), 0-19 for poor matches (minimal relevance). For each candidate use third person for the employer: "This candidate...", "They...". Do NOT use "you" or "your" for the candidate. Use ₱ for currency. Respond with ONLY a valid JSON array (no markdown, no other text). Each element must be: {"gig_worker_id": <number>, "score": <integer 0-100>, "reason": "<2-3 sentences with specific skill matches, experience alignment, and gaps>"}. Include exactly one object per candidate; gig_worker_id must match the ids given. Ignore budget, location, ratings for scoring.';
+
+            $userPrompt = "Match Analysis - Focus ONLY on skills & experience:\n\n📋 JOB REQUIREMENTS:\n{$jobText}\n\nCANDIDATES:\n"
+                .implode("\n---\n", $blocks)
+                ."\n\nBe specific about which skills match and why. Return the JSON array now.";
+
+            $content = $this->groqBatch->postChatContent(
+                $systemPrompt,
+                $userPrompt,
+                $this->models,
+                self::EMPLOYER_MATCH_BATCH_HTTP_TIMEOUT,
+                self::EMPLOYER_MATCH_BATCH_MAX_TOKENS,
+                self::EMPLOYER_MATCH_BATCH_BUDGET_SEC
+            );
+
+            $parsed = $content !== null ? GroqBatchJsonClient::parseWorkerScoreArray($content) : [];
+
+            foreach ($needAi as $gigWorker) {
+                $cacheKey = "match_score_{$job->id}_{$gigWorker->id}_employer";
+                if (isset($parsed[$gigWorker->id])) {
+                    $match = $parsed[$gigWorker->id];
+                    $match['model_used'] = 'groq_batch';
+                    Cache::put($cacheKey, $match, now()->addHours(24));
+                    $byWorkerId[$gigWorker->id] = $match;
+                } else {
+                    $byWorkerId[$gigWorker->id] = $this->getFallbackMatch($job, $gigWorker, 'employer');
+                }
+            }
+        } elseif ($needAi !== []) {
+            foreach ($needAi as $gigWorker) {
+                $byWorkerId[$gigWorker->id] = $this->getFallbackMatch($job, $gigWorker, 'employer');
+            }
+        }
 
         $matches = [];
-        $processedCount = 0;
-        $maxProcessTime = 20; // Max 20 seconds
-        $startTime = microtime(true);
-        
         foreach ($gigWorkers as $gigWorker) {
-            // Check timeout
-            if ((microtime(true) - $startTime) > $maxProcessTime) {
-                Log::warning('AI job matching timeout', [
-                    'job_id' => $job->id,
-                    'processed' => $processedCount
-                ]);
-                break;
-            }
-            
-            // Use AI matching for accurate insights (employer view: third-person candidate-focused reason)
-            $match = $this->getJobMatch($job, $gigWorker, 'employer');
-            $processedCount++;
-            
+            $match = $byWorkerId[$gigWorker->id] ?? $this->getFallbackMatch($job, $gigWorker, 'employer');
             if ($match['success'] && $match['score'] > 0) {
                 $matches[] = [
                     'gig_worker' => $gigWorker,
                     'score' => $match['score'],
-                    'reason' => $match['reason']
+                    'reason' => $match['reason'],
                 ];
-            }
-            
-            // Stop early if we have enough excellent matches
-            if (count($matches) >= $limit * 2 && $match['score'] >= 70) {
-                break;
             }
         }
 
-        // Sort by score descending
-        usort($matches, fn($a, $b) => $b['score'] - $a['score']);
+        usort($matches, fn ($a, $b) => $b['score'] - $a['score']);
 
         Log::info('AI gig worker matches generated', [
             'job_id' => $job->id,
-            'processed_workers' => $processedCount,
+            'processed_workers' => $gigWorkers->count(),
             'matches_found' => count($matches),
             'randomized' => $randomize,
-            'time_taken' => round(microtime(true) - $startTime, 2) . 's'
+            'time_taken' => round(microtime(true) - $startTime, 2).'s',
         ]);
 
-        // Return top matches
         return array_slice($matches, 0, $limit);
+    }
+
+    private function buildEmployerJobTextForBatch(GigJob $job): string
+    {
+        $jobSkills = $this->getJobSkillsForMatching($job);
+
+        $requiredSkillsText = '';
+        if (! empty($jobSkills['required'])) {
+            $requiredSkillsList = array_map(
+                fn ($s) => "{$s['skill']} ({$s['experience_level']})",
+                $jobSkills['required']
+            );
+            $requiredSkillsText = implode(', ', $requiredSkillsList);
+        } else {
+            $requiredSkillsText = implode(', ', $jobSkills['all_skill_names']);
+        }
+
+        $preferredSkillsText = '';
+        if (! empty($jobSkills['preferred'])) {
+            $preferredSkillsList = array_map(
+                fn ($s) => "{$s['skill']} ({$s['experience_level']})",
+                $jobSkills['preferred']
+            );
+            $preferredSkillsText = "\nPreferred Skills: ".implode(', ', $preferredSkillsList);
+        }
+
+        return "Job Title: {$job->title}\n"
+            ."Description: {$job->description}\n"
+            ."Required Skills: {$requiredSkillsText}"
+            .$preferredSkillsText."\n"
+            ."Experience Level: {$job->experience_level}\n"
+            ."Budget: ₱{$job->budget_min} - ₱{$job->budget_max} ({$job->budget_type})";
+    }
+
+    private function buildEmployerWorkerBlockForBatch(User $gigWorker): string
+    {
+        $workerSkills = $this->normalizeSkills($gigWorker->skills_with_experience);
+        $hourlyRate = $gigWorker->hourly_rate ?? 'Not set';
+        $professionalTitle = $gigWorker->professional_title ?? 'Not specified';
+
+        if (! empty($workerSkills)) {
+            $workerSkillsList = array_map(function ($s) {
+                $name = is_array($s) ? ($s['skill'] ?? 'Unknown') : $s;
+                $level = is_array($s) ? ($s['experience_level'] ?? 'intermediate') : 'intermediate';
+
+                return "{$name} ({$level})";
+            }, $workerSkills);
+            $workerSkillsText = implode(', ', $workerSkillsList);
+        } else {
+            $legacySkills = $this->normalizeSkills($gigWorker->skills);
+            $workerSkillsText = empty($legacySkills)
+                ? 'No skills listed'
+                : implode(', ', array_column($legacySkills, 'skill'));
+        }
+
+        $gigWorkerText = "CANDIDATE PROFILE:\n"
+            ."Professional Title: {$professionalTitle}\n"
+            ."Skills: {$workerSkillsText}\n"
+            ."Hourly Rate: ₱{$hourlyRate}\n"
+            .'Bio: '.substr($gigWorker->bio ?? 'No bio provided', 0, 150);
+
+        return "gig_worker_id: {$gigWorker->id}\n".$gigWorkerText;
     }
 
     /**
      * Get recommended jobs for a gig worker with AI-powered matching
      *
-     * @param bool $refresh when true, re-read worker from DB and bypass match cache to regenerate insights/scores
+     * @param  bool  $refresh  when true, re-read worker from DB and bypass match cache to regenerate insights/scores
      */
     public function getRecommendedJobs(User $gigWorker, int $limit = 5, bool $refresh = false): array
     {
@@ -743,29 +840,29 @@ class MatchService
         $processedCount = 0;
         $maxProcessTime = 20; // Max 20 seconds for all processing
         $startTime = microtime(true);
-        
+
         foreach ($jobs as $job) {
             // Check if we're running out of time
             if ((microtime(true) - $startTime) > $maxProcessTime) {
                 Log::warning('AI matching timeout, using processed results', [
                     'processed' => $processedCount,
-                    'total_jobs' => $jobs->count()
+                    'total_jobs' => $jobs->count(),
                 ]);
                 break;
             }
-            
+
             // Use AI matching; when refresh=1 bypass cache to regenerate insight and score
             $match = $this->getJobMatch($job, $gigWorker, 'worker', $refresh);
             $processedCount++;
-            
+
             if ($match['success'] && $match['score'] > 0) {
                 $matches[] = [
                     'job' => $job,
                     'score' => $match['score'],
-                    'reason' => $match['reason']
+                    'reason' => $match['reason'],
                 ];
             }
-            
+
             // Stop early if we have enough excellent matches
             if (count($matches) >= $limit * 2 && $match['score'] >= 70) {
                 break;
@@ -773,14 +870,14 @@ class MatchService
         }
 
         // Sort by score descending
-        usort($matches, fn($a, $b) => $b['score'] - $a['score']);
+        usort($matches, fn ($a, $b) => $b['score'] - $a['score']);
 
         Log::info('AI job recommendations generated', [
             'gig_worker_id' => $gigWorker->id,
             'processed_jobs' => $processedCount,
             'matches_found' => count($matches),
             'refresh' => $refresh,
-            'time_taken' => round(microtime(true) - $startTime, 2) . 's'
+            'time_taken' => round(microtime(true) - $startTime, 2).'s',
         ]);
 
         // Return top matches
@@ -808,7 +905,7 @@ class MatchService
             }
         }
 
-        if (!is_array($skills)) {
+        if (! is_array($skills)) {
             return [];
         }
 
@@ -823,7 +920,7 @@ class MatchService
             } elseif (is_array($skill)) {
                 // Associative: ['skill' => 'PHP', 'experience_level' => 'intermediate']
                 // Indexed:     ['PHP', 'intermediate']
-                $name  = trim((string) ($skill['skill'] ?? $skill[0] ?? ''));
+                $name = trim((string) ($skill['skill'] ?? $skill[0] ?? ''));
                 $level = $skill['experience_level'] ?? $skill[1] ?? 'intermediate';
                 if ($name !== '') {
                     $result[] = ['skill' => $name, 'experience_level' => (string) $level];
@@ -833,4 +930,4 @@ class MatchService
 
         return $result;
     }
-} 
+}

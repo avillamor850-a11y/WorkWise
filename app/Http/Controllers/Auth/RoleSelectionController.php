@@ -42,7 +42,8 @@ class RoleSelectionController extends Controller
             ]);
         }
 
-        if ($request->expectsJson() || $request->wantsJson()) {
+        // Inertia uses XHR; expectsJson() is true, but we must redirect the visit — not return bare JSON.
+        if (($request->expectsJson() || $request->wantsJson()) && ! $request->inertia()) {
             return response()->json([
                 'status' => $isDuplicate ? 'already_selected' : 'ok',
                 'user_type' => $request->user_type,

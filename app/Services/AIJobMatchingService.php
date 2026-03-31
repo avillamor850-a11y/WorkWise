@@ -539,7 +539,7 @@ class AIJobMatchingService
         if ($this->aiService->isAvailable()) {
             $aiExplanation = $this->getAIExplanation($job, $gigWorker, $score);
             if ($aiExplanation) {
-                $reasons[] = "🤖 AI Analysis: " . $aiExplanation;
+                $reasons[] = "AI Analysis: " . $aiExplanation;
             }
         }
 

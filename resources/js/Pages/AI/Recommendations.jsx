@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { Head, Link, router } from "@inertiajs/react";
 
@@ -104,6 +104,57 @@ export default function Recommendations({
         !Array.isArray(recommendations) && recommendations
             ? recommendations
             : {};
+
+    useEffect(() => {
+        if (typeof fetch === "undefined") return;
+        const employerKeys = Object.keys(baseEmployerRecommendations || {});
+        const firstJobData =
+            employerKeys.length > 0
+                ? baseEmployerRecommendations[employerKeys[0]]
+                : null;
+        const firstMatch =
+            firstJobData && Array.isArray(firstJobData.matches) && firstJobData.matches.length
+                ? firstJobData.matches[0]
+                : null;
+        // #region agent log
+        fetch("http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Debug-Session-Id": "ae4463",
+            },
+            body: JSON.stringify({
+                sessionId: "ae4463",
+                runId: "pre-fix",
+                hypothesisId: "I1,I2,I3",
+                location: "Recommendations.jsx:mount",
+                message: "employer page input snapshot",
+                data: {
+                    path:
+                        typeof window !== "undefined"
+                            ? window.location.pathname + window.location.search
+                            : null,
+                    isGigWorker,
+                    recommendationsIsArray: Array.isArray(recommendations),
+                    employerJobKeysCount: employerKeys.length,
+                    firstJobId: employerKeys[0] || null,
+                    firstJobHasMatches: !!(firstJobData && Array.isArray(firstJobData.matches)),
+                    firstJobMatchesCount:
+                        firstJobData && Array.isArray(firstJobData.matches)
+                            ? firstJobData.matches.length
+                            : null,
+                    firstMatchKeys: firstMatch ? Object.keys(firstMatch) : [],
+                    firstMatchReasonType: firstMatch ? typeof firstMatch.reason : null,
+                    hasTopLevelInsights:
+                        !!recommendations &&
+                        !Array.isArray(recommendations) &&
+                        Object.prototype.hasOwnProperty.call(recommendations, "insights"),
+                },
+                timestamp: Date.now(),
+            }),
+        }).catch(() => {});
+        // #endregion
+    }, [isGigWorker, recommendations, baseEmployerRecommendations]);
 
     const hasActiveFilters = useMemo(
         () =>
@@ -685,6 +736,39 @@ export default function Recommendations({
                             (match) => match.score > 0 && match.score < 60,
                         );
 
+                        // #region agent log
+                        if (typeof fetch !== "undefined")
+                            fetch("http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "X-Debug-Session-Id": "ae4463",
+                                },
+                                body: JSON.stringify({
+                                    sessionId: "ae4463",
+                                    runId: "pre-fix",
+                                    hypothesisId: "I2,I4,I5",
+                                    location: "Recommendations.jsx:renderEmployerRecommendations",
+                                    message: "employer recommendation buckets",
+                                    data: {
+                                        jobId,
+                                        totalMatches: matches.length,
+                                        excellentCount: excellentMatches.length,
+                                        goodCount: goodMatches.length,
+                                        basicCount: basicMatches.length,
+                                        hasAnyReason: matches.some(
+                                            (m) => typeof m.reason === "string" && m.reason.trim().length > 0,
+                                        ),
+                                        firstReasonPreview:
+                                            matches[0] && typeof matches[0].reason === "string"
+                                                ? matches[0].reason.slice(0, 120)
+                                                : null,
+                                    },
+                                    timestamp: Date.now(),
+                                }),
+                            }).catch(() => {});
+                        // #endregion
+
                         const getProfileUrl = (match, workerId) =>
                             match.profile_context_token
                                 ? `/gig-worker/${workerId}/view?ctx=${encodeURIComponent(match.profile_context_token)}`
@@ -1106,7 +1190,7 @@ export default function Recommendations({
             pageTheme={isDark ? "dark" : undefined}
             header={
                 <h2 className={`font-semibold text-xl leading-tight ${isDark ? "text-white tracking-tight" : "text-gray-800"}`}>
-                    🤖 {pageTitle}
+                    {pageTitle}
                 </h2>
             }
         >

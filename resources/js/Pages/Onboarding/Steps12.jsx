@@ -144,10 +144,14 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                     URL.revokeObjectURL(blobUrl);
                 } else {
                     setUploadError('Upload failed. You can try again or click Next to save.');
+                    // Do not keep File in parent state: step-2 save would re-POST it and Laravel can
+                    // reject the multipart with "The profile picture failed to upload."
+                    setData('profile_picture_file', null);
                 }
             })
             .catch(() => {
                 setUploadError('Upload failed. You can try again or click Next to save.');
+                setData('profile_picture_file', null);
             })
             .finally(() => setUploading(false));
     };
