@@ -117,6 +117,9 @@ function EmployerStep2Identity({ data, setData, errors, industries, onNext, onBa
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'82ff5d'},body:JSON.stringify({sessionId:'82ff5d',runId:'initial',hypothesisId:'H5',location:'EmployerSteps12.jsx:handleFileChange',message:'employer onboarding file selected',data:{name:file.name,size:file.size,type:file.type},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         // Revoke previous blob URL to avoid memory leaks
         if (preview && preview.startsWith('blob:')) URL.revokeObjectURL(preview);
         const blobUrl = URL.createObjectURL(file);

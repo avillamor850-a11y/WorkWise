@@ -662,15 +662,6 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             My Proposals
                                         </Link>
                                         <Link
-                                            href={safeRoute('ai.recommendations.gigworker', '/aimatch/gig-worker')}
-                                            className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.gigworker') && !window.location.pathname.startsWith('/ai-recommendations')
-                                                ? 'text-blue-400'
-                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
-                                                }`}
-                                        >
-                                            AI Match
-                                        </Link>
-                                        <Link
                                             href={safeRoute('ai.recommendations.gigworker.quality', '/ai-recommendations/gig-worker')}
                                             className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.gigworker.quality')
                                                 ? 'text-blue-400'
@@ -693,15 +684,6 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                 }`}
                                         >
                                             Post a Job
-                                        </Link>
-                                        <Link
-                                            href={safeRoute('ai.recommendations.employer', '/aimatch/employer')}
-                                            className={`text-sm font-medium transition-colors duration-200 ${window.route.current('ai.recommendations.employer') && !window.location.pathname.startsWith('/ai-recommendations')
-                                                ? 'text-blue-400'
-                                                : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
-                                                }`}
-                                        >
-                                            AI Match
                                         </Link>
                                         <div className="relative employer-ai-rec-nav-dropdown">
                                             <button
@@ -1276,18 +1258,6 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                     }`}
                             >
                                 Post a Job
-                            </Link>
-                        )}
-
-                        {isEmployer && (
-                            <Link
-                                href={safeRoute('ai.recommendations.employer', '/aimatch/employer')}
-                                className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${window.route.current('ai.recommendations.employer') && !window.location.pathname.startsWith('/ai-recommendations')
-                                    ? 'text-blue-400 bg-gray-700'
-                                    : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
-                                    }`}
-                            >
-                                AI Match
                             </Link>
                         )}
 

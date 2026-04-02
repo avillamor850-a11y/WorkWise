@@ -456,8 +456,30 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
 
     // AI Recommendation Routes
     Route::get('/ai/recommendations', [AIRecommendationController::class, 'index'])->name('ai.recommendations');
-    Route::get('/aimatch/employer', [AIRecommendationController::class, 'employerMatches'])->name('ai.recommendations.employer');
-    Route::get('/aimatch/gig-worker', [AIRecommendationController::class, 'gigWorkerMatches'])->name('ai.recommendations.gigworker');
+    Route::get('/aimatch/employer', function () {
+        if (auth()->user()->user_type !== 'employer') {
+            return redirect()->route('ai.recommendations');
+        }
+
+        $query = request()->query();
+        $target = route('ai.recommendations.employer.quality');
+        if (!empty($query)) {
+            $target .= '?' . http_build_query($query);
+        }
+        return redirect()->to($target);
+    })->name('ai.recommendations.employer');
+    Route::get('/aimatch/gig-worker', function () {
+        if (auth()->user()->user_type !== 'gig_worker') {
+            return redirect()->route('ai.recommendations');
+        }
+
+        $query = request()->query();
+        $target = route('ai.recommendations.gigworker.quality');
+        if (!empty($query)) {
+            $target .= '?' . http_build_query($query);
+        }
+        return redirect()->to($target);
+    })->name('ai.recommendations.gigworker');
     Route::get('/ai-recommendations/employer', [AIRecommendationController::class, 'employerRecommendations'])->name('ai.recommendations.employer.quality');
     Route::get('/ai-recommendations/gig-worker', [AIRecommendationController::class, 'gigWorkerRecommendations'])->name('ai.recommendations.gigworker.quality');
 

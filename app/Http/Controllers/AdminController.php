@@ -284,15 +284,6 @@ class AdminController extends Controller
             ->limit(50)
             ->get();
 
-        // Resolve URLs for profile image, ID images, and resume (for Inertia payload)
-        $profileSrc = $user->profile_picture ?? $user->profile_photo ?? $user->avatar;
-        $user->profile_picture_url = $profileSrc ? $this->resolveStorageUrl($profileSrc) : null;
-        $user->id_front_image_url = $user->id_front_image ? $this->resolveStorageUrl($user->id_front_image) : null;
-        $user->id_back_image_url = $user->id_back_image ? $this->resolveStorageUrl($user->id_back_image) : null;
-        if (! empty($user->resume_file)) {
-            $user->resume_file_url = $this->resolveStorageUrl($user->resume_file);
-        }
-
         // Expose skill names for gig workers (accessor not in $appends)
         if ($user->user_type === 'gig_worker') {
             $user->display_skill_names = $user->getDisplaySkillNamesAttribute();
@@ -308,8 +299,19 @@ class AdminController extends Controller
             'reports_received' => $user->reportsReceived()->count(),
         ];
 
+        // User::getProfilePictureUrlAttribute returns raw /supabase/... paths; merge resolved URLs
+        // after toArray() so the admin UI gets browser-accessible /storage/supabase/... URLs.
+        $profileSrc = $user->profile_picture ?? $user->profile_photo ?? $user->avatar;
+        $userPayload = $user->toArray();
+        $userPayload['profile_picture_url'] = $profileSrc ? $this->resolveStorageUrl($profileSrc) : null;
+        $userPayload['id_front_image_url'] = $user->id_front_image ? $this->resolveStorageUrl($user->id_front_image) : null;
+        $userPayload['id_back_image_url'] = $user->id_back_image ? $this->resolveStorageUrl($user->id_back_image) : null;
+        $userPayload['resume_file_url'] = ! empty($user->resume_file)
+            ? $this->resolveStorageUrl($user->resume_file)
+            : null;
+
         return Inertia::render('Admin/Users/Show', [
-            'user' => $user,
+            'user' => $userPayload,
             'stats' => $stats,
             'postedJobs' => $postedJobs,
             'userBids' => $userBids,

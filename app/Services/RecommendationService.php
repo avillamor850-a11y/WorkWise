@@ -45,7 +45,8 @@ class RecommendationService
     /** Max seconds for employer recommendation loop (must stay under PHP time_limit to avoid fatal) */
     private const EMPLOYER_REQUEST_DEADLINE_SEC = 50;
 
-    private const EMPLOYER_WORKER_LIMIT = 12;
+    /** Candidates passed from skill pre-rank into employer trust scoring (Groq batch / fallback). */
+    private const EMPLOYER_WORKER_LIMIT = 30;
 
     private const WORKER_JOB_LIMIT = 15;
 
@@ -147,7 +148,7 @@ class RecommendationService
                 }
             } elseif (is_array($s)) {
                 $name = trim((string) ($s['skill'] ?? $s[0] ?? ''));
-                $level = $s['experience_level'] ?? $s[1] ?? 'intermediate';
+                $level = $s['experience_level'] ?? $s['proficiency'] ?? $s[1] ?? 'intermediate';
                 if ($name !== '') {
                     $result[] = ['skill' => $name, 'experience_level' => (string) $level];
                 }
@@ -187,9 +188,38 @@ class RecommendationService
     {
         $logPath = base_path('debug-385a6b.log');
         try {
-            $rankedMatches = $this->aiJobMatchingService->findMatchingFreelancers($job, self::EMPLOYER_WORKER_LIMIT);
+            $debugWorkerIdRaw = request()?->query('debug_worker_id');
+            $debugWorkerIdInt = $debugWorkerIdRaw !== null && $debugWorkerIdRaw !== '' && filter_var($debugWorkerIdRaw, FILTER_VALIDATE_INT) !== false
+                ? (int) $debugWorkerIdRaw
+                : null;
+            // Skip per-worker getMatchReasons() here — it triggers AI calls and a 25s cap can leave most workers unscored.
+            $rankedMatches = $this->aiJobMatchingService->findMatchingFreelancers($job, self::EMPLOYER_WORKER_LIMIT, false);
             $bidderIds = $job->bids()->pluck('gig_worker_id')->toArray();
             $workers = $rankedMatches->pluck('gig_worker')->filter(fn ($w) => ! in_array($w->id, $bidderIds))->values();
+
+            // #region agent log
+            $debugLogPath = base_path('debug-fe5f63.log');
+            $debugWorkerInWorkers = $debugWorkerIdInt !== null && $workers->contains(fn ($w) => $w->id === $debugWorkerIdInt);
+            @file_put_contents(
+                $debugLogPath,
+                json_encode([
+                    'sessionId' => 'fe5f63',
+                    'runId' => 'initial',
+                    'hypothesisId' => 'H3',
+                    'location' => 'RecommendationService::getJobRecommendationsForEmployer',
+                    'message' => 'after_bid_filter_snapshot',
+                    'data' => [
+                        'job_id' => $job->id,
+                        'ranked_matches_count' => $rankedMatches->count(),
+                        'bidder_ids_count' => count($bidderIds),
+                        'workers_count_after_bid_filter' => $workers->count(),
+                        'debug_worker_in_workers_after_bid_filter' => $debugWorkerInWorkers,
+                    ],
+                    'timestamp' => round(microtime(true) * 1000),
+                ]) . "\n",
+                FILE_APPEND | LOCK_EX
+            );
+            // #endregion
 
             // #region agent log
             @file_put_contents($logPath, json_encode(['sessionId' => '385a6b', 'hypothesisId' => 'S1', 'location' => 'RecommendationService::getJobRecommendationsForEmployer', 'message' => 'workers loaded', 'data' => ['workers_count' => $workers->count()], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
@@ -223,7 +253,43 @@ class RecommendationService
 
             usort($matches, fn ($a, $b) => $b['score'] - $a['score']);
 
-            return array_slice($matches, 0, $limit);
+            $returned = array_slice($matches, 0, $limit);
+
+            // #region agent log
+            if ($debugWorkerIdInt !== null) {
+                $debugReturned = null;
+                foreach ($returned as $m) {
+                    $w = $m['gig_worker'] ?? null;
+                    if (($w?->id ?? null) === $debugWorkerIdInt) {
+                        $debugReturned = [
+                            'score' => $m['score'] ?? null,
+                        ];
+                        break;
+                    }
+                }
+
+                @file_put_contents(
+                    $debugLogPath,
+                    json_encode([
+                        'sessionId' => 'fe5f63',
+                        'runId' => 'initial',
+                        'hypothesisId' => 'H4',
+                        'location' => 'RecommendationService::getJobRecommendationsForEmployer',
+                        'message' => 'final_top5_presence_snapshot',
+                        'data' => [
+                            'job_id' => $job->id,
+                            'returned_count' => count($returned),
+                            'debug_worker_presence_in_returned' => $debugReturned !== null,
+                            'debug_worker_returned' => $debugReturned,
+                        ],
+                        'timestamp' => round(microtime(true) * 1000),
+                    ]) . "\n",
+                    FILE_APPEND | LOCK_EX
+                );
+            }
+            // #endregion
+
+            return $returned;
         } catch (\Throwable $e) {
             @file_put_contents($logPath, json_encode(['sessionId' => '385a6b', 'hypothesisId' => 'S5', 'location' => 'RecommendationService::getJobRecommendationsForEmployer', 'message' => 'catch', 'data' => ['exception' => get_class($e), 'msg' => substr($e->getMessage(), 0, 200), 'file' => $e->getFile(), 'line' => $e->getLine()], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
             throw $e;
@@ -245,12 +311,63 @@ class RecommendationService
         /** @var list<User> $toScore */
         $toScore = [];
 
+        $debugWorkerIdRaw = request()?->query('debug_worker_id');
+        $debugWorkerIdInt = $debugWorkerIdRaw !== null && $debugWorkerIdRaw !== '' && filter_var($debugWorkerIdRaw, FILTER_VALIDATE_INT) !== false
+            ? (int) $debugWorkerIdRaw
+            : null;
+
         foreach ($workers as $worker) {
             $cacheKey = "recommendation_employer_{$job->id}_{$worker->id}";
             if (! $refresh && Cache::has($cacheKey)) {
+                if ($debugWorkerIdInt !== null && $worker->id === $debugWorkerIdInt) {
+                    // #region agent log
+                    $debugLogPath = base_path('debug-fe5f63.log');
+                    @file_put_contents(
+                        $debugLogPath,
+                        json_encode([
+                            'sessionId' => 'fe5f63',
+                            'runId' => 'initial',
+                            'hypothesisId' => 'H5',
+                            'location' => 'RecommendationService::resolveEmployerScoresForWorkers',
+                            'message' => 'cache_hit_for_debug_worker',
+                            'data' => [
+                                'job_id' => $job->id,
+                                'debug_worker_id' => $worker->id,
+                                'cache_key' => $cacheKey,
+                            ],
+                            'timestamp' => round(microtime(true) * 1000),
+                        ]) . "\n",
+                        FILE_APPEND | LOCK_EX
+                    );
+                    // #endregion
+                }
                 $byId[$worker->id] = Cache::get($cacheKey);
 
                 continue;
+            }
+            if ($debugWorkerIdInt !== null && $worker->id === $debugWorkerIdInt) {
+                // #region agent log
+                $debugLogPath = base_path('debug-fe5f63.log');
+                @file_put_contents(
+                    $debugLogPath,
+                    json_encode([
+                        'sessionId' => 'fe5f63',
+                        'runId' => 'initial',
+                        'hypothesisId' => 'H5',
+                        'location' => 'RecommendationService::resolveEmployerScoresForWorkers',
+                        'message' => 'cache_miss_or_refresh_for_debug_worker',
+                        'data' => [
+                            'job_id' => $job->id,
+                            'debug_worker_id' => $worker->id,
+                            'cache_key' => $cacheKey,
+                            'refresh' => $refresh,
+                            'cache_has_key' => Cache::has($cacheKey),
+                        ],
+                        'timestamp' => round(microtime(true) * 1000),
+                    ]) . "\n",
+                    FILE_APPEND | LOCK_EX
+                );
+                // #endregion
             }
             $toScore[] = $worker;
         }

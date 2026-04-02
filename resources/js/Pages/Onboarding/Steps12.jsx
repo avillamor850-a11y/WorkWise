@@ -115,6 +115,9 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'82ff5d'},body:JSON.stringify({sessionId:'82ff5d',runId:'initial',hypothesisId:'H3',location:'Steps12.jsx:handleFileChange',message:'gig onboarding file selected',data:{name:file.name,size:file.size,type:file.type,hasCsrf:!!csrfToken},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         const blobUrl = URL.createObjectURL(file);
         setData('profile_picture_file', file);
         setData('profile_picture_preview', blobUrl);
@@ -135,7 +138,12 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
             body: formData,
             headers,
         })
-            .then((res) => res.json())
+            .then((res) => {
+                // #region agent log
+                fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'82ff5d'},body:JSON.stringify({sessionId:'82ff5d',runId:'initial',hypothesisId:'H4',location:'Steps12.jsx:uploadProfilePicture',message:'gig onboarding upload response',data:{status:res.status,ok:res.ok},timestamp:Date.now()})}).catch(()=>{});
+                // #endregion
+                return res.json();
+            })
             .then((json) => {
                 if (json.success && json.url) {
                     setData('profile_picture_preview', json.url);
@@ -143,6 +151,9 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                     setPreview(json.url);
                     URL.revokeObjectURL(blobUrl);
                 } else {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'82ff5d'},body:JSON.stringify({sessionId:'82ff5d',runId:'initial',hypothesisId:'H4',location:'Steps12.jsx:uploadProfilePicture',message:'gig onboarding upload returned failure payload',data:{success:json?.success||false,message:json?.message||null},timestamp:Date.now()})}).catch(()=>{});
+                    // #endregion
                     setUploadError('Upload failed. You can try again or click Next to save.');
                     // Do not keep File in parent state: step-2 save would re-POST it and Laravel can
                     // reject the multipart with "The profile picture failed to upload."
@@ -150,6 +161,9 @@ function Step2ProfessionalInfo({ data, setData, errors, onNext, onBack, onSaveDr
                 }
             })
             .catch(() => {
+                // #region agent log
+                fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'82ff5d'},body:JSON.stringify({sessionId:'82ff5d',runId:'initial',hypothesisId:'H4',location:'Steps12.jsx:uploadProfilePicture',message:'gig onboarding upload network/json error',data:{url},timestamp:Date.now()})}).catch(()=>{});
+                // #endregion
                 setUploadError('Upload failed. You can try again or click Next to save.');
                 setData('profile_picture_file', null);
             })

@@ -138,6 +138,22 @@ class GigWorkerOnboardingController extends Controller
      */
     public function uploadProfilePicture(Request $request): \Illuminate\Http\JsonResponse
     {
+        // #region agent log
+        $agentLogPath = base_path('debug-82ff5d.log');
+        @file_put_contents($agentLogPath, json_encode([
+            'sessionId' => '82ff5d',
+            'runId' => 'initial',
+            'hypothesisId' => 'H4',
+            'location' => 'GigWorkerOnboardingController::uploadProfilePicture',
+            'message' => 'uploadProfilePicture entry',
+            'data' => [
+                'hasFile' => $request->hasFile('profile_picture'),
+                'fileSize' => $request->hasFile('profile_picture') ? $request->file('profile_picture')->getSize() : null,
+                'fileMime' => $request->hasFile('profile_picture') ? $request->file('profile_picture')->getMimeType() : null,
+            ],
+            'timestamp' => (int) (microtime(true) * 1000),
+        ]) . "\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         $request->validate([
             'profile_picture' => 'required|image|max:5120',
         ]);
@@ -145,21 +161,50 @@ class GigWorkerOnboardingController extends Controller
         $user = $request->user();
 
         try {
-            if ($user->profile_picture) {
-                try {
-                    $oldPath = ltrim(str_replace('/supabase/', '', $user->profile_picture), '/');
-                    if (Storage::disk('supabase')->exists($oldPath)) {
-                        Storage::disk('supabase')->delete($oldPath);
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('Onboarding upload profile picture: could not delete old: ' . $e->getMessage());
-                }
-            }
+            $this->deleteStoredProfilePicture($user->profile_picture ?? $user->profile_photo);
 
             $path = Storage::disk('supabase')->putFile('profiles/' . $user->id, $request->file('profile_picture'));
             if (!$path) {
-                Log::error('Onboarding upload profile picture: Supabase putFile returned null', ['user_id' => $user->id]);
-                return response()->json(['success' => false, 'message' => 'Upload failed.'], 500);
+                // #region agent log
+                @file_put_contents($agentLogPath, json_encode([
+                    'sessionId' => '82ff5d',
+                    'runId' => 'initial',
+                    'hypothesisId' => 'H4',
+                    'location' => 'GigWorkerOnboardingController::uploadProfilePicture',
+                    'message' => 'supabase putFile returned empty path',
+                    'data' => ['user_id' => $user->id],
+                    'timestamp' => (int) (microtime(true) * 1000),
+                ]) . "\n", FILE_APPEND | LOCK_EX);
+                // #endregion
+                Log::warning('Onboarding upload profile picture: Supabase putFile returned null; using public disk', ['user_id' => $user->id]);
+                $localPath = $request->file('profile_picture')->store('profiles/' . $user->id, 'public');
+                if (!$localPath) {
+                    Log::error('Onboarding upload profile picture: public disk store failed', ['user_id' => $user->id]);
+                    return response()->json(['success' => false, 'message' => 'Upload failed.'], 500);
+                }
+                $norm = str_replace('\\', '/', $localPath);
+                $storedPath = '/storage/' . $norm;
+                $user->profile_picture = $storedPath;
+                $user->profile_photo = $storedPath;
+                $user->save();
+                $displayUrl = url($storedPath);
+                Log::info('Onboarding: profile picture uploaded via public disk', ['user_id' => $user->id, 'path' => $norm]);
+                // #region agent log
+                @file_put_contents($agentLogPath, json_encode([
+                    'sessionId' => '82ff5d',
+                    'runId' => 'post-fix',
+                    'hypothesisId' => 'H4',
+                    'location' => 'GigWorkerOnboardingController::uploadProfilePicture',
+                    'message' => 'uploadProfilePicture success public fallback',
+                    'data' => ['user_id' => $user->id, 'storedPath' => $storedPath],
+                    'timestamp' => (int) (microtime(true) * 1000),
+                ]) . "\n", FILE_APPEND | LOCK_EX);
+                // #endregion
+
+                return response()->json([
+                    'success' => true,
+                    'url'     => $displayUrl,
+                ]);
             }
 
             $storedPath = '/supabase/' . $path;
@@ -169,18 +214,66 @@ class GigWorkerOnboardingController extends Controller
 
             $displayUrl = url('/storage/supabase/' . $path);
             Log::info('Onboarding: profile picture uploaded via uploadProfilePicture', ['user_id' => $user->id, 'path' => $path]);
+            // #region agent log
+            @file_put_contents($agentLogPath, json_encode([
+                'sessionId' => '82ff5d',
+                'runId' => 'post-fix',
+                'hypothesisId' => 'H4',
+                'location' => 'GigWorkerOnboardingController::uploadProfilePicture',
+                'message' => 'uploadProfilePicture success supabase',
+                'data' => ['user_id' => $user->id, 'path' => $path],
+                'timestamp' => (int) (microtime(true) * 1000),
+            ]) . "\n", FILE_APPEND | LOCK_EX);
+            // #endregion
 
             return response()->json([
                 'success' => true,
                 'url'     => $displayUrl,
             ]);
         } catch (\Exception $e) {
+            // #region agent log
+            @file_put_contents($agentLogPath, json_encode([
+                'sessionId' => '82ff5d',
+                'runId' => 'initial',
+                'hypothesisId' => 'H4',
+                'location' => 'GigWorkerOnboardingController::uploadProfilePicture',
+                'message' => 'uploadProfilePicture exception',
+                'data' => ['exception' => get_class($e), 'error' => $e->getMessage()],
+                'timestamp' => (int) (microtime(true) * 1000),
+            ]) . "\n", FILE_APPEND | LOCK_EX);
+            // #endregion
             Log::error('Onboarding upload profile picture failed: ' . $e->getMessage(), ['user_id' => $user->id]);
             return response()->json(['success' => false, 'message' => 'Upload failed. Please try again.'], 500);
         }
     }
 
     // ─── Step Handlers ───────────────────────────────────────────────────────
+
+    private function deleteStoredProfilePicture(?string $stored): void
+    {
+        if (!$stored || !is_string($stored)) {
+            return;
+        }
+        $stored = trim($stored);
+        if ($stored === '') {
+            return;
+        }
+        try {
+            if (str_starts_with($stored, '/supabase/')) {
+                $oldPath = ltrim(str_replace('/supabase/', '', $stored), '/');
+                if ($oldPath !== '' && Storage::disk('supabase')->exists($oldPath)) {
+                    Storage::disk('supabase')->delete($oldPath);
+                }
+            } elseif (str_starts_with($stored, '/storage/') && !str_starts_with($stored, '/storage/supabase/')) {
+                $rel = ltrim(substr($stored, strlen('/storage/')), '/');
+                if ($rel !== '') {
+                    Storage::disk('public')->delete($rel);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Onboarding: could not delete old profile picture: ' . $e->getMessage());
+        }
+    }
 
     // #region agent log
     private function agentLog(string $path, string $msg, array $data, string $hypothesisId = ''): void
@@ -206,16 +299,7 @@ class GigWorkerOnboardingController extends Controller
             try {
                 Log::info('Onboarding: uploading profile picture to Supabase', ['user_id' => $user->id]);
 
-                if ($user->profile_picture) {
-                    try {
-                        $oldPath = ltrim(str_replace('/supabase/', '', $user->profile_picture), '/');
-                        if (Storage::disk('supabase')->exists($oldPath)) {
-                            Storage::disk('supabase')->delete($oldPath);
-                        }
-                    } catch (\Exception $e) {
-                        Log::warning('Onboarding: could not delete old profile picture: ' . $e->getMessage());
-                    }
-                }
+                $this->deleteStoredProfilePicture($user->profile_picture ?? $user->profile_photo);
 
                 $path = Storage::disk('supabase')->putFile('profiles/' . $user->id, $request->file('profile_picture'));
                 if ($path) {
@@ -224,7 +308,16 @@ class GigWorkerOnboardingController extends Controller
                     $user->profile_photo   = $url;
                     Log::info('Onboarding: profile picture uploaded', ['user_id' => $user->id, 'path' => $path]);
                 } else {
-                    Log::error('Onboarding: Supabase upload returned null path', ['user_id' => $user->id]);
+                    Log::warning('Onboarding: Supabase upload returned null path; using public disk', ['user_id' => $user->id]);
+                    $localPath = $request->file('profile_picture')->store('profiles/' . $user->id, 'public');
+                    if ($localPath) {
+                        $norm = str_replace('\\', '/', $localPath);
+                        $user->profile_picture = '/storage/' . $norm;
+                        $user->profile_photo = '/storage/' . $norm;
+                        Log::info('Onboarding: profile picture uploaded to public disk', ['user_id' => $user->id, 'path' => $norm]);
+                    } else {
+                        Log::error('Onboarding: public disk profile picture store failed', ['user_id' => $user->id]);
+                    }
                 }
             } catch (\Exception $e) {
                 Log::error('Onboarding: profile picture upload failed: ' . $e->getMessage(), ['user_id' => $user->id]);

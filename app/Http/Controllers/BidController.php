@@ -39,6 +39,42 @@ class BidController extends Controller
                 ->where('gig_worker_id', $user->id)
                 ->latest()
                 ->paginate(10);
+
+            // #region agent log
+            try {
+                $sample = collect($bids->items())->take(3)->map(function ($bid) {
+                    $jobArray = $bid->job ? $bid->job->toArray() : [];
+                    return [
+                        'bid_id' => $bid->id,
+                        'job_id' => $bid->job?->id,
+                        'budget_min' => $bid->job?->budget_min,
+                        'budget_max' => $bid->job?->budget_max,
+                        'budget_type' => $bid->job?->budget_type,
+                        'budget_display_accessor' => $bid->job?->budget_display,
+                        'has_budget_display_in_array' => array_key_exists('budget_display', $jobArray),
+                    ];
+                })->values()->all();
+
+                file_put_contents(
+                    base_path('debug-75cf24.log'),
+                    json_encode([
+                        'sessionId' => '75cf24',
+                        'runId' => 'run1',
+                        'hypothesisId' => 'H1,H2',
+                        'location' => 'BidController@index',
+                        'message' => 'Gig worker bids payload sample',
+                        'data' => [
+                            'count' => $bids->count(),
+                            'sample' => $sample,
+                        ],
+                        'timestamp' => round(microtime(true) * 1000),
+                    ]) . "\n",
+                    FILE_APPEND | LOCK_EX
+                );
+            } catch (\Throwable $e) {
+                // keep logging non-blocking
+            }
+            // #endregion
         } else {
             // Show bids on employer's jobs
             $bids = Bid::with(['job', 'gigWorker'])

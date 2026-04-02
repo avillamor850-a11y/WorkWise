@@ -404,6 +404,23 @@ class ProfileController extends Controller
             return redirect()->route('profile.edit');
         }
 
+        // #region agent log
+        $agentLogPath = base_path('debug-82ff5d.log');
+        @file_put_contents($agentLogPath, json_encode([
+            'sessionId' => '82ff5d',
+            'runId' => 'initial',
+            'hypothesisId' => 'H2',
+            'location' => 'ProfileController::updateGigWorker',
+            'message' => 'updateGigWorker entry',
+            'data' => [
+                'hasProfilePicture' => $request->hasFile('profile_picture'),
+                'profilePictureSize' => $request->hasFile('profile_picture') ? $request->file('profile_picture')->getSize() : null,
+                'profilePictureMime' => $request->hasFile('profile_picture') ? $request->file('profile_picture')->getMimeType() : null,
+            ],
+            'timestamp' => (int) (microtime(true) * 1000),
+        ]) . "\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+
         $validated = $request->validate([
             'first_name'             => 'required|string|max:255',
             'last_name'              => 'required|string|max:255',
@@ -430,7 +447,29 @@ class ProfileController extends Controller
                 if ($path) {
                     $user->profile_picture = '/supabase/' . $path;
                     $user->profile_photo = '/supabase/' . $path;
+                    // #region agent log
+                    @file_put_contents($agentLogPath, json_encode([
+                        'sessionId' => '82ff5d',
+                        'runId' => 'post-fix',
+                        'hypothesisId' => 'H2',
+                        'location' => 'ProfileController::updateGigWorker',
+                        'message' => 'profile picture saved supabase',
+                        'data' => ['user_id' => $user->id],
+                        'timestamp' => (int) (microtime(true) * 1000),
+                    ]) . "\n", FILE_APPEND | LOCK_EX);
+                    // #endregion
                 } else {
+                    // #region agent log
+                    @file_put_contents($agentLogPath, json_encode([
+                        'sessionId' => '82ff5d',
+                        'runId' => 'initial',
+                        'hypothesisId' => 'H2',
+                        'location' => 'ProfileController::updateGigWorker',
+                        'message' => 'supabase putFile returned empty path',
+                        'data' => ['user_id' => $user->id],
+                        'timestamp' => (int) (microtime(true) * 1000),
+                    ]) . "\n", FILE_APPEND | LOCK_EX);
+                    // #endregion
                     Log::warning('GigWorkerEdit: Supabase profile picture upload returned empty; using public disk', [
                         'user_id' => $user->id,
                     ]);
@@ -438,12 +477,34 @@ class ProfileController extends Controller
                     if (!$localPath) {
                         throw new \RuntimeException('Public disk profile picture store failed');
                     }
-                    $user->profile_picture = '/storage/' . $localPath;
-                    $user->profile_photo = '/storage/' . $localPath;
+                    $user->profile_picture = '/storage/' . str_replace('\\', '/', $localPath);
+                    $user->profile_photo = '/storage/' . str_replace('\\', '/', $localPath);
+                    // #region agent log
+                    @file_put_contents($agentLogPath, json_encode([
+                        'sessionId' => '82ff5d',
+                        'runId' => 'post-fix',
+                        'hypothesisId' => 'H2',
+                        'location' => 'ProfileController::updateGigWorker',
+                        'message' => 'profile picture saved public fallback',
+                        'data' => ['user_id' => $user->id, 'path' => $localPath],
+                        'timestamp' => (int) (microtime(true) * 1000),
+                    ]) . "\n", FILE_APPEND | LOCK_EX);
+                    // #endregion
                 }
             } catch (ValidationException $e) {
                 throw $e;
             } catch (\Exception $e) {
+                // #region agent log
+                @file_put_contents($agentLogPath, json_encode([
+                    'sessionId' => '82ff5d',
+                    'runId' => 'initial',
+                    'hypothesisId' => 'H2',
+                    'location' => 'ProfileController::updateGigWorker',
+                    'message' => 'profile picture upload exception',
+                    'data' => ['exception' => get_class($e), 'error' => $e->getMessage()],
+                    'timestamp' => (int) (microtime(true) * 1000),
+                ]) . "\n", FILE_APPEND | LOCK_EX);
+                // #endregion
                 Log::error('GigWorkerEdit: profile picture upload failed: ' . $e->getMessage(), ['user_id' => $user->id]);
                 throw ValidationException::withMessages([
                     'profile_picture' => 'Profile picture upload failed. Please check your connection and try again, or use a smaller image.',
@@ -632,14 +693,29 @@ class ProfileController extends Controller
         // Handle profile picture (Company Logo) upload
         if ($request->hasFile('profile_picture')) {
             try {
-                if ($user->profile_picture && str_starts_with($user->profile_picture, '/supabase/')) {
-                    $oldPath = str_replace('/supabase/', '', $user->profile_picture);
-                    Storage::disk('supabase')->delete($oldPath);
+                if ($user->profile_picture) {
+                    $pic = $user->profile_picture;
+                    if (str_starts_with((string) $pic, '/supabase/')) {
+                        $oldPath = str_replace('/supabase/', '', $pic);
+                        Storage::disk('supabase')->delete($oldPath);
+                    } elseif (str_starts_with((string) $pic, '/storage/') && !str_starts_with((string) $pic, '/storage/supabase/')) {
+                        $rel = ltrim(substr((string) $pic, strlen('/storage/')), '/');
+                        if ($rel !== '') {
+                            Storage::disk('public')->delete($rel);
+                        }
+                    }
                 }
                 $path = Storage::disk('supabase')->putFile('profiles/' . $user->id, $request->file('profile_picture'));
                 if ($path) {
                     $user->profile_picture = '/supabase/' . $path;
                     $user->profile_photo = '/supabase/' . $path;
+                } else {
+                    $localPath = $request->file('profile_picture')->store('profiles/' . $user->id, 'public');
+                    if (!$localPath) {
+                        throw new \RuntimeException('Public disk profile picture store failed');
+                    }
+                    $user->profile_picture = '/storage/' . str_replace('\\', '/', $localPath);
+                    $user->profile_photo = $user->profile_picture;
                 }
             } catch (\Exception $e) {
                 Log::error('EmployerEdit: profile picture upload failed: ' . $e->getMessage());

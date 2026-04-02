@@ -103,6 +103,14 @@ export default function BidsIndex({ bids }) {
         isOpen: false,
         message: ''
     });
+    const [editingBidId, setEditingBidId] = useState(null);
+    const [editData, setEditData] = useState({
+        bid_amount: '',
+        estimated_days: '',
+        proposal_message: ''
+    });
+    const [editErrors, setEditErrors] = useState({});
+    const [editProcessing, setEditProcessing] = useState(false);
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString();
@@ -111,6 +119,22 @@ export default function BidsIndex({ bids }) {
     const formatAmount = (value) => {
         const number = Number(value ?? 0);
         return number.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const getJobBudgetDisplay = (job) => {
+        if (!job) return 'N/A';
+        if (job.budget_display) return job.budget_display;
+
+        const min = Number(job.budget_min ?? 0);
+        const max = Number(job.budget_max ?? 0);
+
+        if (job.budget_type === 'fixed') {
+            if (min > 0 && max > 0) return `₱${formatAmount(min)} - ₱${formatAmount(max)}`;
+            const single = min > 0 ? min : max;
+            return single > 0 ? `₱${formatAmount(single)}` : 'N/A';
+        }
+
+        return `₱${formatAmount(min)}/hr - ₱${formatAmount(max)}/hr`;
     };
 
     const getStatusColor = (status) => {
@@ -144,6 +168,73 @@ export default function BidsIndex({ bids }) {
     };
 
     const isGigWorker = auth.user.user_type === 'gig_worker';
+
+    React.useEffect(() => {
+        if (!isGigWorker) return;
+        const sample = (bids?.data || []).slice(0, 3).map((bid) => ({
+            bidId: bid?.id,
+            jobId: bid?.job?.id,
+            budgetDisplay: bid?.job?.budget_display,
+            budgetMin: bid?.job?.budget_min,
+            budgetMax: bid?.job?.budget_max,
+            budgetType: bid?.job?.budget_type,
+        }));
+
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'75cf24'},body:JSON.stringify({sessionId:'75cf24',runId:'run1',hypothesisId:'H1,H3,H4',location:'resources/js/Pages/Bids/Index.jsx:useEffect',message:'Gig worker bids page received budget fields',data:{count:(bids?.data || []).length,sample},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+    }, [isGigWorker, bids]);
+
+    const startEditingBid = (bid) => {
+        setEditingBidId(bid.id);
+        setEditData({
+            bid_amount: String(bid.bid_amount ?? ''),
+            estimated_days: String(bid.estimated_days ?? ''),
+            proposal_message: bid.proposal_message ?? ''
+        });
+        setEditErrors({});
+    };
+
+    const cancelEditingBid = () => {
+        setEditingBidId(null);
+        setEditErrors({});
+    };
+
+    const handleEditInputChange = (field, value) => {
+        setEditData((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const submitBidEdit = (bidId) => {
+        setEditProcessing(true);
+        setEditErrors({});
+
+        router.patch(route('bids.updateStatus', bidId), editData, {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                setEditProcessing(false);
+                setEditingBidId(null);
+
+                const flashError = page?.props?.flash?.error;
+                if (flashError) {
+                    setEditErrors({ error: flashError });
+                    return;
+                }
+
+                setSuccessModal({
+                    isOpen: true,
+                    message: 'Bid updated successfully.'
+                });
+
+                setTimeout(() => {
+                    router.reload({ only: ['bids'] });
+                }, 1200);
+            },
+            onError: (errors) => {
+                setEditProcessing(false);
+                setEditErrors(errors || { error: 'Failed to update bid. Please try again.' });
+            }
+        });
+    };
 
     const handleBidAction = (bidId, action) => {
         let title, message, confirmText, confirmColor;
@@ -356,7 +447,7 @@ export default function BidsIndex({ bids }) {
                                             </div>
                                             <div className={isDark ? 'bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl' : 'bg-blue-50 border border-blue-100 p-4 rounded-xl'}>
                                                 <span className={`text-sm font-medium ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>Job Budget:</span>
-                                                <p className={`text-lg font-bold mt-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{bid.job.budget_display}</p>
+                                                <p className={`text-lg font-bold mt-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{getJobBudgetDisplay(bid.job)}</p>
                                             </div>
                                         </div>
 
@@ -366,6 +457,67 @@ export default function BidsIndex({ bids }) {
                                                 <p className={`leading-relaxed break-all ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{bid.proposal_message}</p>
                                             </div>
                                         </div>
+
+                                        {isGigWorker && bid.status === 'pending' && editingBidId === bid.id && (
+                                            <div className={`mb-6 p-4 rounded-xl border ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-blue-50 border-blue-200'}`}>
+                                                <h4 className={`text-sm font-semibold mb-3 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Edit Bid</h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                    <div>
+                                                        <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Bid Amount</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            value={editData.bid_amount}
+                                                            onChange={(e) => handleEditInputChange('bid_amount', e.target.value)}
+                                                            className={`w-full rounded-lg border px-3 py-2 text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
+                                                        />
+                                                        {editErrors.bid_amount && <p className="mt-1 text-xs text-red-500">{editErrors.bid_amount}</p>}
+                                                    </div>
+                                                    <div>
+                                                        <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Estimated Days</label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={editData.estimated_days}
+                                                            onChange={(e) => handleEditInputChange('estimated_days', e.target.value)}
+                                                            className={`w-full rounded-lg border px-3 py-2 text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
+                                                        />
+                                                        {editErrors.estimated_days && <p className="mt-1 text-xs text-red-500">{editErrors.estimated_days}</p>}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Proposal Message</label>
+                                                    <textarea
+                                                        rows={4}
+                                                        value={editData.proposal_message}
+                                                        onChange={(e) => handleEditInputChange('proposal_message', e.target.value)}
+                                                        className={`w-full rounded-lg border px-3 py-2 text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
+                                                    />
+                                                    {editErrors.proposal_message && <p className="mt-1 text-xs text-red-500">{editErrors.proposal_message}</p>}
+                                                </div>
+                                                {editErrors.bid && <p className="mt-2 text-xs text-red-500">{editErrors.bid}</p>}
+                                                {editErrors.error && <p className="mt-2 text-xs text-red-500">{editErrors.error}</p>}
+                                                <div className="mt-4 flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => submitBidEdit(bid.id)}
+                                                        disabled={editProcessing}
+                                                        className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+                                                    >
+                                                        {editProcessing ? 'Saving...' : 'Save Changes'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelEditingBid}
+                                                        disabled={editProcessing}
+                                                        className={`text-sm font-semibold px-4 py-2 rounded-lg border disabled:opacity-50 ${isDark ? 'border-gray-500 text-gray-200 hover:bg-gray-600' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {!isGigWorker && bid.status === 'pending' && (
                                             <div className="flex space-x-4">
@@ -405,22 +557,32 @@ export default function BidsIndex({ bids }) {
                                         )}
 
                                         {isGigWorker && bid.status === 'pending' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleBidAction(bid.id, 'withdraw')}
-                                                disabled={processing}
-                                                className={`font-semibold py-3 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-100' : 'bg-white hover:bg-gray-50 border border-gray-300 text-gray-700'}`}
-                                            >
-                                                {processing ? (
-                                                    <span className="flex items-center">
-                                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        Processing...
-                                                    </span>
-                                                ) : 'Withdraw Bid'}
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => startEditingBid(bid)}
+                                                    disabled={processing || editProcessing}
+                                                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Edit Bid
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleBidAction(bid.id, 'withdraw')}
+                                                    disabled={processing || editProcessing}
+                                                    className={`font-semibold py-3 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-100' : 'bg-white hover:bg-gray-50 border border-gray-300 text-gray-700'}`}
+                                                >
+                                                    {processing ? (
+                                                        <span className="flex items-center">
+                                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            Processing...
+                                                        </span>
+                                                    ) : 'Withdraw Bid'}
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

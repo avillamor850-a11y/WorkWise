@@ -127,6 +127,24 @@ class EmployerOnboardingController extends Controller
      */
     private function saveStep2(Request $request, $user)
     {
+        // #region agent log
+        $agentLogPath = base_path('debug-82ff5d.log');
+        @file_put_contents($agentLogPath, json_encode([
+            'sessionId' => '82ff5d',
+            'runId' => 'initial',
+            'hypothesisId' => 'H5',
+            'location' => 'EmployerOnboardingController::saveStep2',
+            'message' => 'saveStep2 entry',
+            'data' => [
+                'hasFile' => $request->hasFile('profile_picture'),
+                'fileSize' => $request->hasFile('profile_picture') ? $request->file('profile_picture')->getSize() : null,
+                'fileMime' => $request->hasFile('profile_picture') ? $request->file('profile_picture')->getMimeType() : null,
+                'company_size' => $request->input('company_size'),
+                'industry_present' => filled($request->input('industry')),
+            ],
+            'timestamp' => (int) (microtime(true) * 1000),
+        ]) . "\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         $validated = $request->validate([
             'company_name' => 'nullable|string|max:255',
             'company_size' => 'required|in:individual,2-10,11-50,51-200,200+',
@@ -150,10 +168,37 @@ class EmployerOnboardingController extends Controller
                     ]);
 
                     if ($uploadResult['success']) {
-                        $storedPath = '/supabase/' . ltrim($uploadResult['path'], '/');
+                        $rel = ltrim(str_replace('\\', '/', (string) ($uploadResult['path'] ?? '')), '/');
+                        if (($uploadResult['disk'] ?? 'supabase') === 'public') {
+                            $storedPath = '/storage/' . $rel;
+                        } else {
+                            $storedPath = '/supabase/' . $rel;
+                        }
                         $user->profile_picture = $storedPath;
                         $user->profile_photo   = $storedPath;
+                        // #region agent log
+                        @file_put_contents($agentLogPath, json_encode([
+                            'sessionId' => '82ff5d',
+                            'runId' => 'post-fix',
+                            'hypothesisId' => 'H5',
+                            'location' => 'EmployerOnboardingController::saveStep2',
+                            'message' => 'employer profile picture upload success',
+                            'data' => ['path' => $uploadResult['path'] ?? null, 'disk' => $uploadResult['disk'] ?? 'supabase'],
+                            'timestamp' => (int) (microtime(true) * 1000),
+                        ]) . "\n", FILE_APPEND | LOCK_EX);
+                        // #endregion
                     } else {
+                        // #region agent log
+                        @file_put_contents($agentLogPath, json_encode([
+                            'sessionId' => '82ff5d',
+                            'runId' => 'initial',
+                            'hypothesisId' => 'H5',
+                            'location' => 'EmployerOnboardingController::saveStep2',
+                            'message' => 'employer profile picture upload failed',
+                            'data' => ['upload_message' => $uploadResult['message'] ?? null],
+                            'timestamp' => (int) (microtime(true) * 1000),
+                        ]) . "\n", FILE_APPEND | LOCK_EX);
+                        // #endregion
                         Log::warning('Employer profile picture upload failed', [
                             'user_id' => $user->id,
                             'message' => $uploadResult['message'] ?? 'Unknown error',
@@ -161,6 +206,17 @@ class EmployerOnboardingController extends Controller
                     }
                 }
             } catch (\Throwable $e) {
+                // #region agent log
+                @file_put_contents($agentLogPath, json_encode([
+                    'sessionId' => '82ff5d',
+                    'runId' => 'initial',
+                    'hypothesisId' => 'H5',
+                    'location' => 'EmployerOnboardingController::saveStep2',
+                    'message' => 'employer profile picture exception',
+                    'data' => ['exception' => get_class($e), 'error' => $e->getMessage()],
+                    'timestamp' => (int) (microtime(true) * 1000),
+                ]) . "\n", FILE_APPEND | LOCK_EX);
+                // #endregion
                 Log::warning('Employer profile picture upload error', [
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),

@@ -20,9 +20,17 @@ class AIJobMatchingService
     }
     /**
      * Find matching gig workers for a job using AI-like algorithm
+     *
+     * @param  bool  $computeMatchReasons  When false, skips per-worker getMatchReasons() (AI-heavy).
+     *                                     Use false for employer recommendation pre-ranking; only `gig_worker` + `match_score` are needed.
      */
-    public function findMatchingFreelancers(GigJob $job, int $limit = 10): Collection
+    public function findMatchingFreelancers(GigJob $job, int $limit = 10, bool $computeMatchReasons = true): Collection
     {
+        $debugWorkerIdRaw = request()?->query('debug_worker_id');
+        $debugWorkerIdInt = $debugWorkerIdRaw !== null && $debugWorkerIdRaw !== '' && filter_var($debugWorkerIdRaw, FILTER_VALIDATE_INT) !== false
+            ? (int) $debugWorkerIdRaw
+            : null;
+
         $gigWorkers = User::where('user_type', 'gig_worker')
             ->where('profile_completed', true)
             ->whereNotNull('skills_with_experience')
@@ -30,26 +38,151 @@ class AIJobMatchingService
             ->limit(500)
             ->get();
 
+        // #region agent log
+        $debugLogPath = base_path('debug-fe5f63.log');
+        $debugEligibleIds = $gigWorkers->pluck('id')->toArray();
+        $debugWorkerInPool = $debugWorkerIdInt !== null && in_array($debugWorkerIdInt, $debugEligibleIds, true);
+        $debugWorkerSnapshot = null;
+        if ($debugWorkerIdInt !== null) {
+            $debugUser = User::select('id', 'user_type', 'profile_completed', 'skills_with_experience')->find($debugWorkerIdInt);
+            $debugWorkerSnapshot = $debugUser ? [
+                'user_type' => $debugUser->user_type,
+                'profile_completed' => (bool) $debugUser->profile_completed,
+                'skills_with_experience_is_array' => is_array($debugUser->skills_with_experience),
+                'skills_with_experience_count' => is_array($debugUser->skills_with_experience) ? count($debugUser->skills_with_experience) : null,
+            ] : null;
+        }
+        @file_put_contents(
+            $debugLogPath,
+            json_encode([
+                'sessionId' => 'fe5f63',
+                'runId' => 'initial',
+                'hypothesisId' => 'H1',
+                'location' => 'AIJobMatchingService::findMatchingFreelancers',
+                'message' => 'eligible_pool_snapshot',
+                'data' => [
+                    'job_id' => $job->id,
+                    'eligible_workers_count' => $gigWorkers->count(),
+                    'debug_worker_in_eligible_pool' => $debugWorkerInPool,
+                    'debug_worker_snapshot' => $debugWorkerSnapshot,
+                ],
+                'timestamp' => round(microtime(true) * 1000),
+            ]) . "\n",
+            FILE_APPEND | LOCK_EX
+        );
+        // #endregion
+
         $maxScoringSec = 25;
         $scoringStart = microtime(true);
         $scored = [];
         foreach ($gigWorkers as $gigWorker) {
-            if (microtime(true) - $scoringStart > $maxScoringSec) {
+            // Timeout only matters when we compute match reasons (includes optional AI prediction per worker).
+            if ($computeMatchReasons && microtime(true) - $scoringStart > $maxScoringSec) {
                 break;
             }
             $score = $this->calculateMatchScore($job, $gigWorker);
             $scored[] = [
                 'gig_worker' => $gigWorker,
                 'match_score' => $score,
-                'match_reasons' => $this->getMatchReasons($job, $gigWorker, $score)
+                'match_reasons' => $computeMatchReasons
+                    ? $this->getMatchReasons($job, $gigWorker, $score)
+                    : [],
             ];
         }
 
-        return collect($scored)
-        ->filter(fn($match) => $match['match_score'] > 0.1) // Show more matches (10% threshold)
-        ->sortByDesc('match_score')
-        ->take($limit)
-        ->values();
+        $scoredCollection = collect($scored);
+        $afterThreshold = $scoredCollection
+            ->filter(fn ($match) => $match['match_score'] > 0.1);
+        // Tie-break: equal match_score is common when many workers share default reputation (no reviews).
+        // Plain sortByDesc('match_score') keeps insertion order (often ascending user id), which can
+        // exclude newer workers (higher id) from the top-N slice even with identical scores.
+        $avgRatingFn = function (User $u): float {
+            if ($u->relationLoaded('receivedReviews')) {
+                return (float) ($u->receivedReviews->avg('rating') ?? 0);
+            }
+
+            return (float) ($u->receivedReviews()->avg('rating') ?? 0);
+        };
+        $reviewCountFn = function (User $u): int {
+            if ($u->relationLoaded('receivedReviews')) {
+                return $u->receivedReviews->count();
+            }
+
+            return $u->receivedReviews()->count();
+        };
+        $sorted = $afterThreshold->sort(function ($a, $b) use ($avgRatingFn, $reviewCountFn) {
+            $sa = $a['match_score'] ?? 0;
+            $sb = $b['match_score'] ?? 0;
+            if ($sa !== $sb) {
+                return $sb <=> $sa;
+            }
+            $wa = $a['gig_worker'] ?? null;
+            $wb = $b['gig_worker'] ?? null;
+            if (! $wa instanceof User || ! $wb instanceof User) {
+                return 0;
+            }
+            $ra = $avgRatingFn($wa);
+            $rb = $avgRatingFn($wb);
+            if ($ra !== $rb) {
+                return $rb <=> $ra;
+            }
+            $ca = $reviewCountFn($wa);
+            $cb = $reviewCountFn($wb);
+            if ($ca !== $cb) {
+                return $cb <=> $ca;
+            }
+            $ida = $wa->isIDVerified() ? 1 : 0;
+            $idb = $wb->isIDVerified() ? 1 : 0;
+            if ($ida !== $idb) {
+                return $idb <=> $ida;
+            }
+
+            // Final deterministic tie-break: newer accounts (higher id) first among equal scores
+            return $wb->id <=> $wa->id;
+        })->values();
+
+        $debugAfterThresholdRank = null;
+        $debugAfterThresholdScore = null;
+        if ($debugWorkerIdInt !== null) {
+            foreach ($sorted as $idx => $m) {
+                if (($m['gig_worker']->id ?? null) === $debugWorkerIdInt) {
+                    $debugAfterThresholdRank = $idx + 1;
+                    $debugAfterThresholdScore = $m['match_score'] ?? null;
+                    break;
+                }
+            }
+        }
+
+        // #region agent log
+        @file_put_contents(
+            $debugLogPath,
+            json_encode([
+                'sessionId' => 'fe5f63',
+                'runId' => 'initial',
+                'hypothesisId' => 'H4',
+                'location' => 'AIJobMatchingService::findMatchingFreelancers',
+                'message' => 'after_threshold_and_rank_snapshot',
+                'data' => [
+                    'job_id' => $job->id,
+                    'compute_match_reasons' => $computeMatchReasons,
+                    'eligible_workers_count_logged' => $gigWorkers->count(),
+                    'scored_count' => $scoredCollection->count(),
+                    'after_threshold_count' => $sorted->count(),
+                    'top_ids_after_sort' => $sorted->take(20)->map(fn ($m) => $m['gig_worker']->id ?? null)->values()->all(),
+                    'debug_worker_rank_after_threshold' => $debugAfterThresholdRank,
+                    'debug_worker_score_after_threshold' => $debugAfterThresholdScore,
+                    'limit_requested' => $limit,
+                    'debug_worker_in_top_limit' => $debugAfterThresholdRank !== null && $debugAfterThresholdRank <= $limit,
+                ],
+                'timestamp' => round(microtime(true) * 1000),
+            ]) . "\n",
+            FILE_APPEND | LOCK_EX
+        );
+        // #endregion
+
+        return $sorted
+            ->take($limit)
+            ->values();
     }
 
     /**
@@ -97,7 +230,8 @@ class AIJobMatchingService
         return array_map(function ($item) {
             $item = is_array($item) ? $item : ['skill' => (string) $item, 'experience_level' => 'intermediate'];
             $skill = strtolower(trim($item['skill'] ?? ''));
-            $level = $item['experience_level'] ?? 'intermediate';
+            // Profile edit / onboarding may store proficiency instead of experience_level
+            $level = $item['experience_level'] ?? $item['proficiency'] ?? 'intermediate';
             return [
                 'skill' => $skill,
                 'experience_level' => $level,
@@ -601,8 +735,12 @@ class AIJobMatchingService
         if ($this->aiService->isAvailable()) {
             $prediction = $this->getAISuccessPrediction($job, $gigWorker);
             if ($prediction && $prediction['success']) {
-                $probability = $prediction['prediction']['probability'];
-                $reasons[] = "🔮 AI Success Prediction: {$probability}% chance of successful project completion";
+                $probability = $prediction['prediction']['probability'] ?? null;
+                if ($probability !== null) {
+                    $reasons[] = "🔮 AI Success Prediction: {$probability}% chance of successful project completion";
+                } else {
+                    $reasons[] = "🔮 AI Success Prediction: probability unavailable";
+                }
             }
         }
 

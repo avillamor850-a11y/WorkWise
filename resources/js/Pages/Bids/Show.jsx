@@ -109,6 +109,14 @@ export default function BidShow({ bid }) {
         message: '',
         actionButton: null
     });
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({
+        bid_amount: String(bid.bid_amount ?? ''),
+        estimated_days: String(bid.estimated_days ?? ''),
+        proposal_message: bid.proposal_message ?? ''
+    });
+    const [editErrors, setEditErrors] = useState({});
+    const [editProcessing, setEditProcessing] = useState(false);
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString();
@@ -136,6 +144,57 @@ export default function BidShow({ bid }) {
 
     const isGigWorker = auth.user.user_type === 'gig_worker';
     const isEmployer = auth.user.user_type === 'employer';
+
+    const handleEditInputChange = (field, value) => {
+        setEditData((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const startEditing = () => {
+        setIsEditing(true);
+        setEditErrors({});
+        setEditData({
+            bid_amount: String(bid.bid_amount ?? ''),
+            estimated_days: String(bid.estimated_days ?? ''),
+            proposal_message: bid.proposal_message ?? ''
+        });
+    };
+
+    const cancelEditing = () => {
+        setIsEditing(false);
+        setEditErrors({});
+    };
+
+    const submitBidEdit = () => {
+        setEditProcessing(true);
+        setEditErrors({});
+
+        router.patch(route('bids.updateStatus', bid.id), editData, {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                setEditProcessing(false);
+                setIsEditing(false);
+
+                const flashError = page?.props?.flash?.error;
+                if (flashError) {
+                    setEditErrors({ error: flashError });
+                    return;
+                }
+
+                setSuccessModal({
+                    isOpen: true,
+                    message: 'Bid updated successfully.'
+                });
+
+                setTimeout(() => {
+                    router.reload({ only: ['bid'] });
+                }, 1200);
+            },
+            onError: (errors) => {
+                setEditProcessing(false);
+                setEditErrors(errors || { error: 'Failed to update bid. Please try again.' });
+            }
+        });
+    };
 
     const handleBidAction = (action) => {
         let title, message, confirmText, confirmColor;
@@ -390,6 +449,67 @@ export default function BidShow({ bid }) {
                                     <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{bid.proposal_message}</p>
                                 </div>
                             </div>
+
+                            {isGigWorker && bid.status === 'pending' && isEditing && (
+                                <div className="mt-6 p-4 rounded-xl border border-blue-200 bg-blue-50">
+                                    <h5 className="text-sm font-semibold text-gray-900 mb-3">Edit Bid</h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Bid Amount</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={editData.bid_amount}
+                                                onChange={(e) => handleEditInputChange('bid_amount', e.target.value)}
+                                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                                            />
+                                            {editErrors.bid_amount && <p className="mt-1 text-xs text-red-600">{editErrors.bid_amount}</p>}
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Estimated Days</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={editData.estimated_days}
+                                                onChange={(e) => handleEditInputChange('estimated_days', e.target.value)}
+                                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                                            />
+                                            {editErrors.estimated_days && <p className="mt-1 text-xs text-red-600">{editErrors.estimated_days}</p>}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Proposal Message</label>
+                                        <textarea
+                                            rows={4}
+                                            value={editData.proposal_message}
+                                            onChange={(e) => handleEditInputChange('proposal_message', e.target.value)}
+                                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                                        />
+                                        {editErrors.proposal_message && <p className="mt-1 text-xs text-red-600">{editErrors.proposal_message}</p>}
+                                    </div>
+                                    {editErrors.bid && <p className="mt-2 text-xs text-red-600">{editErrors.bid}</p>}
+                                    {editErrors.error && <p className="mt-2 text-xs text-red-600">{editErrors.error}</p>}
+                                    <div className="mt-4 flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={submitBidEdit}
+                                            disabled={editProcessing}
+                                            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+                                        >
+                                            {editProcessing ? 'Saving...' : 'Save Changes'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={cancelEditing}
+                                            disabled={editProcessing}
+                                            className="bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -545,22 +665,32 @@ export default function BidShow({ bid }) {
                     {isGigWorker && bid.status === 'pending' && (
                         <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow-lg sm:rounded-xl border border-gray-200">
                             <div className="p-6">
-                                <button
-                                    type="button"
-                                    onClick={() => handleBidAction('withdraw')}
-                                    disabled={processing}
-                                    className="w-full bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                >
-                                    {processing ? (
-                                        <span className="flex items-center justify-center">
-                                            <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Processing...
-                                        </span>
-                                    ) : 'Withdraw Bid'}
-                                </button>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={startEditing}
+                                        disabled={processing || editProcessing}
+                                        className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    >
+                                        Edit Bid
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBidAction('withdraw')}
+                                        disabled={processing || editProcessing}
+                                        className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    >
+                                        {processing ? (
+                                            <span className="flex items-center justify-center">
+                                                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Processing...
+                                            </span>
+                                        ) : 'Withdraw Bid'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

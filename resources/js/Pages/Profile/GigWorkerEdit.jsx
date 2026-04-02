@@ -248,6 +248,9 @@ export default function GigWorkerEdit({ user, status }) {
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'82ff5d'},body:JSON.stringify({sessionId:'82ff5d',runId:'initial',hypothesisId:'H1',location:'GigWorkerEdit.jsx:handlePhotoChange',message:'profile photo selected',data:{name:file.name,size:file.size,type:file.type},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         setData('profile_picture', file);
         setPhotoPreview(URL.createObjectURL(file));
     };
@@ -301,6 +304,9 @@ export default function GigWorkerEdit({ user, status }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'82ff5d'},body:JSON.stringify({sessionId:'82ff5d',runId:'initial',hypothesisId:'H2',location:'GigWorkerEdit.jsx:handleSubmit',message:'submit gig worker edit',data:{hasProfilePicture:!!data.profile_picture,profilePictureName:data.profile_picture?.name||null,profilePictureSize:data.profile_picture?.size||null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         post(route('gig-worker.profile.update') || '/profile/gig-worker/edit', {
             forceFormData: true,
             preserveScroll: true,

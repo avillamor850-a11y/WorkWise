@@ -33,6 +33,10 @@ export default function Login({ status, canResetPassword }) {
         const TEST_EMAILS = ['example@gmail.com', 'example.employer@gmail.com'];
         const useLaravelOnly = TEST_EMAILS.includes((data.email || '').toLowerCase());
 
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a40f2b'},body:JSON.stringify({sessionId:'a40f2b',location:'Login.jsx:submit:entry',message:'submit branch',data:{useLaravelOnly,emailLen:(data.email||'').length,viteUrlSet:!!import.meta.env.VITE_SUPABASE_URL,viteKeySet:!!import.meta.env.VITE_SUPABASE_KEY},timestamp:Date.now(),hypothesisId:'H1,H3'})}).catch(()=>{});
+        // #endregion
+
         if (useLaravelOnly) {
             // #region agent log
             fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c58bb5'},body:JSON.stringify({sessionId:'c58bb5',hypothesisId:'H2',location:'Login.jsx:submit',message:'Laravel post called',data:{},timestamp:Date.now()})}).catch(()=>{});
@@ -83,10 +87,16 @@ export default function Login({ status, canResetPassword }) {
             // #region agent log
             fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2cd453'},body:JSON.stringify({sessionId:'2cd453',hypothesisId:'A,C',location:'Login.jsx:submit',message:'Supabase race resolved',data:{hasError:!!error,hasAuthData:!!authData},timestamp:Date.now()})}).catch(()=>{});
             // #endregion
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a40f2b'},body:JSON.stringify({sessionId:'a40f2b',location:'Login.jsx:submit:supabaseResult',message:'supabase signIn result',data:{hasError:!!error,errName:error?.name,errMessage:error?.message,errStatus:error?.status,hasSession:!!authData?.session},timestamp:Date.now(),hypothesisId:'H1,H2,H5'})}).catch(()=>{});
+            // #endregion
 
             if (error) {
                 // #region agent log
                 fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2cd453'},body:JSON.stringify({sessionId:'2cd453',hypothesisId:'C',location:'Login.jsx:submit',message:'branch Laravel fallback (Supabase error)',data:{},timestamp:Date.now()})}).catch(()=>{});
+                // #endregion
+                // #region agent log
+                fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a40f2b'},body:JSON.stringify({sessionId:'a40f2b',location:'Login.jsx:submit:fallback',message:'Laravel fallback after supabase error',data:{},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
                 // #endregion
                 post(route('login'), {
                     onFinish: () => {
@@ -108,6 +118,9 @@ export default function Login({ status, canResetPassword }) {
                 return;
             }
 
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a40f2b'},body:JSON.stringify({sessionId:'a40f2b',location:'Login.jsx:submit:supabaseOk',message:'supabase auth ok, posting callback',data:{},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+            // #endregion
             router.post(route('auth.supabase.callback'), {
                 email: authData.user.email,
                 id: authData.user.id,
@@ -122,6 +135,9 @@ export default function Login({ status, canResetPassword }) {
         } catch (err) {
             // #region agent log
             fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2cd453'},body:JSON.stringify({sessionId:'2cd453',hypothesisId:'A,C',location:'Login.jsx:submit',message:'catch block (timeout or throw)',data:{message:err?.message},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a40f2b'},body:JSON.stringify({sessionId:'a40f2b',location:'Login.jsx:submit:catch',message:'submit catch',data:{errMessage:err?.message},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
             // #endregion
             post(route('login'), {
                 onFinish: () => {

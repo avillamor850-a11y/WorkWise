@@ -108,13 +108,54 @@ class FileUploadService
             $uploadDuration = round((microtime(true) - $startTime) * 1000, 2);
 
             if (!$path) {
-                Log::error('FILE_UPLOAD_FAILED', [
-                    'event' => 'file_upload_failed',
+                Log::warning('FILE_UPLOAD_SUPABASE_EMPTY_FALLBACK_PUBLIC', [
+                    'event' => 'file_upload_supabase_fallback',
                     'user_id' => $userId,
                     'user_type' => $userType,
-                    'error_code' => 'UPLOAD_FAILED',
-                    'error_message' => 'Supabase storage putFile returned false/null',
+                    'storage' => ['directory' => $storagePath],
+                    'timestamp' => now()->toIso8601String(),
+                ]);
+
+                $localPath = $file->store($storagePath, 'public');
+                $uploadDuration = round((microtime(true) - $startTime) * 1000, 2);
+
+                if (!$localPath) {
+                    Log::error('FILE_UPLOAD_FAILED', [
+                        'event' => 'file_upload_failed',
+                        'user_id' => $userId,
+                        'user_type' => $userType,
+                        'error_code' => 'UPLOAD_FAILED',
+                        'error_message' => 'Supabase putFile empty and public disk store failed',
+                        'storage' => [
+                            'directory' => $storagePath,
+                        ],
+                        'performance' => [
+                            'duration_ms' => $uploadDuration,
+                        ],
+                        'timestamp' => now()->toIso8601String(),
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'url' => null,
+                        'path' => null,
+                        'error' => 'Failed to upload file to storage',
+                        'error_code' => 'UPLOAD_FAILED',
+                        'disk' => null,
+                    ];
+                }
+
+                $normPath = str_replace('\\', '/', $localPath);
+                $url = '/storage/' . ltrim($normPath, '/');
+
+                Log::info('FILE_UPLOAD_SUCCESS', [
+                    'event' => 'file_upload_success',
+                    'user_id' => $userId,
+                    'user_type' => $userType,
+                    'storage_provider' => 'public_fallback',
                     'storage' => [
+                        'path' => $normPath,
+                        'url' => $url,
                         'directory' => $storagePath,
                     ],
                     'performance' => [
@@ -124,11 +165,12 @@ class FileUploadService
                 ]);
 
                 return [
-                    'success' => false,
-                    'url' => null,
-                    'path' => null,
-                    'error' => 'Failed to upload file to storage',
-                    'error_code' => 'UPLOAD_FAILED',
+                    'success' => true,
+                    'url' => $url,
+                    'path' => $normPath,
+                    'error' => null,
+                    'error_code' => null,
+                    'disk' => 'public',
                 ];
             }
 
@@ -157,6 +199,7 @@ class FileUploadService
                 'path' => $path,
                 'error' => null,
                 'error_code' => null,
+                'disk' => 'supabase',
             ];
 
         } catch (\Exception $e) {

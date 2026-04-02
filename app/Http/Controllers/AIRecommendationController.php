@@ -165,6 +165,10 @@ class AIRecommendationController extends Controller
             $jobIdInt = $requestedJobId !== null && $requestedJobId !== '' && filter_var($requestedJobId, FILTER_VALIDATE_INT) !== false
                 ? (int) $requestedJobId
                 : null;
+            $debugWorkerIdRaw = $request->query('debug_worker_id');
+            $debugWorkerIdInt = $debugWorkerIdRaw !== null && $debugWorkerIdRaw !== '' && filter_var($debugWorkerIdRaw, FILTER_VALIDATE_INT) !== false
+                ? (int) $debugWorkerIdRaw
+                : null;
 
             if ($jobIdInt !== null) {
                 $job = $user->postedJobs()
@@ -177,6 +181,27 @@ class AIRecommendationController extends Controller
                 // #endregion
                 if ($job) {
                     $singleJobId = $job->id;
+                    // #region agent log
+                    $debugLogPath = base_path('debug-fe5f63.log');
+                    @file_put_contents(
+                        $debugLogPath,
+                        json_encode([
+                            'sessionId' => 'fe5f63',
+                            'runId' => 'initial',
+                            'hypothesisId' => 'H5',
+                            'location' => 'AIRecommendationController::employerRecommendations',
+                            'message' => 'request_params_and_job_found',
+                            'data' => [
+                                'job_id' => $job->id,
+                                'refresh' => $refresh,
+                                'employer_id' => $user->id,
+                                'debug_worker_id' => $debugWorkerIdInt,
+                            ],
+                            'timestamp' => round(microtime(true) * 1000),
+                        ]) . "\n",
+                        FILE_APPEND | LOCK_EX
+                    );
+                    // #endregion
                     $matches = $this->recommendationService->getJobRecommendationsForEmployer($job, 5, $refresh);
                     $recommendations[$job->id] = [
                         'job' => $job,
