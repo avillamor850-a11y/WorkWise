@@ -23,6 +23,7 @@ function safeRoute(name, fallback = '/') {
 function resolveProfileImageUrl(url) {
     if (!url || typeof url !== 'string') return null;
     const u = url.trim();
+    if (u.startsWith('blob:') || u.startsWith('data:')) return u;
     if (u.startsWith('http://') || u.startsWith('https://')) return u;
     if (u.startsWith('/storage/supabase/')) return u;
     if (u.startsWith('/supabase/')) return '/storage/supabase/' + u.slice(9);

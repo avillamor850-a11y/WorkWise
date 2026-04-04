@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
+
+function adminUserTableAvatarSrc(user) {
+    const raw = user.profile_picture || user.profile_photo;
+    const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User')}&color=7F9CF5&background=EBF4FF`;
+    return resolveProfileImageUrl(raw) || raw || fallback;
+}
 
 export default function UsersIndex({ users, filters }) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
@@ -384,7 +391,7 @@ export default function UsersIndex({ users, filters }) {
                                                     <div className="flex-shrink-0 h-10 w-10">
                                                         <img
                                                             className="h-10 w-10 rounded-full"
-                                                            src={user.profile_picture || user.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&color=7F9CF5&background=EBF4FF`}
+                                                            src={adminUserTableAvatarSrc(user)}
                                                             alt=""
                                                         />
                                                     </div>

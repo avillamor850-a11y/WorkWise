@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 export default function UserShow({ user, stats, postedJobs = [], userBids = [], auditLogs = [] }) {
     const [activeTab, setActiveTab] = useState('overview');
@@ -170,7 +171,19 @@ export default function UserShow({ user, stats, postedJobs = [], userBids = [], 
                             <div className="flex-shrink-0">
                                 <img
                                     className="h-20 w-20 rounded-full"
-                                    src={user.profile_picture_url || user.profile_photo || user.profile_picture || user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&color=7F9CF5&background=EBF4FF&size=80`}
+                                    src={
+                                        resolveProfileImageUrl(
+                                            user.profile_picture_url ||
+                                                user.profile_photo ||
+                                                user.profile_picture ||
+                                                user.avatar,
+                                        ) ||
+                                        user.profile_picture_url ||
+                                        user.profile_photo ||
+                                        user.profile_picture ||
+                                        user.avatar ||
+                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&color=7F9CF5&background=EBF4FF&size=80`
+                                    }
                                     alt=""
                                 />
                             </div>

@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 export default function Show({ user, auth }) {
     const [showRejectModal, setShowRejectModal] = useState(false);
@@ -11,8 +12,10 @@ export default function Show({ user, auth }) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState(null);
 
+    const mediaSrc = (path) => (path ? (resolveProfileImageUrl(path) || path) : null);
+
     const openImageModal = (imageUrl) => {
-        setSelectedImage(imageUrl);
+        setSelectedImage(mediaSrc(imageUrl));
         setShowImageModal(true);
     };
 
@@ -174,10 +177,10 @@ export default function Show({ user, auth }) {
                         <div className="flex items-start justify-between">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    {user.profile_photo ? (
+                                    {mediaSrc(user.profile_picture || user.profile_photo) ? (
                                         <img
                                             className="h-20 w-20 rounded-full object-cover"
-                                            src={`/storage/${user.profile_photo}`}
+                                            src={mediaSrc(user.profile_picture || user.profile_photo)}
                                             alt={`${user.first_name} ${user.last_name}`}
                                         />
                                     ) : (
@@ -239,7 +242,7 @@ export default function Show({ user, auth }) {
                                 {user.id_front_image ? (
                                     <div className="relative group">
                                         <img
-                                            src={user.id_front_image}
+                                            src={mediaSrc(user.id_front_image)}
                                             alt="Front ID"
                                             className="w-full rounded-lg border border-gray-300 cursor-pointer hover:opacity-90 transition"
                                             onClick={() => openImageModal(user.id_front_image)}
@@ -264,7 +267,7 @@ export default function Show({ user, auth }) {
                                 {user.id_back_image ? (
                                     <div className="relative group">
                                         <img
-                                            src={user.id_back_image}
+                                            src={mediaSrc(user.id_back_image)}
                                             alt="Back ID"
                                             className="w-full rounded-lg border border-gray-300 cursor-pointer hover:opacity-90 transition"
                                             onClick={() => openImageModal(user.id_back_image)}

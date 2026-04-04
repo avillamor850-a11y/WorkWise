@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import CsrfSync from '@/Components/CsrfSync';
 
@@ -6,6 +6,21 @@ import CsrfSync from '@/Components/CsrfSync';
 export default function AdminLayout({ children, header }) {
     const { url } = usePage();
     const { auth } = usePage().props;
+
+    /** CSV export on Deposits / Payments pages (preserves current query filters). */
+    const adminExportHref = useMemo(() => {
+        if (!url) return null;
+        const q = url.indexOf('?');
+        const path = q === -1 ? url : url.slice(0, q);
+        const qs = q === -1 ? '' : url.slice(q);
+        if (path === '/admin/deposits') {
+            return `/admin/deposits/export${qs}`;
+        }
+        if (path === '/admin/payments') {
+            return `/admin/payments/export${qs}`;
+        }
+        return null;
+    }, [url]);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     // Function to check if current path matches navigation item
@@ -197,10 +212,25 @@ export default function AdminLayout({ children, header }) {
                                         <span className="material-symbols-outlined text-base">refresh</span>
                                         Refresh
                                     </button>
-                                    <button className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
-                                        <span className="material-symbols-outlined text-base">download</span>
-                                        Export
-                                    </button>
+                                    {adminExportHref ? (
+                                        <Link
+                                            href={adminExportHref}
+                                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-base">download</span>
+                                            Export
+                                        </Link>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            disabled
+                                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-400 bg-slate-200 rounded-lg cursor-not-allowed dark:bg-slate-800 dark:text-slate-600"
+                                            title="Open Deposits or Payments to export"
+                                        >
+                                            <span className="material-symbols-outlined text-base">download</span>
+                                            Export
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </header>

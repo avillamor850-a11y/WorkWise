@@ -94,12 +94,45 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Get profile picture URL with fallback
-     * Returns profile_picture if set, otherwise profile_photo
+     * Normalize a stored media path for use in HTML img src (aligned with resources/js/utils/avatarUrl.js).
+     * Maps /supabase/... to /storage/supabase/... and avoids /storage//double slashes.
+     */
+    public static function resolvePublicMediaUrl(mixed $url): ?string
+    {
+        if (! is_string($url)) {
+            return null;
+        }
+        $u = trim($url);
+        if ($u === '') {
+            return null;
+        }
+        if (str_starts_with($u, 'blob:') || str_starts_with($u, 'data:')) {
+            return $u;
+        }
+        if (str_starts_with($u, 'http://') || str_starts_with($u, 'https://')) {
+            return $u;
+        }
+        if (str_starts_with($u, '/storage/supabase/')) {
+            return $u;
+        }
+        if (str_starts_with($u, '/supabase/')) {
+            return '/storage/supabase/'.ltrim(substr($u, 10), '/');
+        }
+        if (str_starts_with($u, '/storage/')) {
+            return $u;
+        }
+
+        return '/storage/'.ltrim($u, '/');
+    }
+
+    /**
+     * Get profile picture URL with fallback (browser-ready path, not raw DB path).
      */
     public function getProfilePictureUrlAttribute(): ?string
     {
-        return $this->profile_picture ?? $this->profile_photo ?? $this->avatar;
+        $raw = $this->profile_picture ?? $this->profile_photo ?? $this->avatar;
+
+        return self::resolvePublicMediaUrl($raw);
     }
 
     /**

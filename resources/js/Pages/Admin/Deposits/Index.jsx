@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
@@ -31,6 +31,15 @@ export default function AdminDepositsIndex({ deposits, stats, filters }) {
             date_to: dateTo || undefined,
         }, { preserveState: true });
     };
+
+    const exportCsvHref = useMemo(() => {
+        const p = new URLSearchParams();
+        if (status) p.set('status', status);
+        if (dateFrom) p.set('date_from', dateFrom);
+        if (dateTo) p.set('date_to', dateTo);
+        const q = p.toString();
+        return `/admin/deposits/export${q ? `?${q}` : ''}`;
+    }, [status, dateFrom, dateTo]);
 
     const list = deposits?.data ?? [];
 
@@ -121,7 +130,7 @@ export default function AdminDepositsIndex({ deposits, stats, filters }) {
                         />
                     </div>
                 </div>
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex flex-wrap gap-2">
                     <button
                         type="button"
                         onClick={applyFilters}
@@ -136,6 +145,13 @@ export default function AdminDepositsIndex({ deposits, stats, filters }) {
                     >
                         Clear
                     </Link>
+                    <a
+                        href={exportCsvHref}
+                        className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:bg-slate-800 dark:text-indigo-300 dark:hover:bg-slate-700"
+                    >
+                        <span className="material-symbols-outlined text-sm">download</span>
+                        Export CSV
+                    </a>
                 </div>
             </div>
 

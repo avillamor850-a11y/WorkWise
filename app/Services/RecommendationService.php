@@ -31,7 +31,7 @@ class RecommendationService
 
     private const CACHE_TTL_HOURS = 24;
 
-    private const MAX_PROCESS_TIME = 20;
+    private const MAX_PROCESS_TIME = 60;
 
     /** Single batched Groq call timeout (seconds) */
     private const EMPLOYER_BATCH_HTTP_TIMEOUT_SEC = 55;
@@ -645,7 +645,7 @@ class RecommendationService
      * Call Groq with failover
      */
     /** Max seconds for a single callGroq attempt (avoids one call exhausting request time via model failover) */
-    private const GROQ_CALL_MAX_SEC = 18;
+    private const GROQ_CALL_MAX_SEC = 45;
 
     private function callGroq(string $systemPrompt, string $userPrompt, string $context): ?array
     {
@@ -656,45 +656,76 @@ class RecommendationService
 
                 return null;
             }
-            try {
-                $response = Http::withToken($this->apiKey)
-                    ->withOptions(['verify' => file_exists($this->certPath) ? $this->certPath : true])
-                    ->timeout(12)
-                    ->post($this->baseUrl.'/chat/completions', [
-                        'model' => $modelConfig['name'],
-                        'messages' => [
-                            ['role' => 'system', 'content' => $systemPrompt],
-                            ['role' => 'user', 'content' => $userPrompt],
-                        ],
-                        'temperature' => $modelConfig['temperature'],
-                        'max_completion_tokens' => $modelConfig['max_completion_tokens'],
-                        'top_p' => $modelConfig['top_p'],
-                        'stream' => false,
-                    ]);
+            
+            // Retry logic: up to 3 attempts (initial + 2 retries) with exponential backoff
+            $maxAttempts = 3;
+            $backoffDelays = [0, 1, 2]; // 0s for first attempt, 1s after first failure, 2s after second failure
+            
+            for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+                // Apply backoff delay before retry attempts
+                if ($attempt > 0) {
+                    sleep($backoffDelays[$attempt]);
+                }
+                
+                try {
+                    $response = Http::withToken($this->apiKey)
+                        ->withOptions(['verify' => file_exists($this->certPath) ? $this->certPath : true])
+                        ->timeout(30)
+                        ->post($this->baseUrl.'/chat/completions', [
+                            'model' => $modelConfig['name'],
+                            'messages' => [
+                                ['role' => 'system', 'content' => $systemPrompt],
+                                ['role' => 'user', 'content' => $userPrompt],
+                            ],
+                            'temperature' => $modelConfig['temperature'],
+                            'max_completion_tokens' => $modelConfig['max_completion_tokens'],
+                            'top_p' => $modelConfig['top_p'],
+                            'stream' => false,
+                        ]);
 
-                if (! $response->successful()) {
-                    if (in_array($response->status(), [429, 503])) {
-                        Log::warning("Groq model {$modelConfig['name']} rate limited, failover...");
+                    if (! $response->successful()) {
+                        if (in_array($response->status(), [429, 503])) {
+                            Log::warning("Groq model {$modelConfig['name']} rate limited, failover...");
+                            // Don't retry on rate limits, move to next model
+                            break;
+                        }
+
+                        continue;
                     }
 
-                    continue;
-                }
+                    $data = $response->json();
+                    $content = $data['choices'][0]['message']['content'] ?? '';
+                    if ($content === '') {
+                        continue;
+                    }
 
-                $data = $response->json();
-                $content = $data['choices'][0]['message']['content'] ?? '';
-                if ($content === '') {
-                    continue;
+                    if (preg_match('/Score:\s*(\d+)/i', $content, $m) && preg_match('/Reason:\s*(.+?)(?=\n\n|\n*$)/ims', $content, $r)) {
+                        return [
+                            'score' => min(100, (int) $m[1]),
+                            'reason' => trim($r[1] ?? 'No explanation.'),
+                            'success' => true,
+                        ];
+                    }
+                } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                    // Timeout exception - retry if we have attempts left
+                    if ($attempt < $maxAttempts - 1) {
+                        Log::warning("RecommendationService Groq timeout, retrying [{$context}]", [
+                            'model' => $modelConfig['name'],
+                            'attempt' => $attempt + 1,
+                            'error' => $e->getMessage()
+                        ]);
+                        continue; // Retry with backoff
+                    } else {
+                        Log::error("RecommendationService Groq failed after retries [{$context}]", [
+                            'model' => $modelConfig['name'],
+                            'error' => $e->getMessage()
+                        ]);
+                        break; // Move to next model
+                    }
+                } catch (\Exception $e) {
+                    Log::error("RecommendationService Groq failed [{$context}]", ['model' => $modelConfig['name'], 'error' => $e->getMessage()]);
+                    break; // Move to next model for non-timeout errors
                 }
-
-                if (preg_match('/Score:\s*(\d+)/i', $content, $m) && preg_match('/Reason:\s*(.+?)(?=\n\n|\n*$)/ims', $content, $r)) {
-                    return [
-                        'score' => min(100, (int) $m[1]),
-                        'reason' => trim($r[1] ?? 'No explanation.'),
-                        'success' => true,
-                    ];
-                }
-            } catch (\Exception $e) {
-                Log::error("RecommendationService Groq failed [{$context}]", ['model' => $modelConfig['name'], 'error' => $e->getMessage()]);
             }
         }
 

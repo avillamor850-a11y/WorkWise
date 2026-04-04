@@ -271,7 +271,7 @@ class AIRecommendationController extends Controller
         $recommendations = [];
         $hasError = false;
         try {
-            set_time_limit(30);
+            set_time_limit(90);
             $refresh = in_array($request->query('refresh'), [1, '1', true], true);
             $recommendations = $this->recommendationService->getJobRecommendationsForWorker($user, 10, $refresh);
         } catch (\Exception $e) {

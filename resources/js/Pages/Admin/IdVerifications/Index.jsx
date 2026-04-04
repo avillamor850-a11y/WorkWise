@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 
 export default function Index({ verifications = { data: [], links: [] }, stats = {}, filters = {} }) {
     const [search, setSearch] = useState(filters?.search || '');
@@ -388,7 +389,10 @@ export default function Index({ verifications = { data: [], links: [] }, stats =
                                         </td>
                                     </tr>
                                 ) : (
-                                    verifications.data.map((user) => (
+                                    verifications.data.map((user) => {
+                                        const avatarRaw = user.profile_picture_url || user.profile_picture || user.profile_photo;
+                                        const avatarSrc = avatarRaw ? (resolveProfileImageUrl(avatarRaw) || avatarRaw) : null;
+                                        return (
                                         <tr key={user.id} className={`hover:bg-gray-50 ${selectedIds.includes(user.id) ? 'bg-blue-50' : ''}`}>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <input
@@ -401,10 +405,10 @@ export default function Index({ verifications = { data: [], links: [] }, stats =
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
                                                     <div className="flex-shrink-0 h-10 w-10">
-                                                        {user.profile_picture_url ? (
+                                                        {avatarSrc ? (
                                                             <img
                                                                 className="h-10 w-10 rounded-full object-cover"
-                                                                src={user.profile_picture_url}
+                                                                src={avatarSrc}
                                                                 alt=""
                                                             />
                                                         ) : (
@@ -441,7 +445,8 @@ export default function Index({ verifications = { data: [], links: [] }, stats =
                                                 </Link>
                                             </td>
                                         </tr>
-                                    ))
+                                    );
+                                    })
                                 )}
                             </tbody>
                         </table>

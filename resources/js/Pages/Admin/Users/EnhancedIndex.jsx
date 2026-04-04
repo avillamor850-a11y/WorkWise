@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
+
+function adminUserTableAvatarSrc(user) {
+    const raw = user.profile_picture || user.profile_photo;
+    const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User')}&background=6366f1&color=fff`;
+    return resolveProfileImageUrl(raw) || raw || fallback;
+}
 
 export default function EnhancedUsersIndex({ users, filters }) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
@@ -116,6 +123,33 @@ export default function EnhancedUsersIndex({ users, filters }) {
         setSelectedUserForDetails(user);
         setIsSlideOverOpen(true);
     };
+
+    // #region agent log
+    useEffect(() => {
+        const sample = users?.data?.find((u) => {
+            const p = u.profile_picture || u.profile_photo;
+            return typeof p === 'string' && p.startsWith('/supabase/');
+        });
+        if (!sample) return;
+        const raw = sample.profile_picture || sample.profile_photo;
+        const out = resolveProfileImageUrl(raw) || raw;
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'fe5f63' },
+            body: JSON.stringify({
+                sessionId: 'fe5f63',
+                hypothesisId: 'H2',
+                location: 'Admin/Users/EnhancedIndex.jsx',
+                message: 'admin_avatar_supabase_resolved',
+                data: {
+                    startsWithStorageSupabase: typeof out === 'string' && out.startsWith('/storage/supabase/'),
+                },
+                timestamp: Date.now(),
+                runId: 'post-fix',
+            }),
+        }).catch(() => {});
+    }, [users]);
+    // #endregion
 
     return (
         <AdminLayout>
@@ -377,7 +411,7 @@ export default function EnhancedUsersIndex({ users, filters }) {
                                             <div className="flex items-center">
                                                 <img
                                                     className="h-10 w-10 rounded-full ring-2 ring-gray-200"
-                                                    src={user.profile_picture || user.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&background=6366f1&color=fff`}
+                                                    src={adminUserTableAvatarSrc(user)}
                                                     alt=""
                                                 />
                                                 <div className="ml-4">
@@ -501,7 +535,7 @@ export default function EnhancedUsersIndex({ users, filters }) {
                                         <div className="flex items-center pb-6 border-b border-gray-200">
                                             <img
                                                 className="h-20 w-20 rounded-full"
-                                                src={selectedUserForDetails.profile_picture || selectedUserForDetails.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUserForDetails.first_name + ' ' + selectedUserForDetails.last_name)}&background=6366f1&color=fff`}
+                                                src={adminUserTableAvatarSrc(selectedUserForDetails)}
                                                 alt=""
                                             />
                                             <div className="ml-6 flex-1">

@@ -588,6 +588,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Payments management
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
     Route::get('/payments/export', [AdminController::class, 'exportPayments'])->name('payments.export');
+    Route::get('/deposits/export', [AdminDepositsController::class, 'export'])->name('deposits.export');
     Route::get('/deposits', [AdminDepositsController::class, 'index'])->name('deposits.index');
 
     // Report management
