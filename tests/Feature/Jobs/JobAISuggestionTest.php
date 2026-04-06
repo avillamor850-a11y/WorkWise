@@ -108,6 +108,55 @@ class JobAISuggestionTest extends TestCase
         $response->assertJsonValidationErrors(['value']);
     }
 
+    public function test_project_category_validation_requires_custom_label(): void
+    {
+        $employer = $this->createEmployer();
+
+        $response = $this->actingAs($employer)->postJson('/api/recommendations/project-category', []);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['custom_label']);
+    }
+
+    public function test_project_category_validation_exact_taxonomy_match(): void
+    {
+        $employer = $this->createEmployer();
+
+        $response = $this->actingAs($employer)->postJson('/api/recommendations/project-category', [
+            'custom_label' => 'web development',
+            'title' => 'Need a site',
+            'description' => 'Build a website',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'valid' => true,
+            'canonical_category' => 'Web Development',
+        ]);
+    }
+
+    public function test_project_category_validation_returns_json_shape_for_nonsense(): void
+    {
+        $employer = $this->createEmployer();
+
+        $response = $this->actingAs($employer)->postJson('/api/recommendations/project-category', [
+            'custom_label' => 'asdfghjkl qwerty nonsense xyz123',
+            'title' => '',
+            'description' => '',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure(['valid', 'canonical_category', 'suggestions', 'message']);
+        $data = $response->json();
+        $this->assertFalse($data['valid']);
+        $this->assertNull($data['canonical_category']);
+        $this->assertIsArray($data['suggestions']);
+        $allowed = app(\App\Services\SkillService::class)->getCategories();
+        foreach ($data['suggestions'] as $s) {
+            $this->assertContains($s, $allowed);
+        }
+    }
+
     public function test_skill_recommendations_with_empty_input(): void
     {
         $employer = $this->createEmployer();

@@ -122,7 +122,14 @@ def compute_bid_amount(job: dict) -> float:
     return max(bmin, target)
 
 
-def submit_proposal_on_job_show(page: Page, *, bid_amount: float, estimated_days: int = 7) -> None:
+def fill_proposal_form_on_job_show(
+    page: Page,
+    *,
+    bid_amount: float,
+    estimated_days: int = 7,
+    cover_letter: str,
+) -> None:
+    """Open the bid form on /jobs/{id} and fill amount, timeline, and cover letter (does not submit)."""
     _wait_inertia_overlay_hidden(page, label="gw-job-show", timeout=60_000)
     page.get_by_role("button", name=re.compile(r"submit a proposal", re.I)).click(timeout=15_000)
     _wait_inertia_overlay_hidden(page, label="gw-bid-form", timeout=30_000)
@@ -135,8 +142,20 @@ def submit_proposal_on_job_show(page: Page, *, bid_amount: float, estimated_days
     expect(num_inputs.first).to_be_visible(timeout=10_000)
     num_inputs.nth(0).fill(f"{bid_amount:.2f}")
     num_inputs.nth(1).fill(str(estimated_days))
-    bid_form.locator("textarea").fill(proposal_cover_letter())
+    bid_form.locator("textarea").fill(cover_letter)
 
+
+def submit_proposal_on_job_show(page: Page, *, bid_amount: float, estimated_days: int = 7) -> None:
+    fill_proposal_form_on_job_show(
+        page,
+        bid_amount=bid_amount,
+        estimated_days=estimated_days,
+        cover_letter=proposal_cover_letter(),
+    )
+
+    bid_form = page.locator("form").filter(
+        has=page.get_by_role("button", name=re.compile(r"submit proposal", re.I))
+    )
     submit = bid_form.get_by_role("button", name=re.compile(r"submit proposal", re.I))
     expect(submit).to_be_enabled(timeout=10_000)
     submit.evaluate("el => el.click()")

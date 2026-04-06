@@ -11,6 +11,20 @@ use Inertia\Response;
 class GigJobController extends Controller
 {
     /**
+     * Employers must have an approved profile (completed onboarding) before posting jobs.
+     */
+    private function authorizeEmployerJobPosting(): void
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->isEmployer()) {
+            abort(403, 'Only employers can post jobs.');
+        }
+        if ($user->profile_status !== 'approved') {
+            abort(403, 'Complete your employer onboarding before posting jobs.');
+        }
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request): Response
@@ -106,10 +120,7 @@ class GigJobController extends Controller
      */
     public function create(): Response
     {
-        // Only employers can create jobs
-        if (!auth()->user()->isEmployer()) {
-            abort(403, 'Only employers can post jobs.');
-        }
+        $this->authorizeEmployerJobPosting();
 
         return Inertia::render('Jobs/Create');
     }
@@ -119,10 +130,7 @@ class GigJobController extends Controller
      */
     public function store(Request $request)
     {
-        // Only employers can create jobs
-        if (!auth()->user()->isEmployer()) {
-            abort(403, 'Only employers can post jobs.');
-        }
+        $this->authorizeEmployerJobPosting();
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -196,12 +204,16 @@ class GigJobController extends Controller
         
         $job->budget_display = $job->getBudgetDisplayAttribute();
 
+        $user = auth()->user();
+
         return Inertia::render('Jobs/Show', [
             'job' => $job,
-            'canBid' => auth()->user()?->isGigWorker() &&
-                        !$job->bids()->where('gig_worker_id', auth()->id())
-                                     ->whereNotIn('status', ['rejected', 'withdrawn'])
-                                     ->exists(),
+            'canBid' => $user
+                && $user->isGigWorker()
+                && $user->profile_status === 'approved'
+                && ! $job->bids()->where('gig_worker_id', $user->id)
+                    ->whereNotIn('status', ['rejected', 'withdrawn'])
+                    ->exists(),
         ]);
     }
 
@@ -264,6 +276,17 @@ class GigJobController extends Controller
                 $validated['skills_requirements']
             );
             $validated['experience_level'] = $this->deriveExperienceLevelFromSkills($validated['skills_requirements']);
+        }
+
+        // Edit form parity with create: omitted fields are cleared
+        if (! $request->exists('deadline')) {
+            $validated['deadline'] = null;
+        }
+        if (! $request->exists('job_complexity')) {
+            $validated['job_complexity'] = null;
+        }
+        if (! $request->exists('nice_to_have_skills')) {
+            $validated['nice_to_have_skills'] = [];
         }
 
         $job->update($validated);

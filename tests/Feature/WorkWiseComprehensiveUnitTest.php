@@ -332,10 +332,10 @@ class WorkWiseComprehensiveUnitTest extends TestCase
         $response = $this->patch("/jobs/{$this->job->id}", [
             'title' => '',
             'description' => '',
-            'required_skills' => [],
+            'skills_requirements' => [],
         ]);
 
-        $response->assertSessionHasErrors(['title', 'description', 'required_skills']);
+        $response->assertSessionHasErrors(['title', 'description', 'skills_requirements']);
     }
 
     // ============================================

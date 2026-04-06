@@ -6,7 +6,6 @@ use App\Models\GigJob;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class RecommendationService
@@ -49,6 +48,9 @@ class RecommendationService
     private const EMPLOYER_WORKER_LIMIT = 30;
 
     private const WORKER_JOB_LIMIT = 15;
+
+    /** @var array<int, array<string, mixed>> Runtime parse/debug rows for gig-worker AI recommendations (session 104979) */
+    private array $workerGroqDebugFailures = [];
 
     public function __construct(AIJobMatchingService $aiJobMatchingService, GroqBatchJsonClient $groqBatch)
     {
@@ -491,11 +493,24 @@ class RecommendationService
         return ['score' => min(100, $score), 'reason' => $reason, 'success' => true];
     }
 
+    /** Max tokens for gig-worker batched job scoring (JSON array of rows) */
+    private const WORKER_BATCH_MAX_TOKENS = 8192;
+
+    /** HTTP timeout for gig-worker batch Groq call */
+    private const WORKER_BATCH_HTTP_TIMEOUT_SEC = 55;
+
+    /** Failover time budget for gig-worker batch (seconds) */
+    private const WORKER_BATCH_ATTEMPT_BUDGET_SEC = 75;
+
     /**
-     * Gig worker: get recommended jobs (Relevance + Quality)
+     * Gig worker: get recommended jobs (Relevance + Quality).
+     * Uses one batched Groq JSON response for all uncached jobs to avoid sequential timeouts on refresh.
      */
     public function getJobRecommendationsForWorker(User $gigWorker, int $limit = 5, bool $refresh = false): array
     {
+        $this->workerGroqDebugFailures = [];
+        $wallStart = microtime(true);
+
         $query = GigJob::with(['employer' => fn ($q) => $q->with(['receivedReviews' => fn ($r) => $r->latest()->limit(self::REVIEW_SNIPPET_LIMIT)])])
             ->where('status', 'open')
             ->where(fn ($q) => $q->whereNotNull('required_skills')->orWhereNotNull('skills_requirements'))
@@ -513,34 +528,68 @@ class RecommendationService
         $workerText = "Worker profile: {$gigWorker->professional_title}\nSkills: ".$this->formatSkillsForPrompt($workerSkills)
             ."\nRate: ₱".($gigWorker->hourly_rate ?? 'Not set');
 
-        $matches = [];
-        $startTime = microtime(true);
-        $deadline = $startTime + self::MAX_PROCESS_TIME;
+        $cachePrefix = "recommendation_worker_{$gigWorker->id}_";
+        $resultsByJobId = [];
 
         foreach ($jobs as $job) {
-            if ((microtime(true) - $startTime) > self::MAX_PROCESS_TIME) {
-                Log::warning('RecommendationService worker timeout', ['gig_worker_id' => $gigWorker->id]);
-                // #region agent log
-                $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'D', 'location' => 'RecommendationService.php:worker_loop', 'message' => 'Timeout hit', 'data' => ['processed' => count($matches), 'job_count' => $jobs->count()], 'timestamp' => round(microtime(true) * 1000)])."\n";
-                @file_put_contents($logPath, $logLine, FILE_APPEND);
-                // #endregion
-                break;
+            $key = $cachePrefix.$job->id;
+            if (! $refresh && Cache::has($key)) {
+                $resultsByJobId[$job->id] = Cache::get($key);
             }
+        }
 
-            $result = $this->getJobRecommendationScoreForWorker($job, $gigWorker, $workerText, $refresh, $deadline);
-            // #region agent log
-            $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'B', 'location' => 'RecommendationService.php:worker_loop', 'message' => 'Job scored', 'data' => ['job_id' => $job->id, 'score' => $result['score'] ?? null, 'success' => $result['success'] ?? false, 'added' => ($result['success'] && ($result['score'] ?? 0) > 0)], 'timestamp' => round(microtime(true) * 1000)])."\n";
-            @file_put_contents($logPath, $logLine, FILE_APPEND);
-            // #endregion
+        $needAi = $jobs->filter(fn ($j) => ! isset($resultsByJobId[$j->id]));
+        $batchParsedCount = 0;
+
+        if ($needAi->isNotEmpty()) {
+            if (! $this->isConfigured) {
+                foreach ($needAi as $job) {
+                    $fb = $this->fallbackWorkerScore($job, $gigWorker);
+                    $fb['reason'] = $this->limitInsightSentences((string) ($fb['reason'] ?? ''), 3);
+                    Cache::put($cachePrefix.$job->id, $fb, now()->addHours(self::CACHE_TTL_HOURS));
+                    $resultsByJobId[$job->id] = $fb;
+                }
+            } else {
+                $batchMap = $this->runWorkerJobsGroqBatch($needAi, $workerText);
+                $batchParsedCount = count($batchMap);
+                foreach ($batchMap as $jid => $row) {
+                    $job = $needAi->firstWhere('id', $jid);
+                    if (! $job) {
+                        continue;
+                    }
+                    $row['reason'] = $this->limitInsightSentences((string) ($row['reason'] ?? ''), 3);
+                    if (($row['score'] ?? 0) === 0) {
+                        $fallback = $this->fallbackWorkerScore($job, $gigWorker);
+                        if (($fallback['score'] ?? 0) > 0) {
+                            $row = $fallback;
+                            $row['reason'] = $this->limitInsightSentences((string) ($row['reason'] ?? ''), 3);
+                        }
+                    }
+                    Cache::put($cachePrefix.$jid, $row, now()->addHours(self::CACHE_TTL_HOURS));
+                    $resultsByJobId[$jid] = $row;
+                }
+                foreach ($needAi as $job) {
+                    if (isset($resultsByJobId[$job->id])) {
+                        continue;
+                    }
+                    $fb = $this->fallbackWorkerScore($job, $gigWorker);
+                    $fb['reason'] = $this->limitInsightSentences((string) ($fb['reason'] ?? ''), 3);
+                    Cache::put($cachePrefix.$job->id, $fb, now()->addHours(self::CACHE_TTL_HOURS));
+                    $resultsByJobId[$job->id] = $fb;
+                }
+            }
+        }
+
+        $matches = [];
+        foreach ($jobs as $job) {
+            $result = $resultsByJobId[$job->id] ?? $this->fallbackWorkerScore($job, $gigWorker);
+            $result['reason'] = $this->limitInsightSentences((string) ($result['reason'] ?? ''), 3);
             if ($result['success'] && $result['score'] > 0) {
                 $matches[] = [
                     'job' => $job,
                     'score' => $result['score'],
                     'reason' => $result['reason'],
                 ];
-            }
-            if (count($matches) >= $limit * 2 && ($result['score'] ?? 0) >= 70) {
-                break;
             }
         }
 
@@ -551,67 +600,102 @@ class RecommendationService
         @file_put_contents($logPath, $logLine, FILE_APPEND);
 
         // #endregion
+        // #region agent log
+        $this->debugLog104979('H1,H2,H4,H5', 'RecommendationService:getJobRecommendationsForWorker', 'worker_rec_summary', [
+            'worker_id' => $gigWorker->id,
+            'refresh' => $refresh,
+            'limit' => $limit,
+            'elapsed_ms' => (int) round((microtime(true) - $wallStart) * 1000),
+            'pool_size' => $jobs->count(),
+            'need_ai_count' => $needAi->count(),
+            'batch_parsed_rows' => $batchParsedCount,
+            'runId' => 'post-fix',
+            'items' => array_map(fn ($m) => [
+                'job_id' => $m['job']->id,
+                'score' => $m['score'],
+                'reason_len' => strlen(trim((string) ($m['reason'] ?? ''))),
+            ], $returned),
+            'groq_parse_failures' => $this->workerGroqDebugFailures,
+        ]);
+        // #endregion
         return $returned;
     }
 
     /**
-     * Single job recommendation score for worker (relevance + quality)
+     * @param  Collection<int, GigJob>  $jobs
+     * @return array<int, array{score: int, reason: string, success: true}>
      */
-    private function getJobRecommendationScoreForWorker(GigJob $job, User $gigWorker, string $workerText, bool $refresh, ?float $deadline = null): array
+    private function runWorkerJobsGroqBatch(Collection $jobs, string $workerText): array
     {
-        $cacheKey = "recommendation_worker_{$gigWorker->id}_{$job->id}";
-        if (! $refresh && Cache::has($cacheKey)) {
-            $cached = Cache::get($cacheKey);
-            // #region agent log
-            $logPath = base_path('debug-2a3dda.log');
-            $logLine = json_encode(['sessionId' => '2a3dda', 'hypothesisId' => 'C', 'location' => 'RecommendationService.php:getJobRecommendationScoreForWorker', 'message' => 'Cache hit', 'data' => ['job_id' => $job->id, 'worker_id' => $gigWorker->id, 'cached_score' => $cached['score'] ?? null], 'timestamp' => round(microtime(true) * 1000)])."\n";
-            @file_put_contents($logPath, $logLine, FILE_APPEND);
-
-            // #endregion
-            return $cached;
+        $blocks = [];
+        foreach ($jobs as $job) {
+            $blocks[] = $this->buildCompactJobBlockForWorkerBatch($job);
         }
 
-        if (! $this->isConfigured) {
-            return $this->fallbackWorkerScore($job, $gigWorker);
+        $systemPrompt = 'You are an expert career advisor for Philippine freelance workers. '
+            .'For EACH job below, assess (1) RELEVANCE: fit between the worker\'s skills/experience and the job; (2) QUALITY: employer reputation from ratings and review excerpts (fair pay, communication, timeliness). '
+            .'Score 0-100; protect the worker from bad employers or low-quality posts. '
+            .'Reply with ONLY a valid JSON array (no markdown fences, no commentary). Each object must be: {"job_id": <number matching a listed job>, "score": <integer 0-100>, "reason": "<at most 3 short sentences>"}. '
+            .'Include exactly one object per job_id listed.';
+
+        $userPrompt = "WORKER PROFILE:\n{$workerText}\n\nJOBS TO SCORE:\n".implode("\n\n", $blocks);
+
+        $content = $this->groqBatch->postChatContent(
+            $systemPrompt,
+            $userPrompt,
+            $this->models,
+            self::WORKER_BATCH_HTTP_TIMEOUT_SEC,
+            self::WORKER_BATCH_MAX_TOKENS,
+            self::WORKER_BATCH_ATTEMPT_BUDGET_SEC
+        );
+
+        if ($content === null || trim($content) === '') {
+            $this->workerGroqDebugFailures[] = ['kind' => 'worker_batch_no_content'];
+
+            return [];
         }
 
-        if ($deadline !== null && microtime(true) >= $deadline) {
-            return $this->fallbackWorkerScore($job, $gigWorker);
+        $parsed = GroqBatchJsonClient::parseJobScoreArray($content);
+        if ($parsed === []) {
+            $head = preg_replace('/\s+/', ' ', function_exists('mb_substr') ? mb_substr($content, 0, 220) : substr($content, 0, 220));
+            $this->workerGroqDebugFailures[] = ['kind' => 'worker_batch_parse_empty', 'content_head' => $head];
         }
 
+        return $parsed;
+    }
+
+    private function buildCompactJobBlockForWorkerBatch(GigJob $job): string
+    {
         $jobSkills = $this->getJobSkillsForPrompt($job);
-        $jobText = $this->buildJobText($job, $jobSkills);
+        $req = $jobSkills['required'];
+        $reqText = empty($req) ? implode(', ', $jobSkills['all_skill_names']) : implode(', ', array_map(fn ($s) => ($s['skill'] ?? '').' ('.($s['experience_level'] ?? '').')', $req));
+        $pref = $jobSkills['preferred'] ?? [];
+        $prefText = empty($pref) ? '' : "\nPreferred: ".implode(', ', array_map(fn ($s) => $s['skill'] ?? '', $pref));
+        $desc = \Illuminate\Support\Str::limit($job->description ?? '', 120);
+        $jobText = "Title: {$job->title}\nDescription: {$desc}\nRequired skills: {$reqText}{$prefText}\nExperience: {$job->experience_level}\nBudget: ₱{$job->budget_min} - ₱{$job->budget_max}";
 
         $employer = $job->employer;
         $employerRating = $employer ? round($employer->receivedReviews()->avg('rating') ?? 0, 1) : 0;
         $employerSnippets = $employer ? $this->getReviewSnippets($employer) : 'No reviews yet.';
 
-        $qualityText = "Employer average rating (from workers they hired): {$employerRating}/5\n"
-            ."Budget: ₱{$job->budget_min} - ₱{$job->budget_max}\n"
-            ."What workers said about this employer:\n{$employerSnippets}";
+        return "--- job_id: {$job->id} ---\n{$jobText}\nEmployer avg rating (workers hired): {$employerRating}/5\nReview excerpts:\n".$employerSnippets;
+    }
 
-        $systemPrompt = 'You are an expert career advisor for Philippine freelance workers. '
-            .'Evaluate each job on: (1) RELEVANCE: match to the worker\'s skills and experience; (2) QUALITY: employer reputation from ratings and review content (fair pay, communication, timeliness). '
-            .'Score 0-100. Protect the worker from bad employers or low-quality posts. '
-            .'Format exactly: Score: <number>\nReason: <2-3 sentences covering relevance and quality>';
-
-        $userPrompt = "WORKER PROFILE:\n{$workerText}\n\nJOB:\n{$jobText}\n\n--- EMPLOYER QUALITY ---\n{$qualityText}\n\nProvide Score and Reason.";
-
-        $result = $this->callGroq($systemPrompt, $userPrompt, 'worker');
-        if ($result !== null) {
-            // When Groq returns 0, use fallback if it gives a positive score so exact skill matches still appear (log evidence: jobs 22,21,20,18 got 0 from Groq)
-            if (($result['score'] ?? 0) === 0) {
-                $fallback = $this->fallbackWorkerScore($job, $gigWorker);
-                if (($fallback['score'] ?? 0) > 0) {
-                    $result = $fallback;
-                }
-            }
-            Cache::put($cacheKey, $result, now()->addHours(self::CACHE_TTL_HOURS));
-
-            return $result;
+    /**
+     * Keep AI insight text short for UI (max N sentences).
+     */
+    private function limitInsightSentences(string $text, int $maxSentences = 3): string
+    {
+        $t = trim(preg_replace('/\s+/u', ' ', $text));
+        if ($t === '') {
+            return '';
+        }
+        $parts = preg_split('/(?<=[.!?])\s+/u', $t, $maxSentences + 1, PREG_SPLIT_NO_EMPTY);
+        if ($parts === false || count($parts) === 0) {
+            return $t;
         }
 
-        return $this->fallbackWorkerScore($job, $gigWorker);
+        return trim(implode(' ', array_slice($parts, 0, $maxSentences)));
     }
 
     private function fallbackWorkerScore(GigJob $job, User $gigWorker): array
@@ -641,94 +725,18 @@ class RecommendationService
         return $result;
     }
 
-    /**
-     * Call Groq with failover
-     */
-    /** Max seconds for a single callGroq attempt (avoids one call exhausting request time via model failover) */
-    private const GROQ_CALL_MAX_SEC = 45;
-
-    private function callGroq(string $systemPrompt, string $userPrompt, string $context): ?array
+    // #region agent log
+    private function debugLog104979(string $hypothesisId, string $location, string $message, array $data = []): void
     {
-        $callStart = microtime(true);
-        foreach ($this->models as $modelConfig) {
-            if (microtime(true) - $callStart > self::GROQ_CALL_MAX_SEC) {
-                Log::warning('RecommendationService Groq call time cap reached', ['context' => $context]);
-
-                return null;
-            }
-            
-            // Retry logic: up to 3 attempts (initial + 2 retries) with exponential backoff
-            $maxAttempts = 3;
-            $backoffDelays = [0, 1, 2]; // 0s for first attempt, 1s after first failure, 2s after second failure
-            
-            for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
-                // Apply backoff delay before retry attempts
-                if ($attempt > 0) {
-                    sleep($backoffDelays[$attempt]);
-                }
-                
-                try {
-                    $response = Http::withToken($this->apiKey)
-                        ->withOptions(['verify' => file_exists($this->certPath) ? $this->certPath : true])
-                        ->timeout(30)
-                        ->post($this->baseUrl.'/chat/completions', [
-                            'model' => $modelConfig['name'],
-                            'messages' => [
-                                ['role' => 'system', 'content' => $systemPrompt],
-                                ['role' => 'user', 'content' => $userPrompt],
-                            ],
-                            'temperature' => $modelConfig['temperature'],
-                            'max_completion_tokens' => $modelConfig['max_completion_tokens'],
-                            'top_p' => $modelConfig['top_p'],
-                            'stream' => false,
-                        ]);
-
-                    if (! $response->successful()) {
-                        if (in_array($response->status(), [429, 503])) {
-                            Log::warning("Groq model {$modelConfig['name']} rate limited, failover...");
-                            // Don't retry on rate limits, move to next model
-                            break;
-                        }
-
-                        continue;
-                    }
-
-                    $data = $response->json();
-                    $content = $data['choices'][0]['message']['content'] ?? '';
-                    if ($content === '') {
-                        continue;
-                    }
-
-                    if (preg_match('/Score:\s*(\d+)/i', $content, $m) && preg_match('/Reason:\s*(.+?)(?=\n\n|\n*$)/ims', $content, $r)) {
-                        return [
-                            'score' => min(100, (int) $m[1]),
-                            'reason' => trim($r[1] ?? 'No explanation.'),
-                            'success' => true,
-                        ];
-                    }
-                } catch (\Illuminate\Http\Client\ConnectionException $e) {
-                    // Timeout exception - retry if we have attempts left
-                    if ($attempt < $maxAttempts - 1) {
-                        Log::warning("RecommendationService Groq timeout, retrying [{$context}]", [
-                            'model' => $modelConfig['name'],
-                            'attempt' => $attempt + 1,
-                            'error' => $e->getMessage()
-                        ]);
-                        continue; // Retry with backoff
-                    } else {
-                        Log::error("RecommendationService Groq failed after retries [{$context}]", [
-                            'model' => $modelConfig['name'],
-                            'error' => $e->getMessage()
-                        ]);
-                        break; // Move to next model
-                    }
-                } catch (\Exception $e) {
-                    Log::error("RecommendationService Groq failed [{$context}]", ['model' => $modelConfig['name'], 'error' => $e->getMessage()]);
-                    break; // Move to next model for non-timeout errors
-                }
-            }
-        }
-
-        return null;
+        $line = json_encode([
+            'sessionId' => '104979',
+            'hypothesisId' => $hypothesisId,
+            'location' => $location,
+            'message' => $message,
+            'data' => $data,
+            'timestamp' => round(microtime(true) * 1000),
+        ])."\n";
+        @file_put_contents(base_path('debug-104979.log'), $line, FILE_APPEND | LOCK_EX);
     }
+    // #endregion
 }

@@ -20,6 +20,7 @@ class BidValidationTest extends TestCase
             'email' => 'employer@bids.test',
             'password' => Hash::make('password123'),
             'user_type' => 'employer',
+            'profile_status' => 'approved',
         ]);
 
         $worker = User::create([
@@ -28,6 +29,7 @@ class BidValidationTest extends TestCase
             'email' => 'worker@bids.test',
             'password' => Hash::make('password123'),
             'user_type' => 'gig_worker',
+            'profile_status' => 'approved',
         ]);
 
         $job = GigJob::create([

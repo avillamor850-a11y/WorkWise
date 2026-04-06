@@ -114,6 +114,10 @@ class BidController extends Controller
             return back()->withErrors(['user' => 'Only gig workers can submit bids.']);
         }
 
+        if (auth()->user()->profile_status !== 'approved') {
+            return back()->withErrors(['user' => 'Complete your profile onboarding before submitting proposals.']);
+        }
+
         // Check if gig worker already has an active bid on this job
         $existingBid = Bid::where('job_id', $job->id)
             ->where('gig_worker_id', auth()->id())

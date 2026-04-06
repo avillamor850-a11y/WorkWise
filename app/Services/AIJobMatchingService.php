@@ -1128,6 +1128,20 @@ class AIJobMatchingService
         return array_keys($matched);
     }
 
+    /**
+     * Public helper: taxonomy category names that best match free text (for project category UX).
+     *
+     * @return list<string>
+     */
+    public function suggestCategoryNamesFromText(string $text, int $limit = 3): array
+    {
+        $flat = $this->flattenTaxonomy();
+        $categories = $flat['categories'];
+        $matched = $this->matchCategories($text, $categories);
+
+        return array_slice($matched, 0, $limit);
+    }
+
     public function recommend(string $title, string $description, array $exclude = []): array
     {
         $flat = $this->flattenTaxonomy();

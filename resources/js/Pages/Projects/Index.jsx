@@ -191,7 +191,7 @@ export default function ProjectsIndex({ projects }) {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center flex-wrap gap-2">
                                                         {project.transactions && project.transactions.length > 0 && (
                                                             <Link
                                                                 href="/payment/history"
@@ -200,6 +200,14 @@ export default function ProjectsIndex({ projects }) {
                                                                 💳 View Payments
                                                             </Link>
                                                         )}
+                                                        {project.contract_id ? (
+                                                            <Link
+                                                                href={route('contracts.show', project.contract_id)}
+                                                                className={isDark ? "inline-flex items-center px-4 py-2 border border-indigo-500/40 text-sm font-medium rounded-xl text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/20 transition-all duration-300" : "inline-flex items-center px-4 py-2 border border-indigo-200 text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-all duration-300"}
+                                                            >
+                                                                View contract
+                                                            </Link>
+                                                        ) : null}
                                                         <Link
                                                             href={`/projects/${project.id}`}
                                                             className={isDark ? "inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-xl text-gray-100 bg-gray-800 hover:bg-blue-500/20 hover:border-blue-500/30 transition-all duration-300" : "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-blue-50 hover:border-blue-200 transition-all duration-300"}

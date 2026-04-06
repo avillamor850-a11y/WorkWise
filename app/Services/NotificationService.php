@@ -17,6 +17,39 @@ class NotificationService
     }
 
     /**
+     * Notify all admin users that a user submitted ID verification for review.
+     */
+    public function notifyAdminsIdVerificationSubmitted(User $subject): void
+    {
+        $displayName = trim(($subject->first_name ?? '').' '.($subject->last_name ?? ''));
+        if ($displayName === '') {
+            $displayName = $subject->email;
+        }
+
+        $actionUrl = route('admin.id-verifications.show', $subject);
+
+        $admins = User::query()
+            ->where('is_admin', true)
+            ->where('id', '!=', $subject->id)
+            ->get(['id']);
+
+        foreach ($admins as $admin) {
+            $this->create([
+                'user_id' => $admin->id,
+                'type' => 'admin_id_verification_pending',
+                'title' => 'ID verification pending review',
+                'message' => "{$displayName} ({$subject->email}) submitted ID documents for review.",
+                'data' => [
+                    'subject_user_id' => $subject->id,
+                    'user_type' => $subject->user_type,
+                ],
+                'action_url' => $actionUrl,
+                'icon' => 'shield-check',
+            ]);
+        }
+    }
+
+    /**
      * Get notifications for a user
      */
     public function getUserNotifications(User $user, int $perPage = 10): LengthAwarePaginator

@@ -7,6 +7,10 @@ Flow:
   3. Expect redirect to employer onboarding (/onboarding/employer)
   4. Optional: --complete-onboarding -> steps 1–5 -> /employer/dashboard
 
+Step 4 (Hiring preferences): open "Choose services", tick at least one category checkbox
+(standard list from #services-dropdown-panel). Optional "Other" uses Verify & add (AI); the
+script only selects listed categories.
+
 Employer steps 2–4 only advance after a successful Inertia POST (onSuccess); wait for the
 global loading overlay to clear after each primary action.
 
@@ -307,14 +311,28 @@ def pick_industry_with_groq(*, industries: list[str]) -> str:
     return canon.get(picked.lower(), secrets.choice(industries))
 
 
+def _open_services_dropdown(page: Page) -> None:
+    """Open the Step 4 multi-select panel (#services-dropdown-panel) if collapsed."""
+    toggle = page.locator("#services-dropdown-toggle")
+    expect(toggle).to_be_visible(timeout=15_000)
+    if page.locator("#services-dropdown-panel").count() == 0:
+        toggle.click()
+    panel = page.locator("#services-dropdown-panel")
+    expect(panel).to_be_visible(timeout=10_000)
+
+
 def _service_category_labels_from_page(page: Page) -> list[str]:
+    """Labels from the hiring-preferences checkbox list (excludes Other; that is a separate control)."""
+    _open_services_dropdown(page)
     raw = page.evaluate(
         """() => {
+          const panel = document.querySelector('#services-dropdown-panel');
+          if (!panel) return [];
           const out = [];
-          for (const b of document.querySelectorAll('button[type="button"]')) {
-            const t = (b.textContent || '').replace(/\\s+/g, ' ').trim();
-            const m = t.match(/^\\+\\s+(.+)$/);
-            if (m) out.push(m[1].trim());
+          for (const lab of panel.querySelectorAll('label')) {
+            const span = lab.querySelector('span');
+            const t = (span ? span.textContent : '').replace(/\\s+/g, ' ').trim();
+            if (t) out.push(t);
           }
           return [...new Set(out)];
         }"""
@@ -324,7 +342,7 @@ def _service_category_labels_from_page(page: Page) -> list[str]:
 
 def pick_service_category_with_groq(*, categories: list[str]) -> str:
     if not categories:
-        raise RuntimeError("No '+ category' service buttons found on hiring preferences step.")
+        raise RuntimeError("No service category labels found in #services-dropdown-panel.")
     api_key = os.environ.get("GROQ_API_KEY", "").strip()
     if not api_key:
         return secrets.choice(categories)
@@ -363,11 +381,34 @@ def pick_service_category_with_groq(*, categories: list[str]) -> str:
     return canon.get(picked.lower(), secrets.choice(categories))
 
 
-def _click_plus_service_chip(page: Page, category: str) -> None:
-    pat = re.compile(r"^\+\s+" + re.escape((category or "").strip()) + r"$", re.I)
-    btn = page.locator('button[type="button"]').filter(has_text=pat).first
-    expect(btn).to_be_visible(timeout=15_000)
-    btn.evaluate("el => el.click()")
+def _check_service_category_checkbox(page: Page, category: str) -> None:
+    """Tick one standard service checkbox in the Step 4 dropdown list."""
+    _open_services_dropdown(page)
+    cat = (category or "").strip()
+    ok = page.evaluate(
+        """(cat) => {
+          const panel = document.querySelector('#services-dropdown-panel');
+          if (!panel) return false;
+          const want = String(cat || '').trim().toLowerCase();
+          for (const lab of panel.querySelectorAll('label')) {
+            const span = lab.querySelector('span');
+            const t = (span ? span.textContent : lab.textContent || '')
+              .replace(/\\s+/g, ' ').trim().toLowerCase();
+            if (t === want) {
+              const inp = lab.querySelector('input[type="checkbox"]');
+              if (inp && !inp.checked) inp.click();
+              return true;
+            }
+          }
+          return false;
+        }""",
+        cat,
+    )
+    if not ok:
+        raise RuntimeError(
+            f"Could not find service checkbox for {category!r} in #services-dropdown-panel. URL={page.url!r}"
+        )
+    page.wait_for_timeout(250)
 
 
 def _log_debug(payload: dict) -> None:
@@ -744,13 +785,13 @@ def complete_employer_onboarding(
     )
 
     categories = _service_category_labels_from_page(page)
-    if categories:
-        service_pick = pick_service_category_with_groq(categories=categories)
-        _click_plus_service_chip(page, service_pick)
-    else:
-        service_chip = page.locator('button[type="button"]').filter(has_text=re.compile(r"^\+\s+")).first
-        expect(service_chip).to_be_visible(timeout=20_000)
-        service_chip.evaluate("el => el.click()")
+    if not categories:
+        raise RuntimeError(
+            "Hiring preferences: no categories in #services-dropdown-panel "
+            f"(is Step 4 loaded?). URL={page.url!r}"
+        )
+    service_pick = pick_service_category_with_groq(categories=categories)
+    _check_service_category_checkbox(page, service_pick)
     page.wait_for_timeout(300)
 
     page.locator("#typical_project_budget").select_option(value=str(mock.get("typical_project_budget") or ""))

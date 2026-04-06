@@ -62,12 +62,20 @@ class WorkWiseBasicTest extends TestCase
 
     public function test_client_can_create_job(): void
     {
-        $client = User::factory()->create(['user_type' => 'client']);
+        $employer = User::factory()->create([
+            'user_type' => 'employer',
+            'profile_status' => 'approved',
+        ]);
 
-        $response = $this->actingAs($client)->post('/jobs', [
+        $description = str_repeat('This is a test job description. ', 5);
+
+        $response = $this->actingAs($employer)->post('/jobs', [
             'title' => 'Test Job',
-            'description' => 'This is a test job description.',
-            'required_skills' => ['PHP', 'Laravel'],
+            'description' => $description,
+            'skills_requirements' => [
+                ['skill' => 'PHP', 'experience_level' => 'intermediate', 'importance' => 'required'],
+                ['skill' => 'Laravel', 'experience_level' => 'intermediate', 'importance' => 'preferred'],
+            ],
             'budget_type' => 'fixed',
             'budget_min' => 1000,
             'budget_max' => 2000,
@@ -76,46 +84,56 @@ class WorkWiseBasicTest extends TestCase
             'is_remote' => true,
         ]);
 
+        $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('gig_jobs', [
             'title' => 'Test Job',
-            'employer_id' => $client->id,
+            'employer_id' => $employer->id,
         ]);
     }
 
     public function test_freelancer_can_submit_bid(): void
     {
-        $client = User::factory()->create(['user_type' => 'client']);
-        $freelancer = User::factory()->create(['user_type' => 'freelancer']);
+        $employer = User::factory()->create([
+            'user_type' => 'employer',
+            'profile_status' => 'approved',
+        ]);
+        $gigWorker = User::factory()->create([
+            'user_type' => 'gig_worker',
+            'profile_status' => 'approved',
+        ]);
 
         $job = GigJob::factory()->create([
-            'employer_id' => $client->id,
+            'employer_id' => $employer->id,
             'title' => 'Test Job',
             'status' => 'open',
         ]);
 
-        $response = $this->actingAs($freelancer)->post('/bids', [
+        $response = $this->actingAs($gigWorker)->post('/bids', [
             'job_id' => $job->id,
             'bid_amount' => 1500,
             'proposal_message' => 'This is a test proposal message that is long enough to meet the minimum requirements.',
             'estimated_days' => 25,
         ]);
 
+        $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('bids', [
             'job_id' => $job->id,
-            'freelancer_id' => $freelancer->id,
+            'gig_worker_id' => $gigWorker->id,
             'bid_amount' => 1500,
         ]);
     }
 
     public function test_jobs_index_page_loads(): void
     {
-        $response = $this->get('/jobs');
+        $user = User::factory()->create(['profile_status' => 'approved']);
+
+        $response = $this->actingAs($user)->get('/jobs');
         $response->assertStatus(200);
     }
 
     public function test_authenticated_user_can_access_dashboard(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['user_type' => 'gig_worker']);
 
         $response = $this->actingAs($user)->get('/dashboard');
         $response->assertStatus(200);

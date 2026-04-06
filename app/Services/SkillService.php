@@ -284,6 +284,278 @@ class SkillService
         return ['valid' => true, 'message' => 'AI validation unavailable; accepted.'];
     }
 
+    /**
+     * Validate a free-text hiring need / service description for employers (Groq).
+     * Returns ['valid' => bool, 'message' => string].
+     */
+    public function validateHiringNeedWithAI(string $text): array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return ['valid' => false, 'message' => 'Description cannot be empty.'];
+        }
+
+        if (strlen($text) < 2) {
+            return ['valid' => false, 'message' => 'Please describe a real professional or freelance service you hire for.'];
+        }
+
+        if (strlen($text) > 255) {
+            return ['valid' => false, 'message' => 'Description must be 255 characters or less.'];
+        }
+
+        $apiKey = env('GROQ_API_KEY');
+        if (empty($apiKey)) {
+            Log::warning('GROQ_API_KEY not set; skipping AI hiring-need validation.');
+
+            return ['valid' => true, 'message' => 'AI validation unavailable; accepted.'];
+        }
+
+        $safe = str_replace(["\r", "\n"], ' ', $text);
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type'  => 'application/json',
+            ])->timeout(10)->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model'    => 'llama-3.1-8b-instant',
+                'messages' => [
+                    [
+                        'role'    => 'system',
+                        'content' => 'You decide if a string describes a plausible professional or freelance service or type of work an employer would hire someone for on a gig platform (not spam, jokes, or unrelated text). Answer ONLY "yes" or "no". Nothing else.',
+                    ],
+                    [
+                        'role'    => 'user',
+                        'content' => "Is this a plausible service or hiring need for a freelance platform? \"{$safe}\"",
+                    ],
+                ],
+                'max_tokens'  => 5,
+                'temperature' => 0,
+            ]);
+
+            if ($response->successful()) {
+                $answer = strtolower(trim($response->json('choices.0.message.content') ?? ''));
+                $valid = str_starts_with($answer, 'yes');
+
+                return [
+                    'valid'   => $valid,
+                    'message' => $valid
+                        ? 'Validated as a hiring need.'
+                        : 'Please describe a real professional or freelance service you hire for.',
+                ];
+            }
+
+            Log::warning('Groq hiring-need validation non-200', ['status' => $response->status()]);
+        } catch (\Exception $e) {
+            Log::error('Groq hiring-need validation failed', ['error' => $e->getMessage()]);
+        }
+
+        return ['valid' => true, 'message' => 'AI validation unavailable; accepted.'];
+    }
+
+    /**
+     * Map a free-text "Other" project category to the taxonomy, using exact/fuzzy match, Groq, then heuristics.
+     *
+     * @return array{valid: bool, canonical_category: ?string, suggestions: list<string>, message: string}
+     */
+    public function validateProjectCategoryForJob(string $customLabel, ?string $title = null, ?string $description = null): array
+    {
+        $label = trim($customLabel);
+        if ($label === '') {
+            return [
+                'valid' => false,
+                'canonical_category' => null,
+                'suggestions' => [],
+                'message' => 'Please describe your project category.',
+            ];
+        }
+
+        if (strlen($label) > 255) {
+            return [
+                'valid' => false,
+                'canonical_category' => null,
+                'suggestions' => [],
+                'message' => 'Category description must be 255 characters or less.',
+            ];
+        }
+
+        $allowed = $this->getCategories();
+        if ($allowed === []) {
+            return [
+                'valid' => true,
+                'canonical_category' => $label,
+                'suggestions' => [],
+                'message' => 'Taxonomy unavailable; using your text as-is.',
+            ];
+        }
+
+        $lowerToCanonical = [];
+        foreach ($allowed as $name) {
+            $lowerToCanonical[strtolower(trim($name))] = $name;
+        }
+
+        $labelKey = strtolower($label);
+        if (isset($lowerToCanonical[$labelKey])) {
+            return [
+                'valid' => true,
+                'canonical_category' => $lowerToCanonical[$labelKey],
+                'suggestions' => [],
+                'message' => 'Matched an existing category.',
+            ];
+        }
+
+        $bestCat = null;
+        $bestPct = 0;
+        foreach ($allowed as $name) {
+            similar_text(strtolower($label), strtolower($name), $pct);
+            if ($pct > $bestPct) {
+                $bestPct = $pct;
+                $bestCat = $name;
+            }
+        }
+        if ($bestCat !== null && $bestPct >= 88) {
+            return [
+                'valid' => true,
+                'canonical_category' => $bestCat,
+                'suggestions' => [],
+                'message' => 'Close match to an existing category.',
+            ];
+        }
+
+        $jobTitleDescriptionLine = trim(($title ?? '') . ' ' . ($description ?? ''));
+        $fromJobTitleDescription = [];
+        if ($jobTitleDescriptionLine !== '') {
+            $fromJobTitleDescription = array_values(array_filter(
+                app(\App\Services\AIJobMatchingService::class)->suggestCategoryNamesFromText($jobTitleDescriptionLine, 6),
+                fn ($c) => in_array($c, $allowed, true)
+            ));
+        }
+
+        $context = trim($label . ' ' . ($title ?? '') . ' ' . ($description ?? ''));
+        $heuristicSuggestions = app(\App\Services\AIJobMatchingService::class)->suggestCategoryNamesFromText($context, 5);
+        $heuristicSuggestions = array_values(array_filter($heuristicSuggestions, fn ($c) => in_array($c, $allowed, true)));
+
+        $mergeSuggestionLists = static function (array ...$lists) use ($allowed): array {
+            $out = [];
+            foreach ($lists as $list) {
+                foreach ($list as $c) {
+                    if (in_array($c, $allowed, true) && ! in_array($c, $out, true)) {
+                        $out[] = $c;
+                    }
+                }
+            }
+
+            return array_slice($out, 0, 3);
+        };
+
+        $apiKey = env('GROQ_API_KEY');
+        if (empty($apiKey)) {
+            if ($bestCat !== null && $bestPct >= 72) {
+                return [
+                    'valid' => true,
+                    'canonical_category' => $bestCat,
+                    'suggestions' => [],
+                    'message' => 'AI unavailable; accepted as closest taxonomy match.',
+                ];
+            }
+
+            return [
+                'valid' => false,
+                'canonical_category' => null,
+                'suggestions' => $mergeSuggestionLists($fromJobTitleDescription, $heuristicSuggestions),
+                'message' => 'Pick a suggested category or refine your description.',
+            ];
+        }
+
+        $categoriesJson = json_encode($allowed, JSON_UNESCAPED_UNICODE);
+        $safeLabel = str_replace(["\r", "\n"], ' ', $label);
+        $safeTitle = str_replace(["\r", "\n"], ' ', (string) ($title ?? ''));
+        $safeDesc = str_replace(["\r", "\n"], ' ', mb_substr((string) ($description ?? ''), 0, 2000));
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(15)->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model' => 'llama-3.1-8b-instant',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You map a user-written project category to a freelance marketplace taxonomy. '
+                            . 'Reply with ONE JSON object only, no markdown. Keys: '
+                            . '"valid" (boolean): true if the user text clearly describes work that fits one taxonomy name; '
+                            . '"match" (string|null): if valid, the EXACT string from the allowed list; '
+                            . '"suggestions" (array of strings): if valid is false, 1-3 EXACT strings from the allowed list that best fit the job title and job description (and the user category text if helpful). '
+                            . 'Every string in match or suggestions MUST be copied verbatim from the allowed list.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => "Allowed categories (JSON array):\n{$categoriesJson}\n\n"
+                            . "User category text: \"{$safeLabel}\"\n"
+                            . "Job title (context): \"{$safeTitle}\"\n"
+                            . "Job description excerpt (context): \"{$safeDesc}\"",
+                    ],
+                ],
+                'max_tokens' => 200,
+                'temperature' => 0,
+            ]);
+
+            if ($response->successful()) {
+                $raw = trim($response->json('choices.0.message.content') ?? '');
+                $raw = preg_replace('/^```(?:json)?\s*/i', '', $raw);
+                $raw = preg_replace('/\s*```\s*$/', '', $raw);
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $allowedSet = array_flip($allowed);
+                    if (! empty($decoded['valid']) && ! empty($decoded['match']) && isset($allowedSet[$decoded['match']])) {
+                        return [
+                            'valid' => true,
+                            'canonical_category' => $decoded['match'],
+                            'suggestions' => [],
+                            'message' => 'AI matched your category to the taxonomy.',
+                        ];
+                    }
+                    $sug = [];
+                    if (! empty($decoded['suggestions']) && is_array($decoded['suggestions'])) {
+                        foreach ($decoded['suggestions'] as $s) {
+                            if (is_string($s) && isset($allowedSet[$s])) {
+                                $sug[] = $s;
+                            }
+                        }
+                    }
+                    $sug = $mergeSuggestionLists($sug, $fromJobTitleDescription, $heuristicSuggestions);
+                    if ($sug !== []) {
+                        return [
+                            'valid' => false,
+                            'canonical_category' => null,
+                            'suggestions' => $sug,
+                            'message' => 'Pick a suggested category or refine your description.',
+                        ];
+                    }
+                }
+            } else {
+                Log::warning('Groq project category validation non-200', ['status' => $response->status()]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Groq project category validation failed', ['error' => $e->getMessage()]);
+        }
+
+        if ($bestCat !== null && $bestPct >= 72) {
+            return [
+                'valid' => true,
+                'canonical_category' => $bestCat,
+                'suggestions' => [],
+                'message' => 'AI response unclear; using closest taxonomy match.',
+            ];
+        }
+
+        return [
+            'valid' => false,
+            'canonical_category' => null,
+            'suggestions' => $mergeSuggestionLists($fromJobTitleDescription, $heuristicSuggestions),
+            'message' => 'Pick a suggested category or refine your description.',
+        ];
+    }
+
     // ─── Helpers ──────────────────────────────────────────────
 
     private function getAllSkillNames(): array

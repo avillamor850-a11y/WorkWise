@@ -8,6 +8,14 @@ import MessagesModal from '@/Components/MessagesModal';
 import { formatDistanceToNow } from 'date-fns';
 import { getProfilePhotoUrl, getLocationDisplay } from '@/utils/profileHelpers';
 
+function safeRoute(name, fallback = '/') {
+    try {
+        return route(name);
+    } catch {
+        return fallback;
+    }
+}
+
 // Confirmation Modal Component
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText, confirmColor = 'green', isLoading = false }) => {
     if (!isOpen) return null;
@@ -390,6 +398,18 @@ export default function JobShow({ job, canBid }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
+    const gigWorkerHasActiveBidOnJob = (job.bids || []).some(
+        (b) =>
+            b.gig_worker_id === auth.user?.id &&
+            !['rejected', 'withdrawn'].includes(b.status)
+    );
+    const showGigWorkerOnboardingBidBanner =
+        auth.user?.user_type === 'gig_worker' &&
+        !isEmployer &&
+        auth.user?.profile_status === 'pending' &&
+        job.status === 'open' &&
+        !gigWorkerHasActiveBidOnJob;
+
     const getUserAvatar = (user, dark = false) => {
         // Check if user exists and has required properties
         if (!user || !user.first_name || !user.last_name) {
@@ -651,6 +671,23 @@ export default function JobShow({ job, canBid }) {
                                             ))}
                                         </div>
                                     </div>
+                                </div>
+                            )}
+
+                            {showGigWorkerOnboardingBidBanner && (
+                                <div
+                                    className={`mb-6 rounded-xl border p-4 sm:p-5 ${isDark ? 'border-amber-500/40 bg-amber-500/10 text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-950'}`}
+                                >
+                                    <p className={`text-sm sm:text-base mb-3 ${isDark ? 'text-amber-100/95' : 'text-amber-900'}`}>
+                                        Complete your gig worker onboarding to submit proposals on open jobs.
+                                    </p>
+                                    <Link
+                                        href={safeRoute('gig-worker.onboarding', '/onboarding/gig-worker')}
+                                        className={`inline-flex items-center text-sm font-semibold ${isDark ? 'text-amber-300 hover:text-amber-200' : 'text-amber-800 hover:text-amber-900'}`}
+                                    >
+                                        Continue onboarding
+                                        <span className="ml-1" aria-hidden="true">→</span>
+                                    </Link>
                                 </div>
                             )}
 

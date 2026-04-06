@@ -132,6 +132,47 @@ final class GroqBatchJsonClient
         return $out;
     }
 
+    /**
+     * Parse a JSON array of job scores (gig worker recommendations) from model output.
+     *
+     * @return array<int, array{score: int, reason: string, success: true}>
+     */
+    public static function parseJobScoreArray(string $content): array
+    {
+        $json = self::extractJsonArray($content);
+        if ($json === null) {
+            return [];
+        }
+
+        $decoded = json_decode($json, true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($decoded as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $id = $row['job_id'] ?? $row['gig_job_id'] ?? null;
+            if ($id === null || ! is_numeric($id)) {
+                continue;
+            }
+            $id = (int) $id;
+            if (! isset($row['score']) || ! is_numeric($row['score'])) {
+                continue;
+            }
+            $score = max(0, min(100, (int) $row['score']));
+            $reason = isset($row['reason']) ? trim((string) $row['reason']) : '';
+            if ($reason === '') {
+                continue;
+            }
+            $out[$id] = ['score' => $score, 'reason' => $reason, 'success' => true];
+        }
+
+        return $out;
+    }
+
     private static function extractJsonArray(string $content): ?string
     {
         $content = trim($content);

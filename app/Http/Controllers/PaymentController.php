@@ -146,11 +146,18 @@ class PaymentController extends Controller
             ];
         } else {
             $totalEarned = (float) collect($transactions)->where('is_incoming', true)->where('type', 'release')->sum('net_amount');
-            $pendingReleases = (float) Project::where('gig_worker_id', $user->id)
-                ->where('status', 'completed')
+
+            // Align with GigWorker wallet: pending = not released, job active or awaiting release after completion
+            $pendingPaymentQuery = Project::where('gig_worker_id', $user->id)
                 ->where('payment_released', false)
-                ->sum('net_amount');
-            $platformFees = (float) collect($transactions)->sum('platform_fee');
+                ->whereIn('status', ['active', 'completed']);
+            $pendingReleases = (float) (clone $pendingPaymentQuery)->sum('net_amount');
+
+            // One row per project (5% fee stored on project); avoids missing escrow rows when history is truncated
+            $platformFees = (float) Project::where('gig_worker_id', $user->id)
+                ->whereIn('status', ['active', 'completed'])
+                ->sum('platform_fee');
+
             $summary = [
                 'total_earned' => $totalEarned,
                 'pending_releases' => $pendingReleases,

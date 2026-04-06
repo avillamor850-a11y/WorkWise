@@ -65,6 +65,24 @@ class RecommendationServicePreservationTest extends TestCase
         Cache::flush();
     }
 
+    /** Groq worker recommendations use one batched JSON array per HTTP response (see RecommendationService::runWorkerJobsGroqBatch). */
+    protected function groqWorkerBatchResponse(int $score, string $reason): array
+    {
+        return [
+            'choices' => [
+                [
+                    'message' => [
+                        'content' => json_encode([[
+                            'job_id' => $this->job->id,
+                            'score' => $score,
+                            'reason' => $reason,
+                        ]]),
+                    ],
+                ],
+            ],
+        ];
+    }
+
     /**
      * Property 2.1: Fast connections (< 12s latency) complete successfully without retries
      * 
@@ -82,11 +100,7 @@ class RecommendationServicePreservationTest extends TestCase
 
         // Simulate fast connection: 1-second response time
         Http::fake([
-            'api.groq.com/*' => Http::response([
-                'choices' => [
-                    ['message' => ['content' => "Score: 85\nReason: Good match for the role."]]
-                ]
-            ], 200),
+            'api.groq.com/*' => Http::response($this->groqWorkerBatchResponse(85, 'Good match for the role.'), 200),
         ]);
 
         $startTime = microtime(true);
@@ -126,11 +140,10 @@ class RecommendationServicePreservationTest extends TestCase
 
             // Simulate fast connection with varying latency
             Http::fake([
-                'api.groq.com/*' => Http::response([
-                    'choices' => [
-                        ['message' => ['content' => "Score: " . (80 + $latency) . "\nReason: Match with {$latency}s latency."]]
-                    ]
-                ], 200),
+                'api.groq.com/*' => Http::response(
+                    $this->groqWorkerBatchResponse(80 + $latency, "Match with {$latency}s latency."),
+                    200
+                ),
             ]);
 
             $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -161,11 +174,7 @@ class RecommendationServicePreservationTest extends TestCase
 
         // First call: populate cache
         Http::fake([
-            'api.groq.com/*' => Http::response([
-                'choices' => [
-                    ['message' => ['content' => "Score: 90\nReason: Excellent match."]]
-                ]
-            ], 200),
+            'api.groq.com/*' => Http::response($this->groqWorkerBatchResponse(90, 'Excellent match.'), 200),
         ]);
 
         $firstCall = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -208,11 +217,7 @@ class RecommendationServicePreservationTest extends TestCase
         Http::fake([
             'api.groq.com/*' => function () use (&$callCount) {
                 $callCount++;
-                return Http::response([
-                    'choices' => [
-                        ['message' => ['content' => "Score: 88\nReason: Strong candidate."]]
-                    ]
-                ], 200);
+                return Http::response($this->groqWorkerBatchResponse(88, 'Strong candidate.'), 200);
             },
         ]);
 
@@ -245,11 +250,7 @@ class RecommendationServicePreservationTest extends TestCase
         Http::fake([
             'api.groq.com/*' => Http::sequence()
                 ->push(null, 429) // First model: rate limited
-                ->push([
-                    'choices' => [
-                        ['message' => ['content' => "Score: 82\nReason: Good fit after failover."]]
-                    ]
-                ], 200), // Second model: success
+                ->push($this->groqWorkerBatchResponse(82, 'Good fit after failover.'), 200), // Second model: success
         ]);
 
         $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -278,11 +279,7 @@ class RecommendationServicePreservationTest extends TestCase
         Http::fake([
             'api.groq.com/*' => Http::sequence()
                 ->push(null, 503) // First model: service unavailable
-                ->push([
-                    'choices' => [
-                        ['message' => ['content' => "Score: 79\nReason: Match after 503 failover."]]
-                    ]
-                ], 200), // Second model: success
+                ->push($this->groqWorkerBatchResponse(79, 'Match after 503 failover.'), 200), // Second model: success
         ]);
 
         $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -356,11 +353,7 @@ class RecommendationServicePreservationTest extends TestCase
 
         // First call: populate cache
         Http::fake([
-            'api.groq.com/*' => Http::response([
-                'choices' => [
-                    ['message' => ['content' => "Score: 91\nReason: Perfect match."]]
-                ]
-            ], 200),
+            'api.groq.com/*' => Http::response($this->groqWorkerBatchResponse(91, 'Perfect match.'), 200),
         ]);
 
         $firstCall = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -402,11 +395,7 @@ class RecommendationServicePreservationTest extends TestCase
 
             $score = 70 + $i;
             Http::fake([
-                'api.groq.com/*' => Http::response([
-                    'choices' => [
-                        ['message' => ['content' => "Score: {$score}\nReason: Test case {$i}."]]
-                    ]
-                ], 200),
+                'api.groq.com/*' => Http::response($this->groqWorkerBatchResponse($score, "Test case {$i}."), 200),
             ]);
 
             $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -444,11 +433,10 @@ class RecommendationServicePreservationTest extends TestCase
             Cache::flush();
 
             Http::fake([
-                'api.groq.com/*' => Http::response([
-                    'choices' => [
-                        ['message' => ['content' => "Score: {$testCase['score']}\nReason: {$testCase['reason']}"]]
-                    ]
-                ], 200),
+                'api.groq.com/*' => Http::response(
+                    $this->groqWorkerBatchResponse($testCase['score'], $testCase['reason']),
+                    200
+                ),
             ]);
 
             $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);

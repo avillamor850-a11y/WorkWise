@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Services\FileUploadService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -14,12 +16,26 @@ class IdVerificationController extends Controller
      */
     protected $fileUploadService;
 
-    /**
-     * Constructor
-     */
-    public function __construct(FileUploadService $fileUploadService)
-    {
+    public function __construct(
+        FileUploadService $fileUploadService,
+        protected NotificationService $notificationService
+    ) {
         $this->fileUploadService = $fileUploadService;
+    }
+
+    /**
+     * Fan out in-app notifications to admins; never block ID upload on failure.
+     */
+    private function notifyAdminsAfterIdVerificationSubmitted(User $user): void
+    {
+        try {
+            $this->notificationService->notifyAdminsIdVerificationSubmitted($user);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to notify admins of ID verification submission', [
+                'user_id' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -260,6 +276,8 @@ class IdVerificationController extends Controller
             $user->id_verification_status = 'pending';
             $user->save();
 
+            $this->notifyAdminsAfterIdVerificationSubmitted($user);
+
             Log::info('ID_VERIFICATION_BACK_UPLOAD_SUCCESS', [
                 'event' => 'id_verification_back_upload_success',
                 'user_id' => $user->id,
@@ -394,6 +412,8 @@ class IdVerificationController extends Controller
             $user->id_verification_status = 'pending';
             $user->save();
 
+            $this->notifyAdminsAfterIdVerificationSubmitted($user);
+
             Log::info('ID_VERIFICATION_RESUBMIT_SUCCESS', [
                 'event' => 'id_verification_resubmit_success',
                 'user_id' => $user->id,
@@ -508,6 +528,9 @@ class IdVerificationController extends Controller
             }
 
             $user->update($updateData);
+
+            $user->refresh();
+            $this->notifyAdminsAfterIdVerificationSubmitted($user);
 
             Log::info('ID_VERIFICATION_LEGACY_UPLOAD_SUCCESS', [
                 'event' => 'id_verification_legacy_upload_success',

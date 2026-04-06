@@ -63,6 +63,24 @@ class RecommendationServiceBugConditionTest extends TestCase
         $this->service = new RecommendationService($aiJobMatchingService, $groqBatch);
     }
 
+    /** Groq worker recommendations use one batched JSON array per HTTP response. */
+    protected function groqWorkerBatchResponse(int $score, string $reason): array
+    {
+        return [
+            'choices' => [
+                [
+                    'message' => [
+                        'content' => json_encode([[
+                            'job_id' => $this->job->id,
+                            'score' => $score,
+                            'reason' => $reason,
+                        ]]),
+                    ],
+                ],
+            ],
+        ];
+    }
+
     /**
      * Test Case 1: API call with 15-second latency should complete successfully with retry
      * 
@@ -78,11 +96,7 @@ class RecommendationServiceBugConditionTest extends TestCase
         Http::fake([
             'api.groq.com/*' => Http::sequence()
                 ->push(null, 408) // First attempt: timeout (simulating 12s timeout)
-                ->push([
-                    'choices' => [
-                        ['message' => ['content' => "Score: 85\nReason: Good match for the role."]]
-                    ]
-                ], 200), // Second attempt: success (would arrive at ~15s)
+                ->push($this->groqWorkerBatchResponse(85, 'Good match for the role.'), 200), // Second attempt: success
         ]);
 
         $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -116,11 +130,7 @@ class RecommendationServiceBugConditionTest extends TestCase
             'api.groq.com/*' => Http::sequence()
                 ->push(null, 408) // First attempt: timeout
                 ->push(null, 408) // Second attempt: timeout
-                ->push([
-                    'choices' => [
-                        ['message' => ['content' => "Score: 78\nReason: Decent fit."]]
-                    ]
-                ], 200), // Third attempt: success (would arrive at ~20s)
+                ->push($this->groqWorkerBatchResponse(78, 'Decent fit.'), 200), // Third attempt: success
         ]);
 
         $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -146,19 +156,25 @@ class RecommendationServiceBugConditionTest extends TestCase
         Log::shouldReceive('warning')->zeroOrMoreTimes();
         Log::shouldReceive('error')->zeroOrMoreTimes();
 
-        // Create multiple jobs
-        $jobs = GigJob::factory()->count(5)->create([
+        GigJob::factory()->count(5)->create([
             'status' => 'open',
         ]);
 
-        // Simulate slow responses for each job (15s latency each)
+        $jobIds = GigJob::query()->where('status', 'open')->orderBy('id')->pluck('id')->all();
+        $rows = [];
+        foreach ($jobIds as $i => $jid) {
+            $rows[] = [
+                'job_id' => (int) $jid,
+                'score' => 70 + min($i, 4),
+                'reason' => "Match for job {$jid}.",
+            ];
+        }
+
+        // Batched scoring: one Groq round-trip after an initial failed attempt
         Http::fake([
             'api.groq.com/*' => Http::sequence()
-                ->push(null, 408)->push(['choices' => [['message' => ['content' => "Score: 70\nReason: Match for job 1."]]]], 200)
-                ->push(null, 408)->push(['choices' => [['message' => ['content' => "Score: 71\nReason: Match for job 2."]]]], 200)
-                ->push(null, 408)->push(['choices' => [['message' => ['content' => "Score: 72\nReason: Match for job 3."]]]], 200)
-                ->push(null, 408)->push(['choices' => [['message' => ['content' => "Score: 73\nReason: Match for job 4."]]]], 200)
-                ->push(null, 408)->push(['choices' => [['message' => ['content' => "Score: 74\nReason: Match for job 5."]]]], 200),
+                ->push(null, 408)
+                ->push(['choices' => [['message' => ['content' => json_encode($rows)]]]], 200),
         ]);
 
         $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 10, true);
@@ -183,11 +199,7 @@ class RecommendationServiceBugConditionTest extends TestCase
         Http::fake([
             'api.groq.com/*' => Http::sequence()
                 ->push(null, 408) // Transient timeout
-                ->push([
-                    'choices' => [
-                        ['message' => ['content' => "Score: 92\nReason: Excellent match."]]
-                    ]
-                ], 200), // Retry succeeds
+                ->push($this->groqWorkerBatchResponse(92, 'Excellent match.'), 200), // Retry succeeds
         ]);
 
         $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);
@@ -220,11 +232,7 @@ class RecommendationServiceBugConditionTest extends TestCase
                 ->push(null, 408) // First model, first attempt: timeout
                 ->push(null, 408) // First model, second attempt: timeout
                 ->push(null, 503) // Second model, first attempt: rate limited (triggers failover)
-                ->push([
-                    'choices' => [
-                        ['message' => ['content' => "Score: 88\nReason: Strong candidate."]]
-                    ]
-                ], 200), // Second model, retry: success
+                ->push($this->groqWorkerBatchResponse(88, 'Strong candidate.'), 200), // Second model: success
         ]);
 
         $recommendations = $this->service->getJobRecommendationsForWorker($this->gigWorker, 5, true);

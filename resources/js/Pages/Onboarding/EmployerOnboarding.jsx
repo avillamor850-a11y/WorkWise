@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { resolveProfileImageUrl } from '@/utils/avatarUrl.js';
 import { EmployerStep1Welcome, EmployerStep2Identity } from './EmployerSteps12';
@@ -9,11 +9,31 @@ import CsrfSync from '@/Components/CsrfSync';
 
 const PROGRESS = { 1: 20, 2: 40, 3: 60, 4: 80, 5: 100 };
 
+/** Step 4: "Other" hiring need must be completed or unchecked before continuing. */
+function employerStep4OtherIncomplete(needs, otherState, serviceCategories) {
+    const standards = (serviceCategories || []).filter(c => c !== 'Other');
+    const isStandard = (n) => standards.some(c => c.toLowerCase() === String(n || '').trim().toLowerCase());
+    if (!otherState?.intent) {
+        return false;
+    }
+    const list = needs || [];
+    const hasCustom = list.some(n => !isStandard(n));
+    const pending = String(otherState.text || '').trim();
+    if (!hasCustom && !pending) {
+        return true;
+    }
+    if (pending && !list.some(n => n.toLowerCase() === pending.toLowerCase())) {
+        return true;
+    }
+    return false;
+}
+
 export default function EmployerOnboarding({ user, industries, serviceCategories, currentStep = 1 }) {
     const [step, setStep] = useState(currentStep > 1 ? currentStep : 1);
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
     const [saveError, setSaveError] = useState(null);
+    const [step4Other, setStep4Other] = useState({ intent: false, text: '' });
 
     const [data, setDataState] = useState({
         company_name: user.company_name || '',
@@ -24,7 +44,6 @@ export default function EmployerOnboarding({ user, industries, serviceCategories
         profile_picture_file: null,
         profile_picture_preview: user.profile_picture || null,
         primary_hiring_needs: user.primary_hiring_needs || [],
-        primary_hiring_skills: user.primary_hiring_skills || [],
         typical_project_budget: user.typical_project_budget || '',
         typical_project_duration: user.typical_project_duration || '',
         preferred_experience_level: user.preferred_experience_level || '',
@@ -32,6 +51,32 @@ export default function EmployerOnboarding({ user, industries, serviceCategories
     });
 
     const setData = (key, value) => setDataState(prev => ({ ...prev, [key]: value }));
+
+    const appendPrimaryHiringNeed = useCallback((item) => {
+        const t = String(item || '').trim();
+        if (!t) {
+            return;
+        }
+        setDataState(prev => {
+            const list = prev.primary_hiring_needs || [];
+            if (list.some(n => n.toLowerCase() === t.toLowerCase())) {
+                return prev;
+            }
+            return { ...prev, primary_hiring_needs: [...list, t] };
+        });
+    }, []);
+
+    useEffect(() => {
+        if (step !== 4) {
+            return;
+        }
+        const list = data.primary_hiring_needs || [];
+        const standards = (serviceCategories || []).filter(c => c !== 'Other');
+        const hasCustom = list.some(n => !standards.some(c => c.toLowerCase() === String(n || '').trim().toLowerCase()));
+        if (hasCustom) {
+            setStep4Other(prev => (prev.intent ? prev : { ...prev, intent: true }));
+        }
+    }, [step, data.primary_hiring_needs, serviceCategories]);
 
     // Build FormData from current state
     const buildFormData = (stepNum) => {
@@ -53,9 +98,6 @@ export default function EmployerOnboarding({ user, industries, serviceCategories
         (data.primary_hiring_needs || []).forEach((need, index) => {
             fd.append(`primary_hiring_needs[${index}]`, need);
         });
-        (data.primary_hiring_skills || []).forEach((skill, index) => {
-            fd.append(`primary_hiring_skills[${index}]`, skill);
-        });
 
         // File field - only include if selected
         if (data.profile_picture_file) {
@@ -70,14 +112,32 @@ export default function EmployerOnboarding({ user, industries, serviceCategories
         const errs = {};
         if (stepNum === 2) {
             if (!(data.company_size || '').trim()) errs.company_size = 'Team size is required.';
-            if (!(data.industry || '').trim()) errs.industry = 'Industry is required.';
+            const ind = (data.industry || '').trim();
+            if (!ind) {
+                errs.industry = 'Industry is required.';
+            } else if (ind === 'Other') {
+                errs.industry = 'Please specify your industry.';
+            } else if (ind.length < 2) {
+                errs.industry = 'Industry must be at least 2 characters.';
+            }
         }
         if (stepNum === 3) {
             const desc = (data.company_description || '').trim();
             if (desc.length < 50) errs.company_description = 'Company description must be at least 50 characters.';
         }
         if (stepNum === 4) {
-            if ((data.primary_hiring_needs || []).length < 1) errs.primary_hiring_needs = 'Select at least one service.';
+            if ((data.primary_hiring_needs || []).length < 1) {
+                errs.primary_hiring_needs = 'Select at least one service.';
+            } else if (employerStep4OtherIncomplete(data.primary_hiring_needs, step4Other, serviceCategories)) {
+                const list = data.primary_hiring_needs || [];
+                const standards = (serviceCategories || []).filter(c => c !== 'Other');
+                const isStandard = (n) => standards.some(c => c.toLowerCase() === String(n || '').trim().toLowerCase());
+                const hasCustom = list.some(n => !isStandard(n));
+                const pending = String(step4Other.text || '').trim();
+                errs.primary_hiring_needs = !hasCustom && !pending
+                    ? 'Enter and verify an other service, or uncheck Other.'
+                    : 'Verify and add your other service before continuing.';
+            }
             if (!(data.typical_project_budget || '').trim()) errs.typical_project_budget = 'Typical budget is required.';
             if (!(data.typical_project_duration || '').trim()) errs.typical_project_duration = 'Typical duration is required.';
             if (!(data.preferred_experience_level || '').trim()) errs.preferred_experience_level = 'Experience level is required.';
@@ -273,6 +333,10 @@ export default function EmployerOnboarding({ user, industries, serviceCategories
                         setData={setData}
                         errors={errors}
                         serviceCategories={serviceCategories}
+                        otherState={step4Other}
+                        setOtherState={setStep4Other}
+                        otherBlocksNext={employerStep4OtherIncomplete(data.primary_hiring_needs, step4Other, serviceCategories)}
+                        appendPrimaryHiringNeed={appendPrimaryHiringNeed}
                         onNext={handleNext}
                         onBack={handleBack}
                         darkMode={isDark}

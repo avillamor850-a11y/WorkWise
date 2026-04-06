@@ -189,7 +189,7 @@ export default function RealtimeDashboard({ auth }) {
                 </Link>
 
                 {/* Dispute Queue */}
-                <Link href="/admin/reports" className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border border-gray-100 relative overflow-hidden">
+                <Link href="/admin/reports/transactions" className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border border-gray-100 relative overflow-hidden">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-red-100 text-red-600 rounded-lg group-hover:scale-110 transition-transform">
                             <span className="material-symbols-outlined">gavel</span>

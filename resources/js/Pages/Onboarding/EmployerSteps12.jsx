@@ -97,10 +97,36 @@ function EmployerStep1Welcome({ onNext, onSkip, darkMode = false }) {
     );
 }
 
+const OTHER_INDUSTRY = 'Other';
+
 // ─── Step 2: Company Identity ────────────────────────────────────────────────
 function EmployerStep2Identity({ data, setData, errors, industries, onNext, onBack, darkMode = false }) {
     const fileRef = useRef(null);
     const [preview, setPreview] = useState(data.profile_picture_preview || null);
+    const [industrySelect, setIndustrySelect] = useState('');
+
+    useEffect(() => {
+        const ind = (data.industry ?? '').trim();
+        if (!ind) {
+            setIndustrySelect((prev) => (prev === OTHER_INDUSTRY ? OTHER_INDUSTRY : ''));
+            return;
+        }
+        if (industries.includes(data.industry)) {
+            setIndustrySelect(data.industry);
+        } else {
+            setIndustrySelect(OTHER_INDUSTRY);
+        }
+    }, [data.industry, industries]);
+
+    const onIndustryDropdownChange = (e) => {
+        const v = e.target.value;
+        setIndustrySelect(v);
+        if (v === OTHER_INDUSTRY) {
+            setData('industry', '');
+        } else {
+            setData('industry', v);
+        }
+    };
 
     // Sync preview when parent has server URL (e.g. after refresh or going back)
     useEffect(() => {
@@ -179,14 +205,14 @@ function EmployerStep2Identity({ data, setData, errors, industries, onNext, onBa
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
+                                <div className="space-y-2 md:col-span-2">
                                     <label className={labelClass} htmlFor="industry">
                                         Industry <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         id="industry"
-                                        value={data.industry}
-                                        onChange={e => setData('industry', e.target.value)}
+                                        value={industrySelect}
+                                        onChange={onIndustryDropdownChange}
                                         className={inputClass}
                                     >
                                         <option value="">Select Industry</option>
@@ -194,6 +220,22 @@ function EmployerStep2Identity({ data, setData, errors, industries, onNext, onBa
                                             <option key={ind} value={ind}>{ind}</option>
                                         ))}
                                     </select>
+                                    {industrySelect === OTHER_INDUSTRY && (
+                                        <div className="mt-3 space-y-2">
+                                            <label className={labelClass} htmlFor="industry_specify">
+                                                Specify your industry <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                id="industry_specify"
+                                                type="text"
+                                                value={data.industry}
+                                                onChange={e => setData('industry', e.target.value)}
+                                                placeholder="e.g. Marine biology, Aerospace"
+                                                className={inputClass}
+                                                maxLength={255}
+                                            />
+                                        </div>
+                                    )}
                                     {errors.industry && <p className="text-xs text-red-500">{errors.industry}</p>}
                                 </div>
 

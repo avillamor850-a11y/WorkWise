@@ -156,6 +156,34 @@ export default function Recommendations({
         // #endregion
     }, [isGigWorker, recommendations, baseEmployerRecommendations]);
 
+    useEffect(() => {
+        if (!isGigWorker || typeof fetch === "undefined") return;
+        const items = Array.isArray(recommendations) ? recommendations : [];
+        // #region agent log
+        fetch("http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Debug-Session-Id": "104979",
+            },
+            body: JSON.stringify({
+                sessionId: "104979",
+                hypothesisId: "H5",
+                location: "Recommendations.jsx:gig_worker_snapshot",
+                message: "gig worker inertia payload",
+                data: {
+                    count: items.length,
+                    reason_types: items.map((m) => typeof m?.reason),
+                    reason_lens: items.map((m) =>
+                        typeof m?.reason === "string" ? m.reason.trim().length : -1,
+                    ),
+                },
+                timestamp: Date.now(),
+            }),
+        }).catch(() => {});
+        // #endregion
+    }, [isGigWorker, recommendations]);
+
     const hasActiveFilters = useMemo(
         () =>
             filters.experience !== "all" ||
@@ -178,25 +206,87 @@ export default function Recommendations({
         return value.toLowerCase() === filters.experience;
     };
 
+    /** Normalize JSON/array/string skill payloads from API (Inertia / DB). */
+    const normalizeSkillSetInput = (skillSet) => {
+        if (skillSet == null) {
+            return [];
+        }
+        if (typeof skillSet === "string") {
+            const t = skillSet.trim();
+            if (!t) {
+                return [];
+            }
+            try {
+                const parsed = JSON.parse(t);
+                return Array.isArray(parsed) ? parsed : [t];
+            } catch {
+                return [t];
+            }
+        }
+        return Array.isArray(skillSet) ? skillSet : [];
+    };
+
+    /** Jobs may store skills in required_skills and/or skills_requirements. */
+    const collectJobSkillEntries = (job) => {
+        if (!job || typeof job !== "object") {
+            return [];
+        }
+        const out = [];
+        out.push(...normalizeSkillSetInput(job.required_skills));
+        out.push(...normalizeSkillSetInput(job.skills_requirements));
+        return out;
+    };
+
+    /** Gig worker profile has no top-level experience_level; levels live on skills_with_experience rows. */
+    const matchesWorkerExperience = (gigWorker) => {
+        if (filters.experience === "all") {
+            return true;
+        }
+        const target = filters.experience.toLowerCase();
+        const legacy = gigWorker?.experience_level;
+        if (legacy) {
+            return String(legacy).toLowerCase() === target;
+        }
+        const raw = normalizeSkillSetInput(gigWorker?.skills_with_experience);
+        if (raw.length === 0) {
+            return false;
+        }
+        return raw.some((row) => {
+            if (typeof row === "string") {
+                return row.toLowerCase() === target;
+            }
+            const lvl =
+                row?.experience_level ?? row?.proficiency ?? row?.[1] ?? "";
+            return String(lvl).toLowerCase() === target;
+        });
+    };
+
+    const getWorkerSkillsForFilter = (gigWorker) => {
+        const sw = normalizeSkillSetInput(gigWorker?.skills_with_experience);
+        if (sw.length > 0) {
+            return sw;
+        }
+        return normalizeSkillSetInput(gigWorker?.skills);
+    };
+
     const matchesSkillFilter = (skillSet) => {
         if (!normalizedSelectedSkills.length) {
             return true;
         }
 
-        if (!Array.isArray(skillSet) || skillSet.length === 0) {
+        const list = normalizeSkillSetInput(skillSet);
+        if (list.length === 0) {
             return false;
         }
 
-        const normalizedSkillSet = skillSet
-
+        const normalizedSkillSet = list
             .map((skill) => {
                 const name =
                     typeof skill === "string"
                         ? skill
-                        : skill?.skill ?? skill?.[0] ?? "";
+                        : skill?.skill ?? skill?.name ?? skill?.[0] ?? "";
                 return typeof name === "string" ? name.toLowerCase() : "";
             })
-
             .filter((skill) => skill.length > 0);
 
         if (normalizedSkillSet.length === 0) {
@@ -362,7 +452,7 @@ export default function Recommendations({
                 return false;
             }
 
-            if (!matchesSkillFilter(job.required_skills)) {
+            if (!matchesSkillFilter(collectJobSkillEntries(job))) {
                 return false;
             }
 
@@ -391,7 +481,7 @@ export default function Recommendations({
                     ? data.matches.filter((match) => {
                         const gigWorker = match.gig_worker || {};
 
-                        if (!matchesExperience(gigWorker.experience_level)) {
+                        if (!matchesWorkerExperience(gigWorker)) {
                             return false;
                         }
 
@@ -399,7 +489,7 @@ export default function Recommendations({
                             return false;
                         }
 
-                        if (!matchesSkillFilter(gigWorker.skills_with_experience ?? gigWorker.skills)) {
+                        if (!matchesSkillFilter(getWorkerSkillsForFilter(gigWorker))) {
                             return false;
                         }
 
@@ -430,6 +520,50 @@ export default function Recommendations({
 
         budgetFilter,
     ]);
+
+    // #region agent log
+    useEffect(() => {
+        if (typeof fetch === "undefined") {
+            return;
+        }
+        const baseGig = Array.isArray(recommendations) ? recommendations.length : 0;
+        const filteredGig = filteredFreelancerRecommendations.length;
+        const employerMatchTotal = (obj) =>
+            Object.values(obj || {}).reduce(
+                (n, jd) => n + (Array.isArray(jd?.matches) ? jd.matches.length : 0),
+                0,
+            );
+        fetch("http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Debug-Session-Id": "6fa68d",
+            },
+            body: JSON.stringify({
+                sessionId: "6fa68d",
+                hypothesisId: "F1",
+                location: "Recommendations.jsx:filter_snapshot",
+                message: "recommendation filter counts",
+                data: {
+                    isGigWorker,
+                    hasActiveFilters,
+                    baseGig,
+                    filteredGig,
+                    baseEmployerMatches: employerMatchTotal(baseEmployerRecommendations),
+                    filteredEmployerMatches: employerMatchTotal(filteredEmployerRecommendations),
+                },
+                timestamp: Date.now(),
+            }),
+        }).catch(() => {});
+    }, [
+        isGigWorker,
+        hasActiveFilters,
+        recommendations,
+        filteredFreelancerRecommendations,
+        baseEmployerRecommendations,
+        filteredEmployerRecommendations,
+    ]);
+    // #endregion
 
     const employerHasInitialMatches = useMemo(
         () =>
@@ -609,20 +743,19 @@ export default function Recommendations({
                                     </p>
                                 </div>
 
-                                {match.job.required_skills &&
-                                    match.job.required_skills.length > 0 && (
+                                {collectJobSkillEntries(match.job).length > 0 && (
                                         <div className="mb-4">
                                             <h4 className={`text-xs font-medium mb-2 ${isDark ? "text-gray-200" : "text-gray-700"}`}>
                                                 Required Skills:
                                             </h4>
 
                                             <div className="flex flex-wrap gap-2">
-                                                {match.job.required_skills.map(
+                                                {collectJobSkillEntries(match.job).map(
                                                     (skill, idx) => {
                                                         const label =
                                                             typeof skill === "string"
                                                                 ? skill
-                                                                : skill?.skill ?? skill?.[0] ?? "";
+                                                                : skill?.skill ?? skill?.name ?? skill?.[0] ?? "";
                                                         return (
                                                             <span
                                                                 key={idx}

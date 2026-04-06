@@ -53,6 +53,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
     });
 
     const isEmployer = auth.user?.user_type === 'employer';
+    const canPostJobs = auth.user?.profile_status === 'approved';
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -386,12 +387,21 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                         </p>
                     </div>
                     {isEmployer && (
-                        <Link
-                            href={route('jobs.create')}
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest shadow-lg shadow-blue-600/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition ease-in-out duration-150"
-                        >
-                            + Post New Job
-                        </Link>
+                        canPostJobs ? (
+                            <Link
+                                href={route('jobs.create')}
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest shadow-lg shadow-blue-600/20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition ease-in-out duration-150"
+                            >
+                                + Post New Job
+                            </Link>
+                        ) : (
+                            <Link
+                                href={safeRoute('employer.onboarding', '/onboarding/employer')}
+                                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-lg font-semibold text-xs uppercase tracking-widest shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition ease-in-out duration-150 ${isDark ? 'bg-amber-600/90 hover:bg-amber-500 text-white focus:ring-amber-500 focus:ring-offset-gray-900' : 'bg-amber-500 hover:bg-amber-600 text-white focus:ring-amber-500 focus:ring-offset-white'}`}
+                            >
+                                Complete setup to post jobs
+                            </Link>
+                        )
                     )}
                 </div>
             }
@@ -745,15 +755,24 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                         <p className={isDark ? "text-gray-400 text-lg mb-8 max-w-md mx-auto leading-relaxed" : "text-gray-600 text-lg mb-8 max-w-md mx-auto leading-relaxed"}>
                                             Start by posting your first job to find talented gig workers.
                                         </p>
-                                        <Link
-                                            href={route('jobs.create')}
-                                            className="inline-flex items-center bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 px-8 rounded-xl shadow-lg shadow-blue-600/20 transition-all duration-300"
-                                        >
-                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                            </svg>
-                                            Post Your First Job
-                                        </Link>
+                                        canPostJobs ? (
+                                            <Link
+                                                href={route('jobs.create')}
+                                                className="inline-flex items-center bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 px-8 rounded-xl shadow-lg shadow-blue-600/20 transition-all duration-300"
+                                            >
+                                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                                Post Your First Job
+                                            </Link>
+                                        ) : (
+                                            <Link
+                                                href={safeRoute('employer.onboarding', '/onboarding/employer')}
+                                                className={`inline-flex items-center font-semibold py-4 px-8 rounded-xl shadow-lg transition-all duration-300 ${isDark ? 'bg-amber-600/90 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
+                                            >
+                                                Complete employer setup to post jobs
+                                            </Link>
+                                        )}
                                     </div>
                                 </div>
                             ) : (

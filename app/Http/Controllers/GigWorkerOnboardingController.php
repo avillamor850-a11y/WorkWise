@@ -88,6 +88,7 @@ class GigWorkerOnboardingController extends Controller
             if ((int) $step === 5) {
                 $user->profile_completed = true;
                 $user->onboarding_step = 5;
+                $user->profile_status = 'approved';
                 $user->save();
                 $user->syncSkillsFromExperience();
 

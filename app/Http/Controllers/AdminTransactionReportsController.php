@@ -78,6 +78,9 @@ class AdminTransactionReportsController extends Controller
      */
     public function index(Request $request): Response
     {
+        // #region agent log
+        file_put_contents(base_path('debug-6fa68d.log'), json_encode(['sessionId' => '6fa68d', 'hypothesisId' => 'H4', 'location' => 'AdminTransactionReportsController.php:index', 'message' => 'transaction escrow reports page', 'data' => ['inertia_component' => 'Admin/Reports/TransactionReports'], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
         $revenue = $this->getRevenueTakeRateData($request);
         $escrow = $this->getEscrowLiabilityData($request);
 

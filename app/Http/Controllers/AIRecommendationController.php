@@ -11,6 +11,7 @@ use Inertia\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use App\Services\AIJobMatchingService;
+use App\Services\SkillService;
 
 class AIRecommendationController extends Controller
 {
@@ -271,8 +272,18 @@ class AIRecommendationController extends Controller
         $recommendations = [];
         $hasError = false;
         try {
-            set_time_limit(90);
+            set_time_limit(120);
             $refresh = in_array($request->query('refresh'), [1, '1', true], true);
+            // #region agent log
+            @file_put_contents(base_path('debug-104979.log'), json_encode([
+                'sessionId' => '104979',
+                'hypothesisId' => 'H3',
+                'location' => 'AIRecommendationController::gigWorkerRecommendations',
+                'message' => 'entry',
+                'data' => ['worker_id' => $user->id, 'refresh' => $refresh],
+                'timestamp' => round(microtime(true) * 1000),
+            ])."\n", FILE_APPEND | LOCK_EX);
+            // #endregion
             $recommendations = $this->recommendationService->getJobRecommendationsForWorker($user, 10, $refresh);
         } catch (\Exception $e) {
             \Log::error('Gig worker AI recommendations (quality) error: ' . $e->getMessage());
@@ -435,6 +446,26 @@ class AIRecommendationController extends Controller
 
         $service = app(AIJobMatchingService::class);
         $result = $service->recommend($title, $description, $exclude);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Validate/map a free-text "Other" project category to taxonomy (Groq + heuristics).
+     */
+    public function validateProjectCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'custom_label' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:20000',
+        ]);
+
+        $result = app(SkillService::class)->validateProjectCategoryForJob(
+            $validated['custom_label'],
+            $validated['title'] ?? null,
+            $validated['description'] ?? null
+        );
 
         return response()->json($result);
     }

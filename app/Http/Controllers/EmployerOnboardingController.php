@@ -253,9 +253,7 @@ class EmployerOnboardingController extends Controller
     {
         $validated = $request->validate([
             'primary_hiring_needs' => 'required|array|min:1',
-            'primary_hiring_needs.*' => 'string|max:255',
-            'primary_hiring_skills' => 'nullable|array|max:20',
-            'primary_hiring_skills.*' => 'string|max:100',
+            'primary_hiring_needs.*' => 'required|string|min:1|max:255',
             'typical_project_budget' => 'required|in:under_500,500-2000,2000-5000,5000-10000,10000+',
             'typical_project_duration' => 'required|in:short_term,medium_term,long_term,ongoing',
             'preferred_experience_level' => 'required|in:any,beginner,intermediate,expert',
@@ -264,9 +262,12 @@ class EmployerOnboardingController extends Controller
 
         $allowed = $this->getServiceCategories();
         $normalized = [];
-        $errors = [];
-        foreach ($validated['primary_hiring_needs'] as $index => $value) {
+        $seenLower = [];
+        foreach ($validated['primary_hiring_needs'] as $value) {
             $trimmed = trim((string) $value);
+            if ($trimmed === '') {
+                continue;
+            }
             $canonical = null;
             foreach ($allowed as $c) {
                 if (strcasecmp($trimmed, $c) === 0) {
@@ -274,19 +275,21 @@ class EmployerOnboardingController extends Controller
                     break;
                 }
             }
-            if ($canonical !== null) {
-                $normalized[] = $canonical;
-            } else {
-                $errors["primary_hiring_needs.{$index}"] = 'Select a service from the list.';
+            $final = $canonical ?? $trimmed;
+            $key = strtolower($final);
+            if (isset($seenLower[$key])) {
+                continue;
             }
+            $seenLower[$key] = true;
+            $normalized[] = $final;
         }
-        if (\count($errors) > 0) {
-            throw ValidationException::withMessages($errors);
+        if (\count($normalized) < 1) {
+            throw ValidationException::withMessages([
+                'primary_hiring_needs' => 'Select or enter at least one service.',
+            ]);
         }
-        $normalized = array_values(array_unique($normalized));
 
         $user->primary_hiring_needs = $normalized;
-        $user->primary_hiring_skills = $validated['primary_hiring_skills'] ?? [];
         $user->typical_project_budget = $validated['typical_project_budget'];
         $user->typical_project_duration = $validated['typical_project_duration'];
         $user->preferred_experience_level = $validated['preferred_experience_level'];

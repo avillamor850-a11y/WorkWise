@@ -60,3 +60,4 @@ Route::get('/test-recommendations', function() {
 Route::post('/recommendations/skills', [AIRecommendationController::class, 'recommendSkills'])->middleware(['auth', RejectSuspendedUser::class]);
 Route::post('/recommendations/skills/accept', [AIRecommendationController::class, 'acceptSuggestion'])->middleware(['auth', RejectSuspendedUser::class]);
 Route::get('/recommendations/skills/all', [AIRecommendationController::class, 'allSkills'])->middleware(['auth', RejectSuspendedUser::class]);
+Route::post('/recommendations/project-category', [AIRecommendationController::class, 'validateProjectCategory'])->middleware(['auth', RejectSuspendedUser::class]);

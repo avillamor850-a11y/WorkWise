@@ -381,7 +381,7 @@ export default function Dashboard({ auth, stats, recentUsers, recentReports, rec
                     </Link>
 
                     <Link
-                        href="/admin/reports"
+                        href="/admin/reports/transactions"
                         className="flex items-center justify-between rounded-lg bg-gradient-to-r from-yellow-500 to-yellow-600 p-4 text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
                     >
                         <div>

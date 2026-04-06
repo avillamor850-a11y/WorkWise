@@ -120,6 +120,8 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
 
     const isGigWorker = user.user_type === 'gig_worker';
     const isEmployer = user.user_type === 'employer';
+    const canPostJobs = user?.profile_status === 'approved';
+    const employerOnboardingHref = safeRoute('employer.onboarding', '/onboarding/employer');
     // Role-aware dashboard URL and active state
     const dashboardHref = isGigWorker
         ? '/gig-worker/dashboard'
@@ -677,13 +679,13 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                 {isEmployer && (
                                     <>
                                         <Link
-                                            href="/jobs/create"
+                                            href={canPostJobs ? '/jobs/create' : employerOnboardingHref}
                                             className={`text-sm font-medium rounded-md transition-colors duration-200 ${window.route.current('jobs.create')
                                                 ? 'text-blue-400'
                                                 : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                                 }`}
                                         >
-                                            Post a Job
+                                            {canPostJobs ? 'Post a Job' : 'Complete setup to post jobs'}
                                         </Link>
                                         <div className="relative employer-ai-rec-nav-dropdown">
                                             <button
@@ -708,11 +710,11 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                         <div className={`px-4 py-3 text-sm ${effectiveTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                                                             <p className="mb-2">No open jobs yet.</p>
                                                             <Link
-                                                                href="/jobs/create"
+                                                                href={canPostJobs ? '/jobs/create' : employerOnboardingHref}
                                                                 onClick={() => setShowingEmployerAiRecNavDropdown(false)}
                                                                 className={`font-medium ${effectiveTheme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
                                                             >
-                                                                Post a Job
+                                                                {canPostJobs ? 'Post a Job' : 'Complete setup to post jobs'}
                                                             </Link>
                                                         </div>
                                                     ) : (
@@ -1251,13 +1253,13 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                         {/* Employer-only mobile navigation */}
                         {isEmployer && (
                             <Link
-                                href="/jobs/create"
+                                href={canPostJobs ? '/jobs/create' : employerOnboardingHref}
                                 className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${window.route.current('jobs.create')
                                     ? 'text-blue-400 bg-gray-700'
                                     : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                     }`}
                             >
-                                Post a Job
+                                {canPostJobs ? 'Post a Job' : 'Complete setup to post jobs'}
                             </Link>
                         )}
 
@@ -1280,14 +1282,14 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             <div className={`px-3 py-2 text-xs ${effectiveTheme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
                                                 <p className="mb-2">No open jobs.</p>
                                                 <Link
-                                                    href="/jobs/create"
+                                                    href={canPostJobs ? '/jobs/create' : employerOnboardingHref}
                                                     onClick={() => {
                                                         setShowingMobileEmployerAiRecJobs(false);
                                                         setShowingNavigationDropdown(false);
                                                     }}
                                                     className={`font-medium ${effectiveTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}
                                                 >
-                                                    Post a Job
+                                                    {canPostJobs ? 'Post a Job' : 'Complete setup to post jobs'}
                                                 </Link>
                                             </div>
                                         ) : (

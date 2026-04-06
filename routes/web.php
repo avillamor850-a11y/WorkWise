@@ -534,6 +534,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/recommendations/skills', [AIRecommendationController::class, 'recommendSkills'])->name('api.recommendations.skills');
     Route::post('/api/recommendations/skills/accept', [AIRecommendationController::class, 'acceptSuggestion'])->name('api.recommendations.accept');
     Route::get('/api/recommendations/skills/all', [AIRecommendationController::class, 'allSkills'])->name('api.recommendations.all');
+    Route::post('/api/recommendations/project-category', [AIRecommendationController::class, 'validateProjectCategory'])->name('api.recommendations.project-category');
     
     // AI Skill correction for onboarding
     Route::post('/api/ai-skills/correct', [AISkillController::class, 'correct'])->name('api.ai-skills.correct');
@@ -541,6 +542,7 @@ Route::middleware(['auth'])->group(function () {
     // Dynamic Skills API
     Route::get('/api/skills/suggestions', [AISkillController::class, 'suggestions'])->name('api.skills.suggestions');
     Route::post('/api/skills/validate', [AISkillController::class, 'validate'])->name('api.skills.validate');
+    Route::post('/api/onboarding/validate-hiring-need', [AISkillController::class, 'validateHiringNeed'])->name('api.onboarding.validate-hiring-need');
     Route::post('/api/skills/suggest-match', [AISkillController::class, 'suggestMatch'])->name('api.skills.suggest-match');
     Route::post('/api/skills/ensure', [AISkillController::class, 'ensure'])->name('api.skills.ensure');
 });
@@ -659,8 +661,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/settings/import', [AdminSettingsController::class, 'importSettings'])->name('settings.import');
     Route::get('/system-health', [AdminSettingsController::class, 'systemHealth'])->name('settings.systemHealth');
 
-    // Admin-only logout endpoint
-    Route::post('/admin/logout', [AuthenticatedSessionController::class, 'destroy'])->name('admin.logout');
+    // Admin-only logout (single /admin prefix from group — must be /logout not /admin/logout)
+    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     // Fraud Detection System
     Route::prefix('fraud')->name('fraud.')->group(function () {

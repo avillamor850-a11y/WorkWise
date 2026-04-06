@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import taxonomy from '../../../../full_freelance_services_taxonomy.json';
 import SkillExperienceSelector from '@/Components/SkillExperienceSelector';
+import ProjectCategorySelect from '@/Components/ProjectCategorySelect';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import ErrorModal from '@/Components/ErrorModal';
@@ -18,6 +19,7 @@ export default function JobCreate() {
     const [innovativeRoles, setInnovativeRoles] = useState([]);
     // Suggested category state
     const [suggestedCategory, setSuggestedCategory] = useState('');
+    const [userChoseOtherCategory, setUserChoseOtherCategory] = useState(false);
 
     // Flatten taxonomy into skills and category index (memoized for performance)
     const { skills: ALL_SKILLS, categories: CATEGORY_INDEX } = useMemo(() => {
@@ -340,17 +342,16 @@ export default function JobCreate() {
             
             if (matchedCategories.length > 0) {
                 setSuggestedCategory(matchedCategories[0]);
-                // Auto-select if category is empty
-                if (!data.project_category) {
+                if (!data.project_category && !userChoseOtherCategory) {
                     setData('project_category', matchedCategories[0]);
                 }
             } else {
                 setSuggestedCategory('');
             }
         }, 300); // Debounce 300ms
-        
+
         return () => clearTimeout(timer);
-    }, [data.title, data.description]);
+    }, [data.title, data.description, data.project_category, userChoseOtherCategory]);
 
     // Server-backed recommendations: taxonomy, emerging skills, innovative roles
     useEffect(() => {
@@ -870,36 +871,17 @@ export default function JobCreate() {
                                     {errors.estimated_duration_days && <p className="mt-2 text-sm text-red-400">{errors.estimated_duration_days}</p>}
                                 </div>
 
-                                {/* Project Category (Optional) */}
-                                <div>
-                                    <label htmlFor="project_category" className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                                        Project Category (Optional)
-                                    </label>
-                                    <select
-                                        id="project_category"
-                                        value={data.project_category}
-                                        onChange={(e) => setData('project_category', e.target.value)}
-                                        className={isDark ? "w-full bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50" : "w-full bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
-                                    >
-                                        <option value="">Select a category</option>
-                                        {PROJECT_CATEGORIES.map((category) => (
-                                            <option
-                                                key={category}
-                                                value={category}
-                                                style={isDark ? { backgroundColor: '#1f2937', color: '#e5e7eb' } : undefined}
-                                            >
-                                                {category === suggestedCategory ? `✨ ${category} (Suggested)` : category}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {suggestedCategory && (
-                                        <p className="mt-1 text-sm text-blue-400 flex items-center">
-                                            <span className="mr-1">💡</span>
-                                            Suggested category based on your job details
-                                        </p>
-                                    )}
-                                    {errors.project_category && <p className="mt-2 text-sm text-red-400">{errors.project_category}</p>}
-                                </div>
+                                <ProjectCategorySelect
+                                    categories={PROJECT_CATEGORIES}
+                                    value={data.project_category}
+                                    onChange={(v) => setData('project_category', v)}
+                                    suggestedCategory={suggestedCategory}
+                                    isDark={isDark}
+                                    titleForContext={data.title}
+                                    descriptionForContext={data.description}
+                                    error={errors.project_category}
+                                    onOtherModeChange={setUserChoseOtherCategory}
+                                />
 
                                 {/* Skills Requirements */}
                                 <div>

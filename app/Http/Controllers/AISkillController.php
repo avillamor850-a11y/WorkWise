@@ -46,6 +46,19 @@ class AISkillController extends Controller
     }
 
     /**
+     * POST /api/onboarding/validate-hiring-need
+     * Body: { "description": "..." }
+     */
+    public function validateHiringNeed(Request $request): JsonResponse
+    {
+        $request->validate(['description' => 'required|string|max:255']);
+
+        $result = $this->skillService->validateHiringNeedWithAI($request->input('description'));
+
+        return response()->json($result);
+    }
+
+    /**
      * POST /api/skills/suggest-match
      * Body: { "skill": "..." }
      */

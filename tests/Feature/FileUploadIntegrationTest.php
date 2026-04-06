@@ -353,7 +353,7 @@ class FileUploadIntegrationTest extends TestCase
         
         // Verify onboarding is completed
         $this->assertTrue($user->profile_completed);
-        $this->assertEquals('pending', $user->profile_status);
+        $this->assertEquals('approved', $user->profile_status);
         
         // Verify all files were uploaded
         $this->assertNotNull($user->profile_picture);
@@ -401,7 +401,7 @@ class FileUploadIntegrationTest extends TestCase
         
         // Verify onboarding is completed even without optional files
         $this->assertTrue($user->profile_completed);
-        $this->assertEquals('pending', $user->profile_status);
+        $this->assertEquals('approved', $user->profile_status);
         
         // Verify required files were uploaded
         $this->assertNotNull($user->id_front_image);

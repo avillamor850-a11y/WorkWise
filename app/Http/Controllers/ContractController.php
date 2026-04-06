@@ -71,7 +71,13 @@ class ContractController extends Controller
             'gigWorker' => $gigWorker,
             'price' => $price,
             'jobs' => $jobs,
-            'user' => $user
+            'user' => $user,
+            'stripe_key' => config('stripe.key'),
+            'currency' => [
+                'code' => config('app.currency', 'PHP'),
+                'symbol' => '₱',
+                'decimal_places' => 2,
+            ],
         ]);
     }
 

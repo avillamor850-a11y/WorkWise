@@ -50,6 +50,23 @@ Step 3 uses the app’s `/api/skills/suggestions` endpoint and sets a random pro
 
 Use `--headed` if a step fails to see the UI.
 
+### Proposal assist (login + fill bid, manual submit)
+
+[playwright/gig_worker_proposal_assist.py](gig_worker_proposal_assist.py) lists **`gig_worker`** rows from **`database.sqlite`**, you pick a user by **number**, then enter the **password** with `getpass` (not stored in the DB). It logs in at `/login`, opens `/jobs`, waits until you navigate to a job detail URL (`/jobs/{id}`), fills the proposal form (bid amount, estimated days, cover letter), and **does not** click **Submit proposal** — you submit in the browser. With **`--headed`**, the browser stays open until you press **Enter** in the terminal (unless `--auto-close`).
+
+```bash
+python playwright/gig_worker_proposal_assist.py --base-url http://127.0.0.1:8000 --headed
+```
+
+- **`--headed`**: show the browser (recommended for this flow). Omit for headless runs.
+- **`--database PATH`**: alternate SQLite file (default: repo root `database.sqlite`).
+- **`--wait-job-timeout-ms`**: how long to wait for you to open a job page (default 3600000 ms = 1 hour).
+- **`--amount`**, **`--days`**: values filled into the form (defaults 100 and 7).
+- **`--cover-letter PATH`**: UTF-8 text file for the cover letter; otherwise a short built-in template is used.
+- **`--auto-close`**: exit immediately after filling (no terminal prompt to keep the window open).
+
+Requires the same KYC / ID verification access to `/jobs` and bidding as [playwright/bid_accept_escrow_e2e.py](bid_accept_escrow_e2e.py) when those checks are enabled locally. No `GROQ_API_KEY`.
+
 ## Employer
 
 Register and open employer onboarding (`/onboarding/employer`):

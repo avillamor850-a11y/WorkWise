@@ -44,8 +44,7 @@ export default function AdminLayout({ children, header }) {
         { id: 'users', name: 'User Directory', href: '/admin/users', icon: 'group', current: isCurrentPage('/admin/users') },
         { id: 'payments', name: 'Payments', href: '/admin/payments', icon: 'payments', current: isCurrentPage('/admin/payments') },
         { id: 'deposits', name: 'User Added Funds', href: '/admin/deposits', icon: 'account_balance_wallet', current: isCurrentPage('/admin/deposits') },
-        { id: 'reports-transactions', name: 'Transaction Reports', href: '/admin/reports/transactions', icon: 'receipt_long', current: isCurrentPage('/admin/reports/transactions') },
-        { id: 'reports', name: 'Escrow / Reports', href: '/admin/reports', icon: 'flag', current: isCurrentPage('/admin/reports') && !url?.startsWith('/admin/reports/transactions') },
+        { id: 'reports-transactions', name: 'Escrow / Reports', href: '/admin/reports/transactions', icon: 'flag', current: isCurrentPage('/admin/reports/transactions') },
     ];
 
     // Fallback navigation when url is not available
@@ -56,8 +55,7 @@ export default function AdminLayout({ children, header }) {
         { id: 'users-fallback', name: 'User Directory', href: '/admin/users', icon: 'group', current: false },
         { id: 'payments-fallback', name: 'Payments', href: '/admin/payments', icon: 'payments', current: false },
         { id: 'deposits-fallback', name: 'User Added Funds', href: '/admin/deposits', icon: 'account_balance_wallet', current: false },
-        { id: 'reports-transactions-fallback', name: 'Transaction Reports', href: '/admin/reports/transactions', icon: 'receipt_long', current: false },
-        { id: 'reports-fallback', name: 'Escrow / Reports', href: '/admin/reports', icon: 'flag', current: false },
+        { id: 'reports-transactions-fallback', name: 'Escrow / Reports', href: '/admin/reports/transactions', icon: 'flag', current: false },
     ];
 
     const bottomNavigation = [
@@ -152,14 +150,14 @@ export default function AdminLayout({ children, header }) {
                                     {/* Quick Actions */}
                                     <div className="hidden md:flex items-center gap-2">
                                         <Link
-                                            href="/admin/users"
+                                            href={route('admin.users')}
                                             className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-900/20"
                                         >
                                             <span className="material-symbols-outlined text-base">group</span>
                                             Users
                                         </Link>
                                         <Link
-                                            href="/admin/reports"
+                                            href={route('admin.reports.transactions')}
                                             className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-900/20"
                                         >
                                             <span className="material-symbols-outlined text-base">flag</span>
@@ -167,11 +165,15 @@ export default function AdminLayout({ children, header }) {
                                         </Link>
                                     </div>
 
-                                    {/* Notifications */}
-                                    <button className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300">
+                                    {/* Notifications — was a dead <button>; use app notifications index */}
+                                    <Link
+                                        href={route('notifications.index')}
+                                        className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                                        aria-label="Notifications"
+                                    >
                                         <span className="material-symbols-outlined">notifications</span>
-                                        <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
-                                    </button>
+                                        <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden />
+                                    </Link>
 
                                     {/* User Menu */}
                                     <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-700">
@@ -185,7 +187,7 @@ export default function AdminLayout({ children, header }) {
                                             src={auth?.user?.avatar || "https://ui-avatars.com/api/?name=" + encodeURIComponent(auth?.user?.name || 'Admin') + "&background=6366f1&color=fff"}
                                         />
                                         <Link
-                                            href="/admin/admin/logout"
+                                            href={route('admin.logout')}
                                             method="post"
                                             as="button"
                                             className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -213,13 +215,13 @@ export default function AdminLayout({ children, header }) {
                                         Refresh
                                     </button>
                                     {adminExportHref ? (
-                                        <Link
+                                        <a
                                             href={adminExportHref}
                                             className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
                                         >
                                             <span className="material-symbols-outlined text-base">download</span>
                                             Export
-                                        </Link>
+                                        </a>
                                     ) : (
                                         <button
                                             type="button"

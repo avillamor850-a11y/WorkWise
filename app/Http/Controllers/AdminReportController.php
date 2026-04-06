@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Report;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -11,47 +12,17 @@ use Inertia\Response;
 class AdminReportController extends Controller
 {
     /**
-     * Display all reports
+     * Legacy /admin/reports URL: Inertia page Admin/Reports/Index was never shipped.
+     * Escrow and mandatory transaction reports live on /admin/reports/transactions.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): RedirectResponse
     {
-        $query = Report::with(['reporter', 'reportedUser', 'project.job']);
+        // #region agent log
+        file_put_contents(base_path('debug-6fa68d.log'), json_encode(['sessionId' => '6fa68d', 'runId' => 'post-fix', 'hypothesisId' => 'H1', 'location' => 'AdminReportController.php:index:entry', 'message' => 'admin reports index entered', 'data' => ['path' => $request->path(), 'query' => $request->query()], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
+        file_put_contents(base_path('debug-6fa68d.log'), json_encode(['sessionId' => '6fa68d', 'runId' => 'post-fix', 'hypothesisId' => 'H1-fix', 'location' => 'AdminReportController.php:index:redirect', 'message' => 'redirect to admin.reports.transactions', 'data' => ['target' => 'admin.reports.transactions'], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Filter by type
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-
-        // Search by user names
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('reportedUser', function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        $reports = $query->orderBy('created_at', 'desc')->paginate(15);
-
-        $stats = [
-            'total_reports' => Report::count(),
-            'pending_reports' => Report::where('status', 'pending')->count(),
-            'resolved_reports' => Report::where('status', 'resolved')->count(),
-            'investigating_reports' => Report::where('status', 'investigating')->count(),
-            'dismissed_reports' => Report::where('status', 'dismissed')->count(),
-        ];
-
-        return Inertia::render('Admin/Reports/Index', [
-            'reports' => $reports,
-            'stats' => $stats,
-            'filters' => $request->only(['status', 'type', 'search']),
-        ]);
+        return redirect()->route('admin.reports.transactions', $request->query());
     }
 
     /**

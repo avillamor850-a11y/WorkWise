@@ -874,10 +874,13 @@ class AdminController extends Controller
      */
     public function exportPayments(Request $request)
     {
+        // #region agent log
+        file_put_contents(base_path('debug-6fa68d.log'), json_encode(['sessionId' => '6fa68d', 'runId' => 'payments-export', 'hypothesisId' => 'H1', 'location' => 'AdminController.php:exportPayments:entry', 'message' => 'exportPayments called', 'data' => ['query_keys' => array_keys($request->query())], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+
         $format = $request->get('format', 'csv');
         $query = Transaction::with(['payer', 'payee', 'project.job']);
 
-        // Apply filters if provided
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
@@ -886,7 +889,27 @@ class AdminController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('min_amount')) {
+            $query->where('amount', '>=', $request->min_amount);
+        }
+
+        if ($request->filled('max_amount')) {
+            $query->where('amount', '<=', $request->max_amount);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
         $transactions = $query->orderBy('created_at', 'desc')->get();
+
+        // #region agent log
+        file_put_contents(base_path('debug-6fa68d.log'), json_encode(['sessionId' => '6fa68d', 'runId' => 'payments-export', 'hypothesisId' => 'H2', 'location' => 'AdminController.php:exportPayments:pre_stream', 'message' => 'streaming csv', 'data' => ['row_count' => $transactions->count(), 'format' => $format], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
+        // #endregion
 
         if ($format === 'csv') {
             $headers = [
@@ -903,17 +926,21 @@ class AdminController extends Controller
                     'Project', 'Created', 'Updated'
                 ]);
 
-                // Add data rows
                 foreach ($transactions as $transaction) {
+                    $payer = $transaction->payer;
+                    $payee = $transaction->payee;
+                    $payerName = $payer ? trim(($payer->first_name ?? '').' '.($payer->last_name ?? '')) : '';
+                    $payeeName = $payee ? trim(($payee->first_name ?? '').' '.($payee->last_name ?? '')) : '';
+
                     fputcsv($file, [
                         $transaction->id,
                         $transaction->type,
                         $transaction->amount,
                         $transaction->platform_fee,
                         $transaction->status,
-                        $transaction->payer->first_name . ' ' . $transaction->payer->last_name ?? 'N/A',
-                        $transaction->payee->first_name . ' ' . $transaction->payee->last_name ?? 'N/A',
-                        $transaction->project->job->title ?? 'N/A',
+                        $payerName !== '' ? $payerName : 'N/A',
+                        $payeeName !== '' ? $payeeName : 'N/A',
+                        $transaction->project?->job?->title ?? 'N/A',
                         $transaction->created_at->format('Y-m-d H:i:s'),
                         $transaction->updated_at->format('Y-m-d H:i:s'),
                     ]);

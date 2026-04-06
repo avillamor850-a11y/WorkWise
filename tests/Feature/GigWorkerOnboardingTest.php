@@ -164,7 +164,7 @@ class GigWorkerOnboardingTest extends TestCase
         
         $user->refresh();
         $this->assertTrue($user->profile_completed);
-        $this->assertEquals('pending', $user->profile_status);
+        $this->assertEquals('approved', $user->profile_status);
         $this->assertEquals(4, $user->onboarding_step);
         $this->assertEquals('Full Stack Developer', $user->professional_title);
         $this->assertEquals(75, $user->hourly_rate);
@@ -345,7 +345,7 @@ class GigWorkerOnboardingTest extends TestCase
         
         $user->refresh();
         $this->assertTrue($user->profile_completed);
-        $this->assertEquals('pending', $user->profile_status);
+        $this->assertEquals('approved', $user->profile_status);
         $this->assertEquals($portfolioLink, $user->portfolio_link);
         $this->assertNull($user->resume_file);
     }
@@ -396,7 +396,7 @@ class GigWorkerOnboardingTest extends TestCase
         
         $user->refresh();
         $this->assertTrue($user->profile_completed);
-        $this->assertEquals('pending', $user->profile_status);
+        $this->assertEquals('approved', $user->profile_status);
         $this->assertNull($user->portfolio_link);
         $this->assertNotNull($user->resume_file);
         $this->assertStringContainsString('portfolios/' . $user->id . '/documents', $user->resume_file);
@@ -454,7 +454,7 @@ class GigWorkerOnboardingTest extends TestCase
         
         $user->refresh();
         $this->assertTrue($user->profile_completed);
-        $this->assertEquals('pending', $user->profile_status);
+        $this->assertEquals('approved', $user->profile_status);
         $this->assertEquals($portfolioLink, $user->portfolio_link);
         $this->assertNotNull($user->resume_file);
         $this->assertStringContainsString('portfolios/' . $user->id . '/documents', $user->resume_file);
@@ -507,7 +507,7 @@ class GigWorkerOnboardingTest extends TestCase
         
         $user->refresh();
         $this->assertTrue($user->profile_completed);
-        $this->assertEquals('pending', $user->profile_status);
+        $this->assertEquals('approved', $user->profile_status);
         $this->assertNull($user->portfolio_link);
         $this->assertNull($user->resume_file);
     }
