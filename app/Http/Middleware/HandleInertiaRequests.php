@@ -176,6 +176,8 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
+                'onboarding_gate' => fn () => $request->session()->get('onboarding_gate'),
+                'onboarding_gate_gig_worker' => fn () => $request->session()->get('onboarding_gate_gig_worker'),
             ],
         ];
     }

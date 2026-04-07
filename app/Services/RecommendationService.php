@@ -583,7 +583,15 @@ class RecommendationService
         $matches = [];
         foreach ($jobs as $job) {
             $result = $resultsByJobId[$job->id] ?? $this->fallbackWorkerScore($job, $gigWorker);
-            $result['reason'] = $this->limitInsightSentences((string) ($result['reason'] ?? ''), 3);
+            $reason = trim((string) ($result['reason'] ?? ''));
+            if ($reason === '') {
+                $fallback = $this->fallbackWorkerScore($job, $gigWorker);
+                $reason = trim((string) ($fallback['reason'] ?? ''));
+            }
+            if ($reason === '') {
+                $reason = 'Relevance and employer quality signals indicate this opportunity may fit your profile.';
+            }
+            $result['reason'] = $this->limitInsightSentences($reason, 3);
             if ($result['success'] && $result['score'] > 0) {
                 $matches[] = [
                     'job' => $job,

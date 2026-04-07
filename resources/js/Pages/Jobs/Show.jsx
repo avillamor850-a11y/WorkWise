@@ -93,7 +93,8 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
 };
 
 export default function JobShow({ job, canBid }) {
-    const { auth } = usePage().props;
+    const { auth, flash: rawFlash } = usePage().props;
+    const flash = rawFlash || {};
     const [showBidForm, setShowBidForm] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [processingBidId, setProcessingBidId] = useState(null);
@@ -403,10 +404,16 @@ export default function JobShow({ job, canBid }) {
             b.gig_worker_id === auth.user?.id &&
             !['rejected', 'withdrawn'].includes(b.status)
     );
+    const gigWorkerOnboardingGate = flash.onboarding_gate_gig_worker && typeof flash.onboarding_gate_gig_worker === 'object'
+        ? flash.onboarding_gate_gig_worker
+        : null;
+    const gigWorkerMissingFields = Array.isArray(gigWorkerOnboardingGate?.missing_fields)
+        ? gigWorkerOnboardingGate.missing_fields
+        : [];
     const showGigWorkerOnboardingBidBanner =
         auth.user?.user_type === 'gig_worker' &&
         !isEmployer &&
-        auth.user?.profile_status === 'pending' &&
+        (gigWorkerOnboardingGate?.required === true || auth.user?.profile_status === 'pending') &&
         job.status === 'open' &&
         !gigWorkerHasActiveBidOnJob;
 
@@ -630,6 +637,17 @@ export default function JobShow({ job, canBid }) {
                                                                 {error && (
                                                                     <div className="mb-2 text-sm text-red-400">
                                                                         {error}
+                                                                        {typeof error === 'string' && /insuff\w*\s+escrow\s+balance/i.test(error) && (
+                                                                            <>
+                                                                                {' '}
+                                                                                <Link
+                                                                                    href={route('employer.wallet.index')}
+                                                                                    className="font-medium underline text-blue-300 hover:text-blue-200"
+                                                                                >
+                                                                                    Click here to add funds
+                                                                                </Link>
+                                                                            </>
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                                 <div className="flex space-x-2">
@@ -679,13 +697,18 @@ export default function JobShow({ job, canBid }) {
                                     className={`mb-6 rounded-xl border p-4 sm:p-5 ${isDark ? 'border-amber-500/40 bg-amber-500/10 text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-950'}`}
                                 >
                                     <p className={`text-sm sm:text-base mb-3 ${isDark ? 'text-amber-100/95' : 'text-amber-900'}`}>
-                                        Complete your gig worker onboarding to submit proposals on open jobs.
+                                        {gigWorkerOnboardingGate?.message || 'Complete your gig worker onboarding to submit proposals on open jobs.'}
                                     </p>
+                                    {gigWorkerMissingFields.length > 0 && (
+                                        <p className={`text-xs sm:text-sm mb-3 ${isDark ? 'text-amber-200/90' : 'text-amber-900/90'}`}>
+                                            Missing required fields: {gigWorkerMissingFields.join(', ')}.
+                                        </p>
+                                    )}
                                     <Link
-                                        href={safeRoute('gig-worker.onboarding', '/onboarding/gig-worker')}
+                                        href={gigWorkerOnboardingGate?.onboarding_url || safeRoute('gig-worker.onboarding', '/onboarding/gig-worker')}
                                         className={`inline-flex items-center text-sm font-semibold ${isDark ? 'text-amber-300 hover:text-amber-200' : 'text-amber-800 hover:text-amber-900'}`}
                                     >
-                                        Continue onboarding
+                                        Click here to finish onboarding
                                         <span className="ml-1" aria-hidden="true">→</span>
                                     </Link>
                                 </div>

@@ -316,12 +316,12 @@ class EmployerOnboardingController extends Controller
         $user = auth()->user();
 
         $user->update([
-            'profile_completed' => true,
-            'profile_status' => 'approved'
+            'profile_completed' => false,
+            'profile_status' => 'pending',
         ]);
 
-        return redirect()->route('employer.dashboard')->with('info',
-            'Welcome to WorkWise! You can complete your profile later from your profile settings to attract better candidates.');
+        return redirect()->route('employer.dashboard')->with('warning',
+            'Onboarding was skipped. Complete the required onboarding fields before posting jobs.');
     }
 
     /**

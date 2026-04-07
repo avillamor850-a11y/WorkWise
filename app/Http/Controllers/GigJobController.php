@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GigJob;
 use App\Services\SkillService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,9 +20,63 @@ class GigJobController extends Controller
         if (! $user || ! $user->isEmployer()) {
             abort(403, 'Only employers can post jobs.');
         }
-        if ($user->profile_status !== 'approved') {
+        if (! $this->canEmployerPostJobs($user)) {
             abort(403, 'Complete your employer onboarding before posting jobs.');
         }
+    }
+
+    private function canEmployerPostJobs($user): bool
+    {
+        if (! $user || ! $user->isEmployer()) {
+            return false;
+        }
+
+        return $user->profile_status === 'approved'
+            && \count($this->getMissingEmployerOnboardingFields($user)) === 0;
+    }
+
+    private function getMissingEmployerOnboardingFields($user): array
+    {
+        $missing = [];
+
+        if (! filled($user->company_size)) {
+            $missing[] = 'Company size';
+        }
+        if (! filled($user->industry)) {
+            $missing[] = 'Industry';
+        }
+        if (! filled($user->company_description) || mb_strlen(trim((string) $user->company_description)) < 50) {
+            $missing[] = 'Company description (minimum 50 characters)';
+        }
+
+        $primaryHiringNeeds = $user->primary_hiring_needs;
+        if (! is_array($primaryHiringNeeds) || \count(array_filter($primaryHiringNeeds, fn ($value) => filled($value))) < 1) {
+            $missing[] = 'Primary hiring needs';
+        }
+        if (! filled($user->typical_project_budget)) {
+            $missing[] = 'Typical project budget';
+        }
+        if (! filled($user->typical_project_duration)) {
+            $missing[] = 'Typical project duration';
+        }
+        if (! filled($user->preferred_experience_level)) {
+            $missing[] = 'Preferred experience level';
+        }
+        if (! filled($user->hiring_frequency)) {
+            $missing[] = 'Hiring frequency';
+        }
+
+        return $missing;
+    }
+
+    private function onboardingGateFlashPayload($user): array
+    {
+        return [
+            'required' => true,
+            'message' => 'Complete your employer onboarding before posting jobs.',
+            'missing_fields' => $this->getMissingEmployerOnboardingFields($user),
+            'onboarding_url' => route('employer.onboarding'),
+        ];
     }
 
     /**
@@ -118,9 +173,18 @@ class GigJobController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): Response
+    public function create(): Response|RedirectResponse
     {
-        $this->authorizeEmployerJobPosting();
+        $user = auth()->user();
+        if (! $user || ! $user->isEmployer()) {
+            abort(403, 'Only employers can post jobs.');
+        }
+        if (! $this->canEmployerPostJobs($user)) {
+            return redirect()
+                ->route('employer.dashboard')
+                ->with('warning', 'Complete your employer onboarding before posting jobs.')
+                ->with('onboarding_gate', $this->onboardingGateFlashPayload($user));
+        }
 
         return Inertia::render('Jobs/Create');
     }

@@ -120,8 +120,13 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
 
     const isGigWorker = user.user_type === 'gig_worker';
     const isEmployer = user.user_type === 'employer';
-    const canPostJobs = user?.profile_status === 'approved';
     const employerOnboardingHref = safeRoute('employer.onboarding', '/onboarding/employer');
+    const onboardingGate = flash.onboarding_gate && typeof flash.onboarding_gate === 'object'
+        ? flash.onboarding_gate
+        : null;
+    const onboardingMissingFields = Array.isArray(onboardingGate?.missing_fields)
+        ? onboardingGate.missing_fields
+        : [];
     // Role-aware dashboard URL and active state
     const dashboardHref = isGigWorker
         ? '/gig-worker/dashboard'
@@ -679,13 +684,13 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                 {isEmployer && (
                                     <>
                                         <Link
-                                            href={canPostJobs ? '/jobs/create' : employerOnboardingHref}
+                                            href="/jobs/create"
                                             className={`text-sm font-medium rounded-md transition-colors duration-200 ${window.route.current('jobs.create')
                                                 ? 'text-blue-400'
                                                 : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100' : 'text-gray-600 hover:text-gray-900')
                                                 }`}
                                         >
-                                            {canPostJobs ? 'Post a Job' : 'Complete setup to post jobs'}
+                                            Post a Job
                                         </Link>
                                         <div className="relative employer-ai-rec-nav-dropdown">
                                             <button
@@ -710,11 +715,11 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                                         <div className={`px-4 py-3 text-sm ${effectiveTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                                                             <p className="mb-2">No open jobs yet.</p>
                                                             <Link
-                                                                href={canPostJobs ? '/jobs/create' : employerOnboardingHref}
+                                                                href="/jobs/create"
                                                                 onClick={() => setShowingEmployerAiRecNavDropdown(false)}
                                                                 className={`font-medium ${effectiveTheme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
                                                             >
-                                                                {canPostJobs ? 'Post a Job' : 'Complete setup to post jobs'}
+                                                                Post a Job
                                                             </Link>
                                                         </div>
                                                     ) : (
@@ -1253,13 +1258,13 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                         {/* Employer-only mobile navigation */}
                         {isEmployer && (
                             <Link
-                                href={canPostJobs ? '/jobs/create' : employerOnboardingHref}
+                                href="/jobs/create"
                                 className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors ${window.route.current('jobs.create')
                                     ? 'text-blue-400 bg-gray-700'
                                     : (effectiveTheme === 'dark' ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                     }`}
                             >
-                                {canPostJobs ? 'Post a Job' : 'Complete setup to post jobs'}
+                                Post a Job
                             </Link>
                         )}
 
@@ -1282,14 +1287,14 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                                             <div className={`px-3 py-2 text-xs ${effectiveTheme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
                                                 <p className="mb-2">No open jobs.</p>
                                                 <Link
-                                                    href={canPostJobs ? '/jobs/create' : employerOnboardingHref}
+                                                    href="/jobs/create"
                                                     onClick={() => {
                                                         setShowingMobileEmployerAiRecJobs(false);
                                                         setShowingNavigationDropdown(false);
                                                     }}
                                                     className={`font-medium ${effectiveTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}
                                                 >
-                                                    {canPostJobs ? 'Post a Job' : 'Complete setup to post jobs'}
+                                                    Post a Job
                                                 </Link>
                                             </div>
                                         ) : (
@@ -1370,6 +1375,27 @@ export default function AuthenticatedLayout({ header, children, pageTheme }) {
                     </div>
                 </div>
             </nav>
+
+            {isEmployer && onboardingGate?.required === true && (
+                <div className={effectiveTheme === 'dark' ? 'border-b border-amber-700 bg-amber-900/30' : 'border-b border-amber-200 bg-amber-50'}>
+                    <div className="mx-auto py-3 text-sm" style={{ paddingLeft: '0.45in', paddingRight: '0.45in' }}>
+                        <p className={effectiveTheme === 'dark' ? 'text-amber-200' : 'text-amber-900'}>
+                            {onboardingGate?.message || 'Complete your onboarding to post jobs.'}{' '}
+                            <Link
+                                href={onboardingGate?.onboarding_url || employerOnboardingHref}
+                                className={effectiveTheme === 'dark' ? 'font-semibold text-amber-300 hover:text-amber-200 underline' : 'font-semibold text-amber-700 hover:text-amber-800 underline'}
+                            >
+                                Click here to finish onboarding
+                            </Link>
+                        </p>
+                        {onboardingMissingFields.length > 0 && (
+                            <p className={effectiveTheme === 'dark' ? 'mt-1 text-amber-300' : 'mt-1 text-amber-800'}>
+                                Missing required fields: {onboardingMissingFields.join(', ')}.
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {header && (
                 <header className={effectiveTheme === 'dark' ? 'bg-gray-900 border-b border-gray-700' : 'bg-white border-b border-gray-200'}>

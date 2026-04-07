@@ -234,7 +234,36 @@ export default function Recommendations({
         const out = [];
         out.push(...normalizeSkillSetInput(job.required_skills));
         out.push(...normalizeSkillSetInput(job.skills_requirements));
-        return out;
+
+        const seen = new Set();
+        const deduped = [];
+        for (const skill of out) {
+            const label =
+                typeof skill === "string"
+                    ? skill.trim()
+                    : (skill?.skill ?? skill?.name ?? skill?.[0] ?? "")
+                          .toString()
+                          .trim();
+            if (!label) {
+                continue;
+            }
+            const key = label.toLowerCase();
+            if (seen.has(key)) {
+                continue;
+            }
+            seen.add(key);
+            deduped.push(skill);
+        }
+
+        return deduped;
+    };
+
+    const getInsightReason = (reason) => {
+        if (typeof reason === "string" && reason.trim().length > 0) {
+            return reason.trim();
+        }
+
+        return "Match generated from your skill fit and employer quality signals.";
     };
 
     /** Gig worker profile has no top-level experience_level; levels live on skills_with_experience rows. */
@@ -739,7 +768,7 @@ export default function Recommendations({
                                     </h4>
 
                                     <p className={isDark ? "text-gray-200 leading-relaxed" : "text-gray-700 leading-relaxed"}>
-                                        {match.reason}
+                                        {getInsightReason(match.reason)}
                                     </p>
                                 </div>
 

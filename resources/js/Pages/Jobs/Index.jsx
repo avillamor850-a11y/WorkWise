@@ -755,7 +755,7 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                         <p className={isDark ? "text-gray-400 text-lg mb-8 max-w-md mx-auto leading-relaxed" : "text-gray-600 text-lg mb-8 max-w-md mx-auto leading-relaxed"}>
                                             Start by posting your first job to find talented gig workers.
                                         </p>
-                                        canPostJobs ? (
+                                        {canPostJobs ? (
                                             <Link
                                                 href={route('jobs.create')}
                                                 className="inline-flex items-center bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 px-8 rounded-xl shadow-lg shadow-blue-600/20 transition-all duration-300"

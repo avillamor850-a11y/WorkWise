@@ -8,55 +8,25 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import ErrorModal from '@/Components/ErrorModal';
 
 export default function JobCreate() {
-    // AI-suggested skills state
-    const [suggestedSkills, setSuggestedSkills] = useState([]);
-    const [skillSuggestLoading, setSkillSuggestLoading] = useState(false);
     const [fraudModalClosed, setFraudModalClosed] = useState(false);
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    // Emerging skills and innovative roles
-    const [emergingSkills, setEmergingSkills] = useState([]);
+    // Innovative roles
     const [innovativeRoles, setInnovativeRoles] = useState([]);
     // Suggested category state
     const [suggestedCategory, setSuggestedCategory] = useState('');
     const [userChoseOtherCategory, setUserChoseOtherCategory] = useState(false);
 
-    // Flatten taxonomy into skills and category index (memoized for performance)
-    const { skills: ALL_SKILLS, categories: CATEGORY_INDEX } = useMemo(() => {
-        const skillsSet = new Set();
+    // Flatten taxonomy into category index (memoized for performance)
+    const { categories: CATEGORY_INDEX } = useMemo(() => {
         const categories = [];
         (taxonomy.services || []).forEach(service => {
             (service.categories || []).forEach(cat => {
                 categories.push({ name: cat.name, skills: cat.skills || [] });
-                (cat.skills || []).forEach(s => skillsSet.add(s));
             });
         });
-        return { skills: Array.from(skillsSet), categories };
+        return { categories };
     }, []);
-
-    // Common synonym mappings to improve matching quality
-    const SYNONYMS = useMemo(() => ({
-        'react js': 'react',
-        'react.js': 'react',
-        'js': 'javascript',
-        'node': 'node.js',
-        'adobe premiere': 'adobe premiere pro',
-        'davinci': 'davinci resolve',
-        'ux': 'ui/ux',
-        'ui': 'ui/ux',
-        'ml': 'machine learning',
-        'ai': 'machine learning',
-        'ppc': 'ppc',
-        'google ads': 'google ads',
-        'facebook ads': 'facebook ads',
-        'unity3d': 'unity',
-        'c sharp': 'c#',
-        'c plus plus': 'c++',
-        'web dev': 'web development',
-        'frontend': 'web development',
-        'backend': 'web development',
-        'laravel php': 'laravel'
-    }), []);
 
     // Additional category/title synonyms to map common job titles to taxonomy categories
     const CATEGORY_SYNONYMS = useMemo(() => ({
@@ -234,61 +204,7 @@ export default function JobCreate() {
         return Array.from(matched);
     };
 
-    const scoreSkillMatch = (textNorm, tokens, skill) => {
-        const sNorm = normalize(skill);
-        let score = 0;
-        if (textNorm.includes(sNorm)) score += 3; // exact phrase match
-        const sTokens = sNorm.split(' ');
-        const tokenHits = sTokens.filter(t => tokens.includes(t)).length;
-        if (tokenHits >= Math.min(2, sTokens.length)) score += 2; // token overlap
-        // synonym mapping
-        Object.entries(SYNONYMS).forEach(([key, val]) => {
-            const k = normalize(key);
-            const v = normalize(val);
-            if (textNorm.includes(k) && (v === sNorm || sNorm.includes(v))) {
-                score += 2;
-            }
-        });
-        return score;
-    };
-
-    const suggestSkills = (text, exclude = []) => {
-        const textNorm = normalize(text || '');
-        const tokens = tokenize(text || '');
-        const excludeSet = new Set(exclude.map(normalize));
-        const scored = [];
-        // Enhanced category-based suggestions via direct names, token overlap, and synonyms
-        const matchedCategories = matchCategoriesFromText(text);
-        matchedCategories.forEach(catName => {
-            const cat = CATEGORY_INDEX.find(c => normalize(c.name) === normalize(catName) || c.name === catName);
-            if (!cat) return;
-            (cat.skills || []).forEach(s => {
-                if (!excludeSet.has(normalize(s))) {
-                    // High score to ensure category skills rank at the top
-                    scored.push({ skill: s, score: 5 });
-                }
-            });
-        });
-        // direct skill matching
-        ALL_SKILLS.forEach(s => {
-            if (excludeSet.has(normalize(s))) return;
-            const score = scoreSkillMatch(textNorm, tokens, s);
-            if (score > 0) scored.push({ skill: s, score });
-        });
-        // aggregate by highest score per skill
-        const bySkill = new Map();
-        scored.forEach(({ skill, score }) => {
-            const prev = bySkill.get(skill) || 0;
-            if (score > prev) bySkill.set(skill, score);
-        });
-        // sort and return top suggestions
-        return Array.from(bySkill.entries())
-            .sort((a, b) => b[1] - a[1])
-            .map(([skill]) => skill)
-            .slice(0, 12);
-    };
-
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         title: '',
         description: '',
         project_category: '',
@@ -317,23 +233,6 @@ export default function JobCreate() {
         };
     };
 
-    // Debounced suggestion update when title/description change
-    useEffect(() => {
-        const t = setTimeout(() => {
-            const text = `${data.title ?? ''} ${data.description ?? ''}`;
-            const existingSkills = (Array.isArray(data.skills_requirements) ? data.skills_requirements : [])
-                .filter(s => s != null && typeof s.skill === 'string')
-                .map(s => s.skill);
-            const suggestions = suggestSkills(text, existingSkills);
-            setSuggestedSkills(suggestions);
-            setSkillSuggestLoading(false);
-        }, 300);
-        setSkillSuggestLoading(true);
-        return () => {
-            clearTimeout(t);
-        };
-    }, [data.title, data.description, data.skills_requirements]);
-
     // Debounced category detection when title/description change
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -353,17 +252,13 @@ export default function JobCreate() {
         return () => clearTimeout(timer);
     }, [data.title, data.description, data.project_category, userChoseOtherCategory]);
 
-    // Server-backed recommendations: taxonomy, emerging skills, innovative roles
+    // Server-backed recommendations: innovative roles
     useEffect(() => {
         const ctrl = new AbortController();
         const run = async () => {
-            const existingSkills = (Array.isArray(data.skills_requirements) ? data.skills_requirements : [])
-                .filter(s => s != null && typeof s.skill === 'string')
-                .map(s => s.skill);
             const payload = {
                 title: data.title,
                 description: data.description,
-                exclude: existingSkills,
             };
             try {
                 const res = await fetch('/api/recommendations/skills', {
@@ -374,11 +269,6 @@ export default function JobCreate() {
                 });
                 if (!res.ok) return;
                 const json = await res.json();
-                // Merge: prefer server taxonomy suggestions when present
-                if (Array.isArray(json.taxonomy_skills) && json.taxonomy_skills.length) {
-                    setSuggestedSkills(json.taxonomy_skills);
-                }
-                setEmergingSkills(Array.isArray(json.emerging_skills) ? json.emerging_skills : []);
                 setInnovativeRoles(Array.isArray(json.innovative_roles) ? json.innovative_roles : []);
             } catch (err) {
                 // silently ignore network errors
@@ -389,48 +279,7 @@ export default function JobCreate() {
             run();
         }
         return () => ctrl.abort();
-    }, [data.title, data.description, data.skills_requirements]);
-
-    const addSkillFromSuggestion = async (skill) => {
-        // Case-insensitive, trimmed duplicate check
-        const normalizedSkill = skill?.trim().toLowerCase();
-        if (skill && !data.skills_requirements.some(s => s && typeof s.skill === 'string' && s.skill.trim().toLowerCase() === normalizedSkill)) {
-            const newSkill = {
-                skill: skill.trim(),
-                experience_level: data.experience_level,
-                importance: 'required'
-            };
-            setData('skills_requirements', [...data.skills_requirements, newSkill]);
-            // log acceptance for learning
-            try {
-                await fetch('/api/recommendations/skills/accept', {
-                    method: 'POST',
-                    headers: getCsrfHeaders(),
-                    body: JSON.stringify({ type: 'skill', value: skill, context: { source: 'taxonomy' } }),
-                });
-            } catch {}
-        }
-    };
-
-    const addEmergingSkill = async (skill) => {
-        // Case-insensitive, trimmed duplicate check
-        const normalizedSkill = skill?.trim().toLowerCase();
-        if (skill && !data.skills_requirements.some(s => s && typeof s.skill === 'string' && s.skill.trim().toLowerCase() === normalizedSkill)) {
-            const newSkill = {
-                skill: skill.trim(),
-                experience_level: data.experience_level,
-                importance: 'required'
-            };
-            setData('skills_requirements', [...data.skills_requirements, newSkill]);
-            try {
-                await fetch('/api/recommendations/skills/accept', {
-                    method: 'POST',
-                    headers: getCsrfHeaders(),
-                    body: JSON.stringify({ type: 'skill', value: skill, context: { source: 'emerging' } }),
-                });
-            } catch {}
-        }
-    };
+    }, [data.title, data.description]);
 
     const applyInnovativeRole = async (role) => {
         const nextTitle = data.title && data.title.length ? `${role} — ${data.title}` : role;
@@ -442,39 +291,6 @@ export default function JobCreate() {
                 body: JSON.stringify({ type: 'role', value: role, context: { page: 'jobs.create' } }),
             });
         } catch {}
-    };
-
-    const addAllSuggestedSkills = () => {
-        // Case-insensitive, trimmed duplicate filtering
-        const existingSkillsNormalized = (Array.isArray(data.skills_requirements) ? data.skills_requirements : [])
-            .filter(s => s && typeof s.skill === 'string')
-            .map(s => s.skill.trim().toLowerCase());
-        const toAdd = suggestedSkills.filter((s) => !existingSkillsNormalized.includes(s.trim().toLowerCase()));
-        if (toAdd.length > 0) {
-            const newSkills = toAdd.map(skill => ({
-                skill: skill.trim(),
-                experience_level: data.experience_level,
-                importance: 'required'
-            }));
-            setData('skills_requirements', [...data.skills_requirements, ...newSkills]);
-        }
-    };
-
-    // Add all emerging skills helper
-    const addAllEmergingSkills = () => {
-        // Case-insensitive, trimmed duplicate filtering
-        const existingSkillsNormalized = (Array.isArray(data.skills_requirements) ? data.skills_requirements : [])
-            .filter(s => s && typeof s.skill === 'string')
-            .map(s => s.skill.trim().toLowerCase());
-        const toAdd = emergingSkills.filter((s) => !existingSkillsNormalized.includes(s.trim().toLowerCase()));
-        if (toAdd.length > 0) {
-            const newSkills = toAdd.map(skill => ({
-                skill: skill.trim(),
-                experience_level: data.experience_level,
-                importance: 'required'
-            }));
-            setData('skills_requirements', [...data.skills_requirements, ...newSkills]);
-        }
     };
 
     const handleSubmit = (e) => {
@@ -667,95 +483,6 @@ export default function JobCreate() {
                                     {errors.description && <p className="mt-2 text-sm text-red-400">{errors.description}</p>}
                                 </div>
 
-                                {/* AI-Suggested Skills */}
-                                <div>
-                                    {(skillSuggestLoading || suggestedSkills.length > 0) && (
-                                        <div className="mt-4">
-                                            <div className="flex items-center mb-2">
-                                                <span className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>AI-Suggested Skills</span>
-                                                {skillSuggestLoading && (
-                                                    <span className="ml-2 text-xs text-blue-400 flex items-center">
-                                                        <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400 mr-1"></span>
-                                                        Analyzing...
-                                                    </span>
-                                                )}
-                                                {!skillSuggestLoading && suggestedSkills.length > 0 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={addAllSuggestedSkills}
-                                                        disabled={suggestedSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s))}
-                                                        className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border transition ${suggestedSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s)) ? (isDark ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed' : 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed') : 'bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20'}`}
-                                                        aria-disabled={suggestedSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s))}
-                                                        title="Add all suggested skills"
-                                                    >
-                                                        Add all
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {suggestedSkills.map((s) => {
-                                                    const isAdded = data.skills_requirements.some(sr => sr.skill === s);
-                                                    return (
-                                                        <button
-                                                            type="button"
-                                                            key={s}
-                                                            onClick={() => !isAdded && addSkillFromSuggestion(s)}
-                                                            disabled={isAdded}
-                                                            className={`group inline-flex items-center px-3 py-1 rounded-xl text-sm font-medium border transition ${isAdded ? 'bg-green-500/20 text-green-300 border-green-500/30 cursor-default' : isDark ? 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40' : 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200'}`}
-                                                            aria-disabled={isAdded}
-                                                            title={isAdded ? 'Already added' : 'Add skill'}
-                                                        >
-                                                            <span className={`mr-2 ${isAdded ? 'text-green-400' : 'text-blue-400 group-hover:text-blue-300'}`}>{isAdded ? '✓' : '+'}</span>
-                                                            {s}
-                                                        </button>
-                                                    );
-                                                })}
-                                                {!skillSuggestLoading && suggestedSkills.length === 0 && (
-                                                    <span className="text-xs text-gray-500">No suggestions yet. Try adding more details to your title or description.</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Emerging Skills */}
-                                {emergingSkills.length > 0 && (
-                                    <div className="mt-4">
-                                        <div className="flex items-center mb-2">
-                                            <span className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Emerging Skills</span>
-                                            <button
-                                                type="button"
-                                                onClick={addAllEmergingSkills}
-                                                disabled={emergingSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s))}
-                                                className={`ml-auto inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border transition ${emergingSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s)) ? (isDark ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed' : 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed') : 'bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20'}`}
-                                                aria-disabled={emergingSkills.every((s) => data.skills_requirements.some(sr => sr.skill === s))}
-                                                title="Add all emerging skills"
-                                            >
-                                                Add all
-                                            </button>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {emergingSkills.map((s) => {
-                                                const isAdded = data.skills_requirements.some(sr => sr.skill === s);
-                                                return (
-                                                    <button
-                                                        type="button"
-                                                        key={s}
-                                                        onClick={() => !isAdded && addEmergingSkill(s)}
-                                                        disabled={isAdded}
-                                                        className={`group inline-flex items-center px-3 py-1 rounded-xl text-sm font-medium border transition ${isAdded ? 'bg-green-500/20 text-green-300 border-green-500/30 cursor-default' : isDark ? 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40' : 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200'}`}
-                                                        aria-disabled={isAdded}
-                                                        title={isAdded ? 'Already added' : 'Add emerging skill'}
-                                                    >
-                                                        <span className={`mr-2 ${isAdded ? 'text-green-400' : 'text-blue-400 group-hover:text-blue-300'}`}>{isAdded ? '✓' : '+'}</span>
-                                                        {s}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
                                 {/* Innovative Roles */}
                                 {innovativeRoles.length > 0 && (
                                     <div className="mt-4">
@@ -899,7 +626,7 @@ export default function JobCreate() {
                                     )}
                                     {data.skills_requirements.length === 0 && (
                                         <p className="mt-2 text-sm text-amber-400">
-                                            💡 Tip: Use the AI-suggested skills above or add skills manually using the selector
+                                            Add skills manually using the selector above.
                                         </p>
                                     )}
                                 </div>

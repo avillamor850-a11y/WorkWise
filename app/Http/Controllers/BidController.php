@@ -26,6 +26,41 @@ class BidController extends Controller
         $this->contractService = $contractService;
         $this->notificationService = $notificationService;
     }
+
+    private function canGigWorkerSubmitBid($user): bool
+    {
+        if (! $user || $user->user_type !== 'gig_worker') {
+            return false;
+        }
+
+        return $user->profile_status === 'approved'
+            && \count($this->getMissingGigWorkerOnboardingFields($user)) === 0;
+    }
+
+    private function getMissingGigWorkerOnboardingFields($user): array
+    {
+        $missing = [];
+
+        if (! filled($user->professional_title)) {
+            $missing[] = 'Professional title';
+        }
+
+        if (! filled($user->bio)) {
+            $missing[] = 'Professional bio';
+        }
+
+        return $missing;
+    }
+
+    private function gigWorkerOnboardingGateFlashPayload($user): array
+    {
+        return [
+            'required' => true,
+            'message' => 'Complete your gig worker onboarding before submitting proposals.',
+            'missing_fields' => $this->getMissingGigWorkerOnboardingFields($user),
+            'onboarding_url' => route('gig-worker.onboarding'),
+        ];
+    }
     /**
      * Display a listing of the resource.
      */
@@ -109,13 +144,17 @@ class BidController extends Controller
             return back()->withErrors(['job' => 'This job is no longer accepting bids.']);
         }
 
+        $user = auth()->user();
+
         // Check if user is a gig worker
-        if (auth()->user()->user_type !== 'gig_worker') {
+        if (! $user || $user->user_type !== 'gig_worker') {
             return back()->withErrors(['user' => 'Only gig workers can submit bids.']);
         }
 
-        if (auth()->user()->profile_status !== 'approved') {
-            return back()->withErrors(['user' => 'Complete your profile onboarding before submitting proposals.']);
+        if (! $this->canGigWorkerSubmitBid($user)) {
+            return back()
+                ->with('warning', 'Complete your gig worker onboarding before submitting proposals.')
+                ->with('onboarding_gate_gig_worker', $this->gigWorkerOnboardingGateFlashPayload($user));
         }
 
         // Check if gig worker already has an active bid on this job

@@ -58,6 +58,7 @@ from groq_e2e import (
 
 _DEBUG_LOG = Path(__file__).resolve().parents[1] / ".cursor" / "debug-playwright-employer.log"
 _DEBUG_SESSION_LOG = Path(__file__).resolve().parents[1] / "debug-c43e15.log"
+_DEBUG_953054_LOG = Path(__file__).resolve().parents[1] / "debug-953054.log"
 
 
 def _debug_ndjson(*, location: str, message: str, hypothesis_id: str, data: dict) -> None:
@@ -71,6 +72,25 @@ def _debug_ndjson(*, location: str, message: str, hypothesis_id: str, data: dict
     }
     with _DEBUG_SESSION_LOG.open("a", encoding="utf-8") as f:
         f.write(json.dumps(line, default=str) + "\n")
+
+
+def _debug_953054(*, location: str, message: str, hypothesis_id: str, data: dict) -> None:
+    # #region agent log
+    payload = {
+        "sessionId": "953054",
+        "runId": "pre-fix",
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(time.time() * 1000),
+    }
+    try:
+        with _DEBUG_953054_LOG.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, default=str) + "\n")
+    except OSError:
+        pass
+    # #endregion
 
 _MINIMAL_PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
@@ -224,7 +244,22 @@ def generate_employer_mock_profile_with_groq(*, base_url: str) -> dict:
         )
 
     if not first_name or not last_name:
-        raise RuntimeError("Employer mock missing first_name or last_name after generation.")
+        _debug_953054(
+            hypothesis_id="H6",
+            location="employer_register:generate_employer_mock_profile_with_groq",
+            message="groq returned incomplete identity; switching to deterministic fallback names",
+            data={
+                "has_first_name": bool(first_name),
+                "has_last_name": bool(last_name),
+                "company_name_present": bool(company_name),
+            },
+        )
+        if not first_name:
+            first_name = rng.choice(["Jordan", "Taylor", "Morgan", "Riley", "Casey", "Quinn", "Avery", "Blake"])
+        if not last_name:
+            last_name = rng.choice(
+                ["Chen", "Murphy", "Okonkwo", "Berg", "Nielsen", "Patel", "Kowalski", "Santos", "Haddad", "Varga"]
+            )
     if not company_name:
         company_name = f"WorkWise E2E Employer {secrets.token_hex(4)}"
     if len(company_name) > 200:
