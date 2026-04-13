@@ -1,52 +1,48 @@
 <?php
 
-use App\Http\Controllers\BidController;
-use App\Http\Controllers\GigJobController;
-use App\Http\Controllers\JobTemplateController;
-use App\Http\Controllers\WorkerDiscoveryController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\MessageController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\ReviewController;
-use App\Http\Controllers\AIController;
-use App\Http\Controllers\GigWorkerOnboardingController;
-use App\Http\Controllers\EmployerOnboardingController;
-use App\Http\Controllers\WebhookController;
-use App\Http\Controllers\AIRecommendationController;
-use App\Http\Controllers\ClientWalletController;
-use App\Http\Controllers\GigWorkerWalletController;
-use App\Http\Controllers\DepositController;
-use App\Http\Controllers\ContractController;
-use App\Http\Controllers\AnalyticsController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\AdminReportController;
-use App\Http\Controllers\AdminTransactionReportsController;
 use App\Http\Controllers\Admin\AdminAnalyticsController;
 use App\Http\Controllers\Admin\AdminDepositsController;
-use App\Http\Controllers\AdminVerificationController;
-use App\Http\Controllers\AdminIdVerificationController;
-use App\Http\Controllers\AdminSettingsController;
-use App\Http\Controllers\AdminFraudController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\EmployerDashboardController;
-use App\Http\Controllers\LocationController;
-use App\Http\Controllers\IdVerificationController;
-use App\Http\Controllers\DebugController;
-use App\Http\Controllers\ErrorLogController;
-use App\Http\Controllers\SimpleTestController;
-use App\Http\Controllers\AISkillController;
 use App\Http\Controllers\Admin\SkillModerationController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminFraudController;
+use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminSettingsController;
+use App\Http\Controllers\AdminTransactionReportsController;
+use App\Http\Controllers\AdminVerificationController;
+use App\Http\Controllers\AIRecommendationController;
+use App\Http\Controllers\AISkillController;
+use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\SupabaseAuthController;
+use App\Http\Controllers\BidController;
+use App\Http\Controllers\ClientWalletController;
+use App\Http\Controllers\ContractController;
+use App\Http\Controllers\DebugController;
+use App\Http\Controllers\EmployerDashboardController;
+use App\Http\Controllers\EmployerOnboardingController;
+use App\Http\Controllers\ErrorLogController;
+use App\Http\Controllers\GigJobController;
+use App\Http\Controllers\GigWorkerOnboardingController;
+use App\Http\Controllers\GigWorkerWalletController;
+use App\Http\Controllers\IdVerificationController;
+use App\Http\Controllers\JobTemplateController;
+use App\Http\Controllers\LocationController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\SimpleTestController;
 use App\Http\Controllers\UserHeartbeatController;
-
+use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\WorkerDiscoveryController;
 use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\Auth\SupabaseAuthController;
 
 Route::post('/auth/supabase/callback', [SupabaseAuthController::class, 'callback'])->name('auth.supabase.callback');
 
@@ -85,8 +81,9 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
-    if (!$user) {
+    if (! $user) {
         Log::error('Dashboard route accessed - User is null');
+
         return redirect('/login');
     }
 
@@ -98,7 +95,8 @@ Route::get('/dashboard', function () {
     // Redirect employers to employer dashboard
     if ($user->user_type === 'employer') {
         // #region agent log
-        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H1,H4','location'=>'web.php dashboard closure','message'=>'redirect to employer.dashboard','data'=>['user_type'=>'employer'],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId' => '849b3f', 'hypothesisId' => 'H1,H4', 'location' => 'web.php dashboard closure', 'message' => 'redirect to employer.dashboard', 'data' => ['user_type' => 'employer'], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
+
         // #endregion
         return redirect()->route('employer.dashboard');
     }
@@ -111,18 +109,17 @@ Route::get('/dashboard', function () {
             'authenticated' => Auth::check(),
             'user_id' => $user->id,
             'user_type' => $user->user_type,
-        ]
+        ],
     ]);
 })->middleware(['auth'])->name('dashboard');
-
 
 // Browse Freelancers Route
 Route::get('/freelancers', function () {
     return Inertia::render('BrowseFreelancers', [
         'auth' => [
-            'user' => Auth::user()
+            'user' => Auth::user(),
         ],
-        'freelancers' => []
+        'freelancers' => [],
     ]);
 })->middleware(['auth', 'verified'])->name('browse.freelancers');
 
@@ -148,13 +145,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Test route to debug - old dashboard
 Route::get('/test-dashboard', function () {
     $user = Auth::user();
+
     return Inertia::render('Dashboard', [
         'user' => $user,
         'debug' => [
             'authenticated' => Auth::check(),
             'user_id' => $user ? $user->id : null,
             'user_type' => $user ? $user->user_type : null,
-        ]
+        ],
     ]);
 })->middleware(['auth'])->name('test.dashboard');
 
@@ -186,15 +184,15 @@ Route::get('/test-admin', function () {
                 'title' => 'Test activity 1',
                 'time' => '1 minute ago',
                 'icon' => 'add',
-                'color' => 'emerald'
+                'color' => 'emerald',
             ],
             [
                 'title' => 'Test activity 2',
                 'time' => '5 minutes ago',
                 'icon' => 'task_alt',
-                'color' => 'pink'
-            ]
-        ]
+                'color' => 'pink',
+            ],
+        ],
     ]);
 })->name('test.admin');
 
@@ -205,6 +203,7 @@ Route::get('/admin-quick', function () {
 
     if ($adminUser) {
         Auth::login($adminUser);
+
         return redirect()->route('admin.dashboard');
     }
 
@@ -216,15 +215,15 @@ Route::get('/test-basic', function () {
     return response()->json(['status' => 'ok', 'message' => 'Basic routing works!']);
 })->name('test.basic');
 
-
 // Debug user status
 Route::get('/debug-user', function () {
     $user = Auth::user();
+
     return response()->json([
         'authenticated' => Auth::check(),
         'user' => $user ? [
             'id' => $user->id,
-            'name' => $user->first_name . ' ' . $user->last_name,
+            'name' => $user->first_name.' '.$user->last_name,
             'email' => $user->email,
             'user_type' => $user->user_type,
             'is_admin' => $user->is_admin,
@@ -239,16 +238,16 @@ Route::get('/jobs', [GigJobController::class, 'index'])->middleware(['auth.redir
 
 Route::middleware(['auth', 'require.id.verification'])->group(function () {
     // Test route for Stripe configuration (remove after verification)
-    Route::get('/test-stripe-config', function() {
+    Route::get('/test-stripe-config', function () {
         return response()->json([
-            'stripe_key_exists' => !empty(config('stripe.key')),
-            'stripe_secret_exists' => !empty(config('stripe.secret')),
-            'stripe_webhook_exists' => !empty(config('stripe.webhook_secret')),
+            'stripe_key_exists' => ! empty(config('stripe.key')),
+            'stripe_secret_exists' => ! empty(config('stripe.secret')),
+            'stripe_webhook_exists' => ! empty(config('stripe.webhook_secret')),
             'stripe_key_prefix' => substr(config('stripe.key') ?? '', 0, 10),
             'stripe_secret_prefix' => substr(config('stripe.secret') ?? '', 0, 10),
             'currency' => config('stripe.currency'),
-            'services_stripe_key' => !empty(config('services.stripe.key')),
-            'services_stripe_secret' => !empty(config('services.stripe.secret')),
+            'services_stripe_key' => ! empty(config('services.stripe.key')),
+            'services_stripe_secret' => ! empty(config('services.stripe.secret')),
             'app_currency' => config('app.currency'),
         ]);
     });
@@ -277,6 +276,7 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->middleware('fraud.detection')->name('profile.update');
     Route::post('/profile', [ProfileController::class, 'update'])->middleware('fraud.detection'); // For file uploads with method spoofing
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/api/profile/summary', [ProfileController::class, 'profileSummary'])->name('profile.summary');
 
     // Gig Worker public-facing profile page
     Route::get('/profile/gig-worker', [ProfileController::class, 'gigWorkerProfile'])->name('gig-worker.profile');
@@ -294,6 +294,9 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
     // View another gig worker's profile (RESTful: /gig-worker/{id}, e.g. from AI Match "View Profile")
     Route::get('/gig-worker/{user}/view', [ProfileController::class, 'storeGigWorkerProfileContext'])->name('gig-worker.profile.view-with-context');
     Route::get('/gig-worker/{user}', [ProfileController::class, 'showGigWorker'])->name('gig-worker.profile.show');
+    Route::get('/workers/{user}', function (\App\Models\User $user) {
+        return redirect()->route('gig-worker.profile.show', $user);
+    })->name('workers.show');
 
     Route::get('/employers/{user}', [ProfileController::class, 'showEmployer'])->name('employers.show');
 
@@ -311,13 +314,16 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
     Route::get('/storage/supabase/{path}', function ($path) {
         try {
             $disk = \Illuminate\Support\Facades\Storage::disk('supabase');
-            if (!$disk->exists($path)) abort(404);
+            if (! $disk->exists($path)) {
+                abort(404);
+            }
+
             return response($disk->get($path), 200)
                 ->header('Content-Type', $disk->mimeType($path))
                 ->header('Cache-Control', 'public, max-age=31536000')
                 ->header('Access-Control-Allow-Origin', '*');
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Supabase proxy failed: ' . $e->getMessage(), ['path' => $path]);
+            \Illuminate\Support\Facades\Log::error('Supabase proxy failed: '.$e->getMessage(), ['path' => $path]);
             abort(404);
         }
     })->where('path', '.+')->name('supabase.proxy');
@@ -339,6 +345,13 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
         Route::patch('/jobs/{job}', [GigJobController::class, 'update'])->name('jobs.update');
         Route::delete('/jobs/{job}', [GigJobController::class, 'destroy'])->name('jobs.destroy');
 
+        Route::get('/employer/profiling-insights', [ProfileController::class, 'employerProfilingInsights'])
+            ->name('employer.profiling-insights');
+        Route::get('/employer/workers/{user}/resume-screening', [ProfileController::class, 'latestResumeScreening'])
+            ->name('employer.workers.resume-screening');
+        Route::post('/employer/workers/{user}/resume-screening/refresh', [ProfileController::class, 'refreshResumeScreening'])
+            ->name('employer.workers.resume-screening.refresh');
+
         // Job templates
         Route::resource('job-templates', JobTemplateController::class);
         Route::post('/job-templates/{jobTemplate}/create-job', [JobTemplateController::class, 'createJobFromTemplate'])->name('job-templates.create-job');
@@ -353,7 +366,6 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
 
     // Job show route (public for authenticated users)
     Route::get('/jobs/{job}', [GigJobController::class, 'show'])->name('jobs.show');
-
 
     // Bid routes (mixed permissions)
     Route::get('/bids', [BidController::class, 'index'])->name('bids.index');
@@ -404,10 +416,9 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
     Route::patch('/bids/{bid}/status', [BidController::class, 'updateStatus'])->name('bids.updateStatus');
     Route::delete('/bids/{bid}', [BidController::class, 'destroy'])->name('bids.destroy');
 
-
     // DEBUG: Test route to check if routing works
-    Route::patch('/test-bid/{bid}', function($bid) {
-        return back()->with('success', 'TEST ROUTE WORKS! Bid ID: ' . $bid);
+    Route::patch('/test-bid/{bid}', function ($bid) {
+        return back()->with('success', 'TEST ROUTE WORKS! Bid ID: '.$bid);
     })->name('test.bid');
 
     // Project routes - mixed permissions
@@ -425,7 +436,6 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
         Route::post('/projects/{project}/payment/release', [PaymentController::class, 'releasePayment'])->name('payment.release');
         Route::post('/projects/{project}/payment/refund', [PaymentController::class, 'refundPayment'])->name('payment.refund');
     });
-
 
     // Contract routes - mixed permissions
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
@@ -463,9 +473,10 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
 
         $query = request()->query();
         $target = route('ai.recommendations.employer.quality');
-        if (!empty($query)) {
-            $target .= '?' . http_build_query($query);
+        if (! empty($query)) {
+            $target .= '?'.http_build_query($query);
         }
+
         return redirect()->to($target);
     })->name('ai.recommendations.employer');
     Route::get('/aimatch/gig-worker', function () {
@@ -475,9 +486,10 @@ Route::middleware(['auth', 'require.id.verification'])->group(function () {
 
         $query = request()->query();
         $target = route('ai.recommendations.gigworker.quality');
-        if (!empty($query)) {
-            $target .= '?' . http_build_query($query);
+        if (! empty($query)) {
+            $target .= '?'.http_build_query($query);
         }
+
         return redirect()->to($target);
     })->name('ai.recommendations.gigworker');
     Route::get('/ai-recommendations/employer', [AIRecommendationController::class, 'employerRecommendations'])->name('ai.recommendations.employer.quality');
@@ -535,7 +547,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/recommendations/skills/accept', [AIRecommendationController::class, 'acceptSuggestion'])->name('api.recommendations.accept');
     Route::get('/api/recommendations/skills/all', [AIRecommendationController::class, 'allSkills'])->name('api.recommendations.all');
     Route::post('/api/recommendations/project-category', [AIRecommendationController::class, 'validateProjectCategory'])->name('api.recommendations.project-category');
-    
+
     // AI Skill correction for onboarding
     Route::post('/api/ai-skills/correct', [AISkillController::class, 'correct'])->name('api.ai-skills.correct');
 
@@ -556,7 +568,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Skill moderation
     Route::get('/skills', [SkillModerationController::class, 'index'])->name('skills.index');
     Route::post('/skills/merge', [SkillModerationController::class, 'merge'])->name('skills.merge');
-    
+
     // Real-time Dashboard API endpoints
     Route::get('/api/realtime-stats', [\App\Http\Controllers\AdminDashboardController::class, 'realtimeStats']);
     Route::get('/api/realtime-activities', [\App\Http\Controllers\AdminDashboardController::class, 'realtimeActivities']);
@@ -609,7 +621,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/id-verifications/{user}/approve', [\App\Http\Controllers\Admin\IdVerificationController::class, 'approve'])->name('id-verifications.approve');
     Route::post('/id-verifications/{user}/reject', [\App\Http\Controllers\Admin\IdVerificationController::class, 'reject'])->name('id-verifications.reject');
     Route::post('/id-verifications/{user}/request-resubmit', [\App\Http\Controllers\Admin\IdVerificationController::class, 'requestResubmit'])->name('id-verifications.requestResubmit');
-    
+
     // Bulk ID Verification operations
     Route::post('/id-verifications/bulk-approve', [\App\Http\Controllers\Admin\IdVerificationController::class, 'bulkApprove'])->name('id-verifications.bulkApprove');
     Route::post('/id-verifications/bulk-reject', [\App\Http\Controllers\Admin\IdVerificationController::class, 'bulkReject'])->name('id-verifications.bulkReject');
@@ -622,7 +634,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/analytics/jobs-contracts', [AdminAnalyticsController::class, 'jobsContracts'])->name('analytics.jobsContracts');
     Route::get('/analytics/financial', [AdminAnalyticsController::class, 'financial'])->name('analytics.financial');
     Route::get('/analytics/quality', [AdminAnalyticsController::class, 'quality'])->name('analytics.quality');
-    
+
     // Real-time Analytics API
     Route::get('/api/analytics/overview', [\App\Http\Controllers\Admin\RealtimeAnalyticsController::class, 'overview']);
     Route::get('/api/analytics/user-metrics', [\App\Http\Controllers\Admin\RealtimeAnalyticsController::class, 'userMetrics']);
@@ -711,7 +723,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/analytics', [AdminFraudController::class, 'analytics'])->name('analytics');
     });
 });
-
 
 // Debug routes for Railway deployment issues
 Route::get('/debug/railway', [DebugController::class, 'railwayDiagnosis']);

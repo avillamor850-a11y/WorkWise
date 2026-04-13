@@ -3,7 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Jobs\ProcessResumeScreeningJob;
+use App\Jobs\RecomputeUserProfileJob;
+use App\Models\ResumeScreening;
 use App\Models\User;
+use App\Services\EmployerProfilingInsightService;
+use App\Services\UserProfilingService;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -13,6 +18,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -149,6 +155,7 @@ class ProfileController extends Controller
                 ->limit(5)
                 ->get(),
             'status' => session('status'),
+            'profileSummary' => app(UserProfilingService::class)->getOrBuildSummary($user),
         ]);
     }
 
@@ -189,6 +196,24 @@ class ProfileController extends Controller
      */
     public function showGigWorker(Request $request, User $user): Response|RedirectResponse
     {
+        // #region agent log
+        @file_put_contents(base_path('debug-fdc02e.log'), json_encode([
+            'sessionId' => 'fdc02e',
+            'runId' => 'initial',
+            'hypothesisId' => 'H1,H2,H4',
+            'location' => 'ProfileController::showGigWorker',
+            'message' => 'show_gig_worker_entry',
+            'data' => [
+                'viewer_id' => $request->user()->id ?? null,
+                'viewer_type' => $request->user()->user_type ?? null,
+                'target_user_id' => $user->id ?? null,
+                'target_user_type' => $user->user_type ?? null,
+                'resume_screenings_table_exists' => Schema::hasTable('resume_screenings'),
+            ],
+            'timestamp' => round(microtime(true) * 1000),
+        ]) . "\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+
         if ($user->id === $request->user()->id) {
             return redirect()->route('gig-worker.profile');
         }
@@ -229,6 +254,45 @@ class ProfileController extends Controller
             }
         }
 
+        $hasResumeScreeningsTable = Schema::hasTable('resume_screenings');
+        $latestResumeScreening = null;
+        if ($hasResumeScreeningsTable) {
+            $latestResumeScreening = ResumeScreening::query()
+                ->where('gig_worker_id', $user->id)
+                ->latest('screened_at')
+                ->first();
+        }
+
+        $viewer = $request->user();
+        $jobIdContext = isset($jobContext['job_id']) && is_numeric($jobContext['job_id']) ? (int) $jobContext['job_id'] : null;
+        if (
+            $hasResumeScreeningsTable &&
+            $viewer?->user_type === 'employer' &&
+            !empty($user->resume_file) &&
+            $latestResumeScreening === null
+        ) {
+            ProcessResumeScreeningJob::dispatchScreening($user->id, ['job_id' => $jobIdContext]);
+            // Sync driver (forced in local) finishes before the response; reload so the page shows results.
+            $latestResumeScreening = ResumeScreening::query()
+                ->where('gig_worker_id', $user->id)
+                ->latest('screened_at')
+                ->first();
+        }
+        // #region agent log
+        @file_put_contents(base_path('debug-fdc02e.log'), json_encode([
+            'sessionId' => 'fdc02e',
+            'runId' => 'initial',
+            'hypothesisId' => 'H1,H3',
+            'location' => 'ProfileController::showGigWorker',
+            'message' => 'before_resume_screening_query',
+            'data' => [
+                'target_user_id' => $user->id ?? null,
+                'table_exists' => $hasResumeScreeningsTable,
+            ],
+            'timestamp' => round(microtime(true) * 1000),
+        ]) . "\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+
         return Inertia::render('Profile/GigWorkerProfile', [
             'user'   => [
                 'id'                     => $user->id,
@@ -261,6 +325,111 @@ class ProfileController extends Controller
                 ->get(),
             'status' => session('status'),
             'jobContext' => $jobContext,
+            'resumeScreening' => $latestResumeScreening,
+            'profileSummary' => app(UserProfilingService::class)->getOrBuildSummary($user),
+        ]);
+    }
+
+    /**
+     * Employer API endpoint for latest AI resume screening of a gig worker.
+     */
+    public function latestResumeScreening(Request $request, User $user)
+    {
+        // #region agent log
+        @file_put_contents(base_path('debug-fdc02e.log'), json_encode([
+            'sessionId' => 'fdc02e',
+            'runId' => 'initial',
+            'hypothesisId' => 'H5',
+            'location' => 'ProfileController::latestResumeScreening',
+            'message' => 'api_resume_screening_entry',
+            'data' => [
+                'viewer_id' => $request->user()->id ?? null,
+                'target_user_id' => $user->id ?? null,
+                'resume_screenings_table_exists' => Schema::hasTable('resume_screenings'),
+            ],
+            'timestamp' => round(microtime(true) * 1000),
+        ]) . "\n", FILE_APPEND | LOCK_EX);
+        // #endregion
+
+        if (($request->user()->user_type ?? null) !== 'employer') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        if ($user->user_type !== 'gig_worker') {
+            return response()->json(['error' => 'Gig worker not found'], 404);
+        }
+
+        $screening = Schema::hasTable('resume_screenings')
+            ? ResumeScreening::query()
+                ->where('gig_worker_id', $user->id)
+                ->latest('screened_at')
+                ->first()
+            : null;
+
+        return response()->json([
+            'worker_id' => $user->id,
+            'screening' => $screening,
+        ]);
+    }
+
+    /**
+     * Employer API endpoint to request a fresh resume screening (rate-limited).
+     */
+    public function refreshResumeScreening(Request $request, User $user)
+    {
+        $viewer = $request->user();
+        if (($viewer->user_type ?? null) !== 'employer') {
+            return response()->json(['status' => 'unauthorized'], 403);
+        }
+        if ($user->user_type !== 'gig_worker') {
+            return response()->json(['status' => 'not_found'], 404);
+        }
+        if (!Schema::hasTable('resume_screenings') || empty($user->resume_file)) {
+            return response()->json(['status' => 'unavailable'], 409);
+        }
+
+        $cooldownKey = "resume_screening_refresh:{$viewer->id}:{$user->id}";
+        $cooldownSec = 3;
+        if (Cache::has($cooldownKey)) {
+            return response()->json([
+                'status' => 'cooldown',
+                'retry_after_seconds' => $cooldownSec,
+            ], 429);
+        }
+
+        $jobId = $request->integer('job_id') ?: null;
+        ProcessResumeScreeningJob::dispatchScreening($user->id, ['job_id' => $jobId]);
+        Cache::put($cooldownKey, now()->addSeconds($cooldownSec), now()->addSeconds($cooldownSec));
+
+        return response()->json([
+            'status' => 'queued',
+            'cooldown_seconds' => $cooldownSec,
+        ]);
+    }
+
+    /**
+     * Employer API endpoint for informational AI profiling insights.
+     */
+    public function employerProfilingInsights(Request $request, EmployerProfilingInsightService $insightService)
+    {
+        $user = $request->user();
+        if (($user->user_type ?? null) !== 'employer') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        return response()->json($insightService->getInsightsForEmployer($user));
+    }
+
+    /**
+     * Authenticated API endpoint for computed user profiling summary.
+     */
+    public function profileSummary(Request $request, UserProfilingService $profilingService)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'user_id' => $user->id,
+            'user_type' => $user->user_type,
+            'profile_summary' => $profilingService->getOrBuildSummary($user),
         ]);
     }
 
@@ -556,6 +725,12 @@ class ProfileController extends Controller
 
         $user->syncSkillsFromExperience();
 
+        if (!empty($user->resume_file)) {
+            ProcessResumeScreeningJob::dispatchScreening($user->id);
+        }
+
+        RecomputeUserProfileJob::dispatch($user->id);
+
         return redirect()->route('gig-worker.profile')->with('status', 'profile-updated');
     }
 
@@ -624,6 +799,7 @@ class ProfileController extends Controller
                 ->limit(5)
                 ->get(),
             'status' => session('status'),
+            'profileSummary' => app(UserProfilingService::class)->getOrBuildSummary($user),
         ]);
     }
 
@@ -657,7 +833,13 @@ class ProfileController extends Controller
                 'city' => $user->city,
                 'street_address' => $user->street_address,
                 'postal_code' => $user->postal_code,
+                'primary_hiring_needs' => (array) ($user->primary_hiring_needs ?? []),
+                'typical_project_budget' => $user->typical_project_budget,
+                'typical_project_duration' => $user->typical_project_duration,
+                'preferred_experience_level' => $user->preferred_experience_level,
+                'hiring_frequency' => $user->hiring_frequency,
             ],
+            'serviceCategories' => $this->employerServiceCategories(),
             'status' => session('status'),
         ]);
     }
@@ -671,6 +853,12 @@ class ProfileController extends Controller
 
         if ($user->user_type !== 'employer') {
             return redirect()->route('profile.edit');
+        }
+
+        foreach (['typical_project_budget', 'typical_project_duration', 'preferred_experience_level', 'hiring_frequency'] as $key) {
+            if ($request->input($key) === '') {
+                $request->merge([$key => null]);
+            }
         }
 
         $validated = $request->validate([
@@ -688,6 +876,11 @@ class ProfileController extends Controller
             'city' => 'nullable|string|max:255',
             'street_address' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:255',
+            'primary_hiring_needs_json' => 'nullable|string|max:65535',
+            'typical_project_budget' => 'nullable|in:under_500,500-2000,2000-5000,5000-10000,10000+',
+            'typical_project_duration' => 'nullable|in:short_term,medium_term,long_term,ongoing',
+            'preferred_experience_level' => 'nullable|in:any,beginner,intermediate,expert',
+            'hiring_frequency' => 'nullable|in:one_time,occasional,regular,ongoing',
         ]);
 
         // Handle profile picture (Company Logo) upload
@@ -737,12 +930,109 @@ class ProfileController extends Controller
         $user->city = $validated['city'] ?? null;
         $user->street_address = $validated['street_address'] ?? null;
         $user->postal_code = $validated['postal_code'] ?? null;
-        
+
+        if (array_key_exists('primary_hiring_needs_json', $validated)) {
+            $raw = $validated['primary_hiring_needs_json'];
+            if ($raw === null || $raw === '') {
+                $user->primary_hiring_needs = [];
+            } else {
+                $decoded = json_decode($raw, true);
+                if (! is_array($decoded)) {
+                    return back()->withErrors(['primary_hiring_needs' => 'Invalid hiring needs format.']);
+                }
+                $strings = array_values(array_filter(
+                    array_map(fn ($v) => is_string($v) ? trim($v) : '', $decoded),
+                    fn ($s) => $s !== ''
+                ));
+                $user->primary_hiring_needs = $this->normalizeEmployerPrimaryHiringNeeds($strings);
+            }
+        }
+
+        $user->typical_project_budget = $validated['typical_project_budget'] ?? null;
+        $user->typical_project_duration = $validated['typical_project_duration'] ?? null;
+        $user->preferred_experience_level = $validated['preferred_experience_level'] ?? null;
+        $user->hiring_frequency = $validated['hiring_frequency'] ?? null;
+
         $user->save();
 
         $this->incrementFraudProfileChangeCount($user);
+        RecomputeUserProfileJob::dispatch($user->id);
 
         return redirect()->route('employer.profile')->with('status', 'profile-updated');
+    }
+
+    /**
+     * Service category labels (aligned with employer onboarding).
+     *
+     * @return array<int, string>
+     */
+    private function employerServiceCategories(): array
+    {
+        return [
+            'Web Development',
+            'Mobile App Development',
+            'UI/UX Design',
+            'Graphic Design',
+            'Content Writing',
+            'Copywriting',
+            'SEO & Digital Marketing',
+            'Social Media Management',
+            'Video Editing',
+            'Photography',
+            'Data Entry',
+            'Virtual Assistant',
+            'Customer Support',
+            'Accounting & Bookkeeping',
+            'Legal Services',
+            'Translation',
+            'Voice Over',
+            '3D Modeling & Animation',
+            'Game Development',
+            'Software Testing',
+            'DevOps & Cloud',
+            'Database Administration',
+            'Network Administration',
+            'Cybersecurity',
+            'Business Consulting',
+            'Project Management',
+            'Architecture & Interior Design',
+            'Engineering',
+            'Research & Analysis',
+            'Other',
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $needs
+     * @return array<int, string>
+     */
+    private function normalizeEmployerPrimaryHiringNeeds(array $needs): array
+    {
+        $allowed = $this->employerServiceCategories();
+        $normalized = [];
+        $seenLower = [];
+        foreach ($needs as $value) {
+            $trimmed = trim((string) $value);
+            if ($trimmed === '') {
+                continue;
+            }
+            $canonical = null;
+            foreach ($allowed as $c) {
+                if (strcasecmp($trimmed, $c) === 0) {
+                    $canonical = $c;
+                    break;
+                }
+            }
+            $final = $canonical ?? $trimmed;
+            $key = strtolower($final);
+            if (isset($seenLower[$key])) {
+                continue;
+            }
+            $seenLower[$key] = true;
+            $normalized[] = $final;
+        }
+
+        return $normalized;
     }
 
     public function update(ProfileUpdateRequest $request): RedirectResponse
@@ -952,6 +1242,7 @@ class ProfileController extends Controller
                 $user->save();
 
                 $this->incrementFraudProfileChangeCount($user);
+                RecomputeUserProfileJob::dispatch($user->id);
                 
                 Log::info('Profile updated successfully (partial update)', [
                     'user_id' => $user->id,

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\Review;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,7 +30,7 @@ class ProjectController extends Controller
         }
 
         return Inertia::render('Projects/Index', [
-            'projects' => $projects
+            'projects' => $projects,
         ]);
     }
 
@@ -55,14 +54,14 @@ class ProjectController extends Controller
             'reviews' => fn ($q) => $q->with('reviewer:id,first_name,last_name,profile_picture'),
             'messages' => function ($query) {
                 $query->orderBy('created_at', 'desc')->limit(10);
-            }
+            },
         ]);
 
         return Inertia::render('Projects/Show', [
             'project' => $project,
             'isEmployer' => $user->isEmployer(),
             'hasPayment' => $project->transactions()->where('type', 'escrow')->where('status', 'completed')->exists(),
-            'canReview' => $project->isCompleted() && !$project->reviews()->where('reviewer_id', $user->id)->exists(),
+            'canReview' => $project->isCompleted() && ! $project->reviews()->where('reviewer_id', $user->id)->exists(),
             'autoReleaseDays' => config('project.auto_release_after_days', 14),
         ]);
     }
@@ -80,7 +79,7 @@ class ProjectController extends Controller
         // Validate request
         try {
             $validated = $request->validate([
-                'completion_notes' => 'required|string|max:1000'
+                'completion_notes' => 'required|string|max:1000',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -96,7 +95,7 @@ class ProjectController extends Controller
             $project->update([
                 'status' => 'completed',
                 'completed_at' => now(),
-                'completion_notes' => $validated['completion_notes']
+                'completion_notes' => $validated['completion_notes'],
             ]);
 
             // Notify employer so they review and approve (and payment can be released)
@@ -105,13 +104,13 @@ class ProjectController extends Controller
                 if ($project->employer) {
                     app(\App\Services\NotificationService::class)->createProjectCompletionNotification($project->employer, [
                         'project_id' => $project->id,
-                        'project_title' => $project->job ? $project->job->title : 'Project #' . $project->id,
+                        'project_title' => $project->job ? $project->job->title : 'Project #'.$project->id,
                     ]);
                 }
             } catch (\Throwable $e) {
                 \Log::warning('Failed to send project completion notification to employer', [
                     'project_id' => $project->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
 
@@ -120,7 +119,7 @@ class ProjectController extends Controller
         } catch (\Exception $e) {
             \Log::error('Failed to complete project', [
                 'project_id' => $project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return back()->with('error', 'Failed to complete project. Please try again.');
@@ -164,14 +163,14 @@ class ProjectController extends Controller
             return back()->with('error', 'Only the employer can approve project completion.');
         }
 
-        if (!$project->isCompleted()) {
+        if (! $project->isCompleted()) {
             return back()->withErrors(['project' => 'Project must be completed first.']);
         }
 
         try {
             $project->update([
                 'employer_approved' => true,
-                'approved_at' => now()
+                'approved_at' => now(),
             ]);
 
             // Automatically release payment upon approval
@@ -180,7 +179,7 @@ class ProjectController extends Controller
 
             \Log::info('Payment release attempt', [
                 'project_id' => $project->id,
-                'payment_result' => $paymentResult
+                'payment_result' => $paymentResult,
             ]);
 
             if ($paymentResult['success']) {
@@ -188,15 +187,17 @@ class ProjectController extends Controller
             } else {
                 \Log::warning('Project approved but payment release failed', [
                     'project_id' => $project->id,
-                    'payment_error' => $paymentResult['error'] ?? 'Unknown error'
+                    'payment_error' => $paymentResult['error'] ?? 'Unknown error',
                 ]);
+
                 return back()->with('success', 'Project approved! Payment release is being processed.');
             }
         } catch (\Exception $e) {
             \Log::error('Failed to approve project', [
                 'project_id' => $project->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return back()->with('error', 'Failed to approve project. Please try again.');
         }
     }
@@ -206,13 +207,30 @@ class ProjectController extends Controller
      */
     public function requestRevision(Request $request, Project $project)
     {
+        // #region agent log
+        @file_put_contents(base_path('debug-ea6a57.log'), json_encode([
+            'sessionId' => 'ea6a57',
+            'runId' => 'post-fix',
+            'hypothesisId' => 'H1_H3',
+            'location' => 'ProjectController.php:requestRevision:entry',
+            'message' => 'Request revision entry context',
+            'data' => [
+                'project_id' => $project->id,
+                'auth_user_id' => auth()->id(),
+                'db_connection' => config('database.default'),
+                'db_database' => config('database.connections.'.config('database.default').'.database'),
+            ],
+            'timestamp' => round(microtime(true) * 1000),
+        ]).PHP_EOL, FILE_APPEND);
+        // #endregion
+
         // Only employer can request revision
         if ($project->employer_id !== auth()->id()) {
             abort(403, 'Unauthorized');
         }
 
         $request->validate([
-            'revision_notes' => 'required|string|max:1000'
+            'revision_notes' => 'required|string|max:1000',
         ]);
 
         // Add revision to milestones
@@ -221,13 +239,86 @@ class ProjectController extends Controller
             'type' => 'revision_requested',
             'notes' => $request->revision_notes,
             'requested_at' => now()->toISOString(),
-            'requested_by' => auth()->id()
+            'requested_by' => auth()->id(),
         ];
 
-        $project->update([
-            'status' => 'active', // Back to active for revisions
-            'milestones' => $milestones
-        ]);
+        // #region agent log
+        @file_put_contents(base_path('debug-ea6a57.log'), json_encode([
+            'sessionId' => 'ea6a57',
+            'runId' => 'post-fix',
+            'hypothesisId' => 'H1_H2',
+            'location' => 'ProjectController.php:requestRevision:beforeUpdate',
+            'message' => 'Before project update with milestones',
+            'data' => [
+                'project_id' => $project->id,
+                'has_milestones_column' => \Illuminate\Support\Facades\Schema::hasColumn('projects', 'milestones'),
+                'milestones_count' => is_array($milestones) ? count($milestones) : null,
+            ],
+            'timestamp' => round(microtime(true) * 1000),
+        ]).PHP_EOL, FILE_APPEND);
+        // #endregion
+
+        try {
+            $project->update([
+                'status' => 'active', // Back to active for revisions
+                'milestones' => $milestones,
+            ]);
+
+            // #region agent log
+            @file_put_contents(base_path('debug-ea6a57.log'), json_encode([
+                'sessionId' => 'ea6a57',
+                'runId' => 'post-fix',
+                'hypothesisId' => 'H2',
+                'location' => 'ProjectController.php:requestRevision:afterUpdate',
+                'message' => 'Project update succeeded',
+                'data' => [
+                    'project_id' => $project->id,
+                ],
+                'timestamp' => round(microtime(true) * 1000),
+            ]).PHP_EOL, FILE_APPEND);
+            // #endregion
+        } catch (\Throwable $e) {
+            // #region agent log
+            @file_put_contents(base_path('debug-ea6a57.log'), json_encode([
+                'sessionId' => 'ea6a57',
+                'runId' => 'post-fix',
+                'hypothesisId' => 'H1_H2',
+                'location' => 'ProjectController.php:requestRevision:updateException',
+                'message' => 'Project update failed',
+                'data' => [
+                    'project_id' => $project->id,
+                    'exception_class' => get_class($e),
+                    'exception_message' => $e->getMessage(),
+                ],
+                'timestamp' => round(microtime(true) * 1000),
+            ]).PHP_EOL, FILE_APPEND);
+            // #endregion
+            throw $e;
+        }
+
+        // Notify gig worker so they can review requested revisions
+        try {
+            $project->loadMissing(['gigWorker', 'job', 'employer']);
+            if ($project->gigWorker) {
+                $employerName = trim(($project->employer->first_name ?? '').' '.($project->employer->last_name ?? ''));
+                if ($employerName === '') {
+                    $employerName = $project->employer->name ?? 'The employer';
+                }
+
+                app(\App\Services\NotificationService::class)->createProjectRevisionRequestedNotification($project->gigWorker, [
+                    'project_id' => $project->id,
+                    'project_title' => $project->job ? $project->job->title : 'Project #'.$project->id,
+                    'revision_notes' => $request->revision_notes,
+                    'employer_id' => $project->employer_id,
+                    'employer_name' => $employerName,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to send project revision request notification to gig worker', [
+                'project_id' => $project->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return back()->with('success', 'Revision requested. The gig worker has been notified.');
     }
@@ -247,12 +338,12 @@ class ProjectController extends Controller
         }
 
         $request->validate([
-            'cancellation_reason' => 'required|string|max:500'
+            'cancellation_reason' => 'required|string|max:500',
         ]);
 
         $project->update([
             'status' => 'cancelled',
-            'completion_notes' => 'Cancelled by client: ' . $request->cancellation_reason
+            'completion_notes' => 'Cancelled by client: '.$request->cancellation_reason,
         ]);
 
         return back()->with('success', 'Project cancelled. Refund will be processed if payment was made.');
@@ -269,7 +360,7 @@ class ProjectController extends Controller
         }
 
         // Ensure project is completed
-        if (!$project->isCompleted()) {
+        if (! $project->isCompleted()) {
             return back()->withErrors(['review' => 'Project must be completed before leaving a review.']);
         }
 
@@ -311,7 +402,7 @@ class ProjectController extends Controller
         ]);
 
         return back()->with('success', 'Review submitted successfully!')
-                    ->with('showThankYou', true)
-                    ->with('reviewSubmitted', true);
+            ->with('showThankYou', true)
+            ->with('reviewSubmitted', true);
     }
 }

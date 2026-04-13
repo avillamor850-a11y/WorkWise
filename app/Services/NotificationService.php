@@ -86,7 +86,7 @@ class NotificationService
             ->where('is_read', false)
             ->update([
                 'is_read' => true,
-                'read_at' => now()
+                'read_at' => now(),
             ]);
     }
 
@@ -100,17 +100,17 @@ class NotificationService
                 'title' => '🎉 Bid Accepted!',
                 'message' => "Congratulations! Your bid for '{$bidData['job_title']}' has been accepted.",
                 'icon' => 'check-circle',
-                'action_url' => route('contracts.show', $bidData['contract_id'] ?? '#')
+                'action_url' => route('contracts.show', $bidData['contract_id'] ?? '#'),
             ],
             'rejected' => [
                 'title' => 'Bid Not Accepted',
                 'message' => "Your bid for '{$bidData['job_title']}' was not selected this time.",
                 'icon' => 'x-circle',
-                'action_url' => route('jobs.show', $bidData['job_id'])
-            ]
+                'action_url' => route('jobs.show', $bidData['job_id']),
+            ],
         ];
 
-        if (!isset($statusMessages[$status])) {
+        if (! isset($statusMessages[$status])) {
             throw new \InvalidArgumentException("Invalid bid status: {$status}");
         }
 
@@ -123,7 +123,7 @@ class NotificationService
             'message' => $messageData['message'],
             'data' => $bidData,
             'action_url' => $messageData['action_url'],
-            'icon' => $messageData['icon']
+            'icon' => $messageData['icon'],
         ]);
     }
 
@@ -139,7 +139,7 @@ class NotificationService
             'message' => "Contract for '{$contractData['job_title']}' is ready for your signature.",
             'data' => $contractData,
             'action_url' => route('contracts.sign', $contractData['contract_id']),
-            'icon' => 'file-text'
+            'icon' => 'file-text',
         ]);
     }
 
@@ -155,7 +155,7 @@ class NotificationService
             'message' => "We found a great match for you: '{$recommendationData['job_title']}'.",
             'data' => $recommendationData,
             'action_url' => route('jobs.show', $recommendationData['job_id']),
-            'icon' => 'brain'
+            'icon' => 'brain',
         ]);
     }
 
@@ -171,7 +171,7 @@ class NotificationService
             'message' => "Contract for '{$contractData['job_title']}' has been fully signed and work can begin.",
             'data' => $contractData,
             'action_url' => route('projects.show', $contractData['project_id']),
-            'icon' => 'check-circle'
+            'icon' => 'check-circle',
         ]);
     }
 
@@ -190,6 +190,7 @@ class NotificationService
     public function createProjectCompletionNotification(User $employer, array $data): Notification
     {
         $jobTitle = $data['project_title'] ?? 'the project';
+
         return $this->create([
             'user_id' => $employer->id,
             'type' => 'project_completion_pending_approval',
@@ -197,7 +198,26 @@ class NotificationService
             'message' => "The gig worker marked '{$jobTitle}' as complete. Please review and approve to release payment.",
             'data' => $data,
             'action_url' => route('projects.show', $data['project_id'] ?? '#'),
-            'icon' => 'check-circle'
+            'icon' => 'check-circle',
+        ]);
+    }
+
+    /**
+     * Create notification when employer requests project revisions from gig worker
+     */
+    public function createProjectRevisionRequestedNotification(User $gigWorker, array $data): Notification
+    {
+        $jobTitle = $data['project_title'] ?? 'the project';
+        $employerName = $data['employer_name'] ?? 'The employer';
+
+        return $this->create([
+            'user_id' => $gigWorker->id,
+            'type' => 'project_revision_requested',
+            'title' => 'Revision requested',
+            'message' => "{$employerName} requested revisions for '{$jobTitle}'. Please review the notes and resubmit your work.",
+            'data' => $data,
+            'action_url' => route('projects.show', $data['project_id'] ?? '#'),
+            'icon' => 'pencil-square',
         ]);
     }
 
@@ -214,6 +234,7 @@ class NotificationService
         $message = $isEmployer
             ? "Payment for '{$jobTitle}' was automatically released to the gig worker after the approval period ended."
             : "Payment for '{$jobTitle}' was released to you (auto-release after employer did not respond in time).";
+
         return $this->create([
             'user_id' => $user->id,
             'type' => 'payment_auto_released',
@@ -221,7 +242,7 @@ class NotificationService
             'message' => $message,
             'data' => $data,
             'action_url' => route('projects.show', $data['project_id'] ?? '#'),
-            'icon' => 'currency-dollar'
+            'icon' => 'currency-dollar',
         ]);
     }
 
@@ -260,7 +281,7 @@ class NotificationService
             'message' => $message,
             'data' => $escrowData,
             'action_url' => route('projects.show', $escrowData['project_id']),
-            'icon' => 'currency-dollar'
+            'icon' => 'currency-dollar',
         ]);
     }
 
@@ -287,7 +308,7 @@ class NotificationService
             'message' => $message,
             'data' => $deadlineData,
             'action_url' => route('projects.show', $deadlineData['project_id']),
-            'icon' => 'clock'
+            'icon' => 'clock',
         ]);
     }
 
@@ -303,7 +324,7 @@ class NotificationService
             'message' => "New message from {$messageData['sender_name']}",
             'data' => $messageData,
             'action_url' => null, // Don't set action_url to prevent redirect, use MiniChat instead
-            'icon' => 'chat-bubble-left'
+            'icon' => 'chat-bubble-left',
         ]);
     }
 
@@ -322,10 +343,10 @@ class NotificationService
             'message' => "Great news! Your bid for '{$jobTitle}' was accepted. You can now message {$otherUserName} directly to discuss the project details.",
             'data' => array_merge($bidData, [
                 'show_message_button' => true,
-                'message_target_user_id' => $bidData['other_user_id']
+                'message_target_user_id' => $bidData['other_user_id'],
             ]),
             'action_url' => null, // Don't set action_url to prevent redirect, use MiniChat instead
-            'icon' => 'chat-bubble-left'
+            'icon' => 'chat-bubble-left',
         ]);
     }
 

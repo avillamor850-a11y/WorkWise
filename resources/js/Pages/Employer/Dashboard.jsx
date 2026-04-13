@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import IDVerificationBanner from '@/Components/IDVerificationBanner';
@@ -50,7 +50,7 @@ const SORT_OPTIONS = [
     },
 ];
 
-export default function EmployerDashboard({ auth, workers, filterOptions = {}, filters = {}, bestMatchHasSkills = false }) {
+export default function EmployerDashboard({ auth, workers, filterOptions = {}, filters = {}, bestMatchHasSkills = false, profileSummary = null }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     // #region agent log
@@ -62,24 +62,72 @@ export default function EmployerDashboard({ auth, workers, filterOptions = {}, f
     const [search, setSearch] = useState(filters?.search ?? '');
     const [selectedSkills, setSelectedSkills] = useState(Array.isArray(filters?.skills) ? filters.skills : []);
     const [sort, setSort] = useState(filters?.sort ?? 'latest_registered');
+    const [sortDir, setSortDir] = useState(filters?.sort_dir === 'asc' ? 'asc' : 'desc');
     const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+    const skillButtonRef = useRef(null);
+    const skillDropdownRef = useRef(null);
+    const filterBarRef = useRef(null);
+    const workerGridRef = useRef(null);
 
     useEffect(() => {
         setSearch(filters?.search ?? '');
         setSelectedSkills(Array.isArray(filters?.skills) ? filters.skills : []);
         setSort(filters?.sort ?? 'latest_registered');
-    }, [filters?.search, filters?.skills, filters?.sort]);
+        setSortDir(filters?.sort_dir === 'asc' ? 'asc' : 'desc');
+    }, [filters?.search, filters?.skills, filters?.sort, filters?.sort_dir]);
+
+    useEffect(() => {
+        if (!showSkillDropdown) return;
+        const dropdownEl = skillDropdownRef.current;
+        const buttonEl = skillButtonRef.current;
+        const filterBarEl = filterBarRef.current;
+        const gridEl = workerGridRef.current;
+        const dropdownRect = dropdownEl?.getBoundingClientRect?.();
+        const buttonRect = buttonEl?.getBoundingClientRect?.();
+        const filterBarRect = filterBarEl?.getBoundingClientRect?.();
+        const gridRect = gridEl?.getBoundingClientRect?.();
+        const probeX = dropdownRect ? dropdownRect.left + Math.min(24, dropdownRect.width - 1) : null;
+        const probeY = dropdownRect ? dropdownRect.top + Math.min(24, dropdownRect.height - 1) : null;
+        const overlapProbeX = dropdownRect ? dropdownRect.left + Math.min(24, dropdownRect.width - 1) : null;
+        const overlapProbeY = (dropdownRect && gridRect)
+            ? Math.max(dropdownRect.top + 24, gridRect.top + 20)
+            : null;
+        const topElement = (probeX != null && probeY != null) ? document.elementFromPoint(probeX, probeY) : null;
+        const overlapElement = (overlapProbeX != null && overlapProbeY != null) ? document.elementFromPoint(overlapProbeX, overlapProbeY) : null;
+        const filterBarParent = filterBarEl?.parentElement;
+        // #region agent log
+        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1f47d3'},body:JSON.stringify({sessionId:'1f47d3',runId:'post-fix',hypothesisId:'H2',location:'Employer/Dashboard.jsx:dropdown_open_effect',message:'Dropdown visibility and layering snapshot',data:{showSkillDropdown,dropdownRect,buttonRect,filterBarRect,gridRect,dropdownZIndex:dropdownEl?window.getComputedStyle(dropdownEl).zIndex:null,dropdownPosition:dropdownEl?window.getComputedStyle(dropdownEl).position:null,filterBarZIndex:filterBarEl?window.getComputedStyle(filterBarEl).zIndex:null,filterBarOverflow:filterBarEl?window.getComputedStyle(filterBarEl).overflow:null,filterBarParentOverflow:filterBarParent?window.getComputedStyle(filterBarParent).overflow:null,gridZIndex:gridEl?window.getComputedStyle(gridEl).zIndex:null,gridPosition:gridEl?window.getComputedStyle(gridEl).position:null,probe:{x:probeX,y:probeY,topTag:topElement?.tagName ?? null,topClass:topElement?.className ?? null},overlapProbe:{x:overlapProbeX,y:overlapProbeY,topTag:overlapElement?.tagName ?? null,topClass:overlapElement?.className ?? null}},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+    }, [showSkillDropdown]);
+
+    useEffect(() => {
+        if (!showSkillDropdown) return;
+        const onPointerDownCapture = (event) => {
+            const dropdownEl = skillDropdownRef.current;
+            const buttonEl = skillButtonRef.current;
+            const target = event.target;
+            const insideDropdown = !!(dropdownEl && target instanceof Node && dropdownEl.contains(target));
+            const onButton = !!(buttonEl && target instanceof Node && buttonEl.contains(target));
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1f47d3'},body:JSON.stringify({sessionId:'1f47d3',runId:'post-fix',hypothesisId:'H5',location:'Employer/Dashboard.jsx:document_pointerdown_capture',message:'Pointer down while dropdown open',data:{insideDropdown,onButton,targetTag:(target && target.tagName) ? target.tagName : null,targetClass:(target && target.className) ? target.className : null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+        };
+        document.addEventListener('pointerdown', onPointerDownCapture, true);
+        return () => document.removeEventListener('pointerdown', onPointerDownCapture, true);
+    }, [showSkillDropdown]);
 
     const applyFilters = (overrides = {}) => {
         const params = {
             search: overrides.search !== undefined ? overrides.search : search,
             skills: overrides.skills !== undefined ? overrides.skills : selectedSkills,
             sort: overrides.sort !== undefined ? overrides.sort : sort,
+            sort_dir: overrides.sort_dir !== undefined ? overrides.sort_dir : sortDir,
         };
         router.get(route('employer.dashboard'), {
             search: params.search || undefined,
             'skills[]': params.skills?.length ? params.skills : undefined,
             sort: params.sort,
+            sort_dir: params.sort_dir,
         }, { preserveState: true });
     };
 
@@ -102,8 +150,45 @@ export default function EmployerDashboard({ auth, workers, filterOptions = {}, f
     };
 
     const currentSort = filters?.sort ?? 'latest_registered';
+    const currentSortDir = filters?.sort_dir === 'asc' ? 'asc' : 'desc';
     const activeOption = SORT_OPTIONS.find((o) => o.value === currentSort) ?? SORT_OPTIONS[1];
+    const activeOptionDetail = currentSort === 'latest_registered'
+        ? (currentSortDir === 'asc'
+            ? 'Sorted by oldest registration date from the database.'
+            : 'Sorted by newest registration date from the database.')
+        : activeOption.detail;
     const showBestMatchHint = currentSort === 'best_match' && !bestMatchHasSkills;
+
+    const getSortLabel = (opt, isActive) => {
+        if (opt.value === 'latest_registered' && isActive) {
+            return currentSortDir === 'asc'
+                ? `${opt.label} (Oldest)`
+                : `${opt.label} (Newest)`;
+        }
+        return opt.label;
+    };
+
+    const handleSortClick = (nextSort) => {
+        let nextSortDir = currentSortDir;
+
+        if (nextSort === 'latest_registered') {
+            nextSortDir = currentSort === 'latest_registered'
+                ? (currentSortDir === 'desc' ? 'asc' : 'desc')
+                : 'desc';
+        } else {
+            nextSortDir = 'desc';
+        }
+
+        setSort(nextSort);
+        setSortDir(nextSortDir);
+
+        router.get(route('employer.dashboard'), {
+            search: filters?.search || undefined,
+            'skills[]': (filters?.skills?.length && filters.skills) || undefined,
+            sort: nextSort,
+            sort_dir: nextSortDir,
+        }, { preserveState: true });
+    };
 
     return (
         <AuthenticatedLayout
@@ -147,6 +232,31 @@ export default function EmployerDashboard({ auth, workers, filterOptions = {}, f
                             dismissible={true}
                         />
                     )}
+
+                    {profileSummary && (
+                        <div className={`mb-4 rounded-xl border p-4 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Your Profiling Snapshot</p>
+                                    <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                        Last updated: {profileSummary.computed_at ? new Date(profileSummary.computed_at).toLocaleString() : 'Not available yet'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-xs px-2 py-1 rounded-md ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>Complete: {profileSummary.completeness_score ?? 0}</span>
+                                    <span className={`text-xs px-2 py-1 rounded-md ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>Activity: {profileSummary.activity_score_30d ?? 0}</span>
+                                    <span className={`text-xs px-2 py-1 rounded-md ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>Intent: {profileSummary.intent_score ?? 0}</span>
+                                </div>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                {(Array.isArray(profileSummary.segments) ? profileSummary.segments : []).map((segment) => (
+                                    <span key={segment} className={isDark ? 'text-[11px] px-2 py-0.5 rounded-full border bg-blue-500/20 text-blue-300 border-blue-500/30' : 'text-[11px] px-2 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-200'}>
+                                        {segment}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {/* Global navigation: fixed-height container, content width */}
                     <div className="mb-6 w-full">
                         <nav
@@ -160,24 +270,20 @@ export default function EmployerDashboard({ auth, workers, filterOptions = {}, f
                                     <button
                                         key={opt.value}
                                         type="button"
-                                        onClick={() => router.get(route('employer.dashboard'), {
-                                            search: filters?.search || undefined,
-                                            'skills[]': (filters?.skills?.length && filters.skills) || undefined,
-                                            sort: opt.value,
-                                        }, { preserveState: true })}
+                                        onClick={() => handleSortClick(opt.value)}
                                         className={`flex items-center justify-center gap-2 min-h-[2.5rem] px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 whitespace-nowrap ${isActive
                                             ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
                                             : isDark ? 'text-gray-400 hover:text-gray-100 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
                                             }`}
                                     >
                                         <Icon className="h-4 w-4 flex-shrink-0" />
-                                        <span>{opt.label}</span>
+                                        <span>{getSortLabel(opt, isActive)}</span>
                                     </button>
                                 );
                             })}
                         </nav>
                         <p className={`mt-2 text-sm min-h-[1.25rem] ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                            {activeOption.detail}
+                            {activeOptionDetail}
                         </p>
                         {showBestMatchHint && (
                             <div className={`mt-2 flex items-start gap-2 p-3 rounded-xl text-sm min-h-0 box-border w-full border ${isDark ? 'bg-blue-500/10 border-blue-500/30 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
@@ -193,7 +299,7 @@ export default function EmployerDashboard({ auth, workers, filterOptions = {}, f
                     </div>
 
                     {/* Search and filters bar: fixed-height container */}
-                    <div className={`rounded-xl backdrop-blur-sm p-4 mb-6 w-full box-border min-h-[4.5rem] border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                    <div ref={filterBarRef} className={`relative z-30 rounded-xl backdrop-blur-sm p-4 mb-6 w-full box-border min-h-[4.5rem] border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                         <form onSubmit={handleSearchSubmit} className="flex flex-col lg:flex-row gap-4 lg:items-center lg:min-h-[2.75rem]">
                             <div className="flex-1 min-w-0 w-full lg:max-w-xl">
                                 <div className="relative">
@@ -213,8 +319,16 @@ export default function EmployerDashboard({ auth, workers, filterOptions = {}, f
                             <div className="flex flex-wrap items-center gap-2 min-h-[2.75rem]">
                                 <div className="relative">
                                     <button
+                                        ref={skillButtonRef}
                                         type="button"
-                                        onClick={() => setShowSkillDropdown(!showSkillDropdown)}
+                                        onClick={() => {
+                                            const nextValue = !showSkillDropdown;
+                                            const btnRect = skillButtonRef.current?.getBoundingClientRect?.();
+                                            // #region agent log
+                                            fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1f47d3'},body:JSON.stringify({sessionId:'1f47d3',runId:'post-fix',hypothesisId:'H1',location:'Employer/Dashboard.jsx:skills_button_click',message:'Skills button toggled',data:{nextValue,currentValue:showSkillDropdown,btnRect},timestamp:Date.now()})}).catch(()=>{});
+                                            // #endregion
+                                            setShowSkillDropdown(nextValue);
+                                        }}
                                         className={`inline-flex items-center h-11 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap transition-colors border ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600 focus:ring-offset-gray-900' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-offset-white'}`}
                                     >
                                         <FunnelIcon className={`h-5 w-5 mr-2 flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
@@ -228,8 +342,13 @@ export default function EmployerDashboard({ auth, workers, filterOptions = {}, f
                                     </button>
                                     {showSkillDropdown && (
                                         <>
-                                            <div className="fixed inset-0 z-10" onClick={() => setShowSkillDropdown(false)} />
-                                            <div className={`absolute left-0 mt-1 w-64 max-h-72 overflow-auto rounded-xl shadow-xl z-20 py-2 backdrop-blur-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                                            <div className="fixed inset-0 z-10" onClick={() => {
+                                                // #region agent log
+                                                fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1f47d3'},body:JSON.stringify({sessionId:'1f47d3',runId:'post-fix',hypothesisId:'H3',location:'Employer/Dashboard.jsx:overlay_click_close',message:'Overlay clicked to close dropdown',data:{showSkillDropdownBeforeClose:showSkillDropdown},timestamp:Date.now()})}).catch(()=>{});
+                                                // #endregion
+                                                setShowSkillDropdown(false);
+                                            }} />
+                                            <div ref={skillDropdownRef} className={`absolute left-0 mt-1 w-64 max-h-72 overflow-auto rounded-xl shadow-xl z-20 py-2 backdrop-blur-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                                                 {selectedSkills.length > 0 && (
                                                     <button
                                                         type="button"
@@ -278,7 +397,7 @@ export default function EmployerDashboard({ auth, workers, filterOptions = {}, f
                     </div>
 
                     {/* Worker cards grid: fixed card dimensions */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+                    <div ref={workerGridRef} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
                         {(workers.data ?? []).map((worker) => (
                             <div
                                 key={worker.id}

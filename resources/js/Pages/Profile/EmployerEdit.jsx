@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useState, useRef, useCallback } from 'react';
@@ -44,19 +44,63 @@ const INITIAL_KEYS = [
     'company_website', 'bio', 'company_description', 'country', 'city',
 ];
 
-export default function EmployerEdit({ user, status }) {
+const HIRING_SELECT_KEYS = [
+    'typical_project_budget',
+    'typical_project_duration',
+    'preferred_experience_level',
+    'hiring_frequency',
+];
+
+const BUDGET_OPTIONS = [
+    { value: 'under_500', label: 'Under ₱500' },
+    { value: '500-2000', label: '₱500 - ₱2,000' },
+    { value: '2000-5000', label: '₱2,000 - ₱5,000' },
+    { value: '5000-10000', label: '₱5,000 - ₱10,000' },
+    { value: '10000+', label: '₱10,000+' },
+];
+
+const DURATION_OPTIONS = [
+    { value: 'short_term', label: 'Short-term (< 1 month)' },
+    { value: 'medium_term', label: 'Medium-term (1-3 months)' },
+    { value: 'long_term', label: 'Long-term (3-6 months)' },
+    { value: 'ongoing', label: 'Ongoing (6+ months)' },
+];
+
+const EXPERIENCE_OPTIONS = [
+    { value: 'any', label: 'Any level' },
+    { value: 'beginner', label: 'Beginner' },
+    { value: 'intermediate', label: 'Intermediate' },
+    { value: 'expert', label: 'Expert' },
+];
+
+const FREQUENCY_OPTIONS = [
+    { value: 'one_time', label: 'One-time project' },
+    { value: 'occasional', label: 'Occasional' },
+    { value: 'regular', label: 'Regular (Monthly)' },
+    { value: 'ongoing', label: 'Ongoing simultaneous' },
+];
+
+export default function EmployerEdit({ user, status, serviceCategories = [] }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const [photoPreview, setPhotoPreview] = useState(user.profile_picture || null);
     const photoRef = useRef(null);
     const [detectingLocation, setDetectingLocation] = useState(false);
     const [locationError, setLocationError] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
 
     const initialValues = useRef(
         Object.fromEntries(INITIAL_KEYS.map((k) => [k, user[k] || '']))
     );
+    const initialHiringNeeds = useRef(JSON.stringify(user.primary_hiring_needs || []));
+    const initialHiringSelects = useRef(
+        Object.fromEntries(HIRING_SELECT_KEYS.map((k) => [k, user[k] || '']))
+    );
 
-    const { data, setData, post, processing, errors } = useForm({
+    const page = usePage();
+    const errors = page.props.errors || {};
+
+    const { data, setData } = useForm({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         email: user.email || '',
@@ -69,11 +113,33 @@ export default function EmployerEdit({ user, status }) {
         profile_picture: null,
         country: user.country || '',
         city: user.city || '',
+        primary_hiring_needs: Array.isArray(user.primary_hiring_needs) ? user.primary_hiring_needs : [],
+        typical_project_budget: user.typical_project_budget || '',
+        typical_project_duration: user.typical_project_duration || '',
+        preferred_experience_level: user.preferred_experience_level || '',
+        hiring_frequency: user.hiring_frequency || '',
     });
+
+    const standardCategories = (serviceCategories || []).filter((c) => c !== 'Other');
+
+    const toggleHiringNeed = (canonical) => {
+        const list = data.primary_hiring_needs || [];
+        const has = list.some((n) => n.toLowerCase() === canonical.toLowerCase());
+        if (has) {
+            setData(
+                'primary_hiring_needs',
+                list.filter((n) => n.toLowerCase() !== canonical.toLowerCase())
+            );
+        } else {
+            setData('primary_hiring_needs', [...list, canonical]);
+        }
+    };
 
     const isDirty =
         data.profile_picture instanceof File ||
-        INITIAL_KEYS.some((k) => data[k] !== initialValues.current[k]);
+        INITIAL_KEYS.some((k) => data[k] !== initialValues.current[k]) ||
+        JSON.stringify(data.primary_hiring_needs || []) !== initialHiringNeeds.current ||
+        HIRING_SELECT_KEYS.some((k) => data[k] !== initialHiringSelects.current[k]);
 
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
@@ -84,9 +150,30 @@ export default function EmployerEdit({ user, status }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('employer.profile.update'), {
-            forceFormData: true,
+        const fd = new FormData();
+        fd.append('first_name', data.first_name || '');
+        fd.append('last_name', data.last_name || '');
+        fd.append('email', data.email || '');
+        fd.append('company_name', data.company_name || '');
+        fd.append('industry', data.industry || '');
+        fd.append('company_size', data.company_size || '');
+        fd.append('company_website', data.company_website || '');
+        fd.append('bio', data.bio || '');
+        fd.append('company_description', data.company_description || '');
+        fd.append('country', data.country || '');
+        fd.append('city', data.city || '');
+        fd.append('primary_hiring_needs_json', JSON.stringify(data.primary_hiring_needs || []));
+        fd.append('typical_project_budget', data.typical_project_budget || '');
+        fd.append('typical_project_duration', data.typical_project_duration || '');
+        fd.append('preferred_experience_level', data.preferred_experience_level || '');
+        fd.append('hiring_frequency', data.hiring_frequency || '');
+        if (data.profile_picture instanceof File) {
+            fd.append('profile_picture', data.profile_picture);
+        }
+        setSubmitting(true);
+        router.post(route('employer.profile.update'), fd, {
             preserveScroll: true,
+            onFinish: () => setSubmitting(false),
         });
     };
 
@@ -157,10 +244,10 @@ export default function EmployerEdit({ user, status }) {
                             </Link>
                             <button
                                 onClick={handleSubmit}
-                                disabled={processing || !isDirty}
+                                disabled={submitting || !isDirty}
                                 className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-xl text-sm font-black transition-all shadow-lg shadow-blue-600/30 active:scale-95 flex items-center gap-2"
                             >
-                                {processing ? (
+                                {submitting ? (
                                     <><span className="material-symbols-outlined text-lg text-white animate-spin">refresh</span> Saving...</>
                                 ) : (
                                     <><span className="material-symbols-outlined text-lg text-white">save</span> Save Changes</>
@@ -233,7 +320,7 @@ export default function EmployerEdit({ user, status }) {
                                             <input
                                                 type="text"
                                                 value={data.bio}
-                                                maxLength={100}
+                                                maxLength={1000}
                                                 onChange={(e) => setData('bio', e.target.value)}
                                                 className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                                 placeholder="Technical Lead @ TechFlow"
@@ -300,6 +387,110 @@ export default function EmployerEdit({ user, status }) {
                                             placeholder="https://example.com"
                                             className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all shadow-inner ${isDark ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-500' : 'bg-white border border-gray-300 text-gray-900 placeholder-gray-400'}`}
                                         />
+                                    </Field>
+                                </div>
+                            </div>
+                        </Section>
+
+                        {/* ── Hiring preferences (feeds profile completeness + job flows) ── */}
+                        <Section title="Hiring Preferences" icon="tune" colorClass="bg-emerald-900/50 text-emerald-400" isDark={isDark}>
+                            <p className={`text-xs -mt-2 mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Used for your profiling score and job posting defaults. Matches employer onboarding.
+                            </p>
+                            <div className="space-y-6">
+                                <div>
+                                    <p className={`text-sm font-bold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                                        Services you hire for
+                                    </p>
+                                    <div
+                                        className={`max-h-56 overflow-y-auto rounded-xl border p-3 space-y-1 ${isDark ? 'border-gray-600 bg-gray-900/40' : 'border-gray-200 bg-gray-50'}`}
+                                    >
+                                        {standardCategories.length === 0 ? (
+                                            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                No service list loaded. Refresh the page or contact support.
+                                            </p>
+                                        ) : (
+                                            standardCategories.map((cat) => {
+                                                const checked = (data.primary_hiring_needs || []).some(
+                                                    (n) => n.toLowerCase() === cat.toLowerCase()
+                                                );
+                                                return (
+                                                    <label
+                                                        key={cat}
+                                                        className={`flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm ${isDark ? 'hover:bg-gray-800 text-gray-200' : 'hover:bg-white text-gray-800'}`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
+                                                            checked={checked}
+                                                            onChange={() => toggleHiringNeed(cat)}
+                                                        />
+                                                        <span>{cat}</span>
+                                                    </label>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                    {errors.primary_hiring_needs && (
+                                        <p className="text-xs text-red-400 mt-2">{errors.primary_hiring_needs}</p>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Field label="Typical project budget" error={errors.typical_project_budget} icon="payments" isDark={isDark}>
+                                        <select
+                                            value={data.typical_project_budget}
+                                            onChange={(e) => setData('typical_project_budget', e.target.value)}
+                                            className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-inner appearance-none cursor-pointer ${isDark ? 'bg-gray-700 border border-gray-600 text-white' : 'bg-white border border-gray-300 text-gray-900'}`}
+                                        >
+                                            <option value="">Select budget range</option>
+                                            {BUDGET_OPTIONS.map((o) => (
+                                                <option key={o.value} value={o.value}>
+                                                    {o.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field label="Typical project duration" error={errors.typical_project_duration} icon="schedule" isDark={isDark}>
+                                        <select
+                                            value={data.typical_project_duration}
+                                            onChange={(e) => setData('typical_project_duration', e.target.value)}
+                                            className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-inner appearance-none cursor-pointer ${isDark ? 'bg-gray-700 border border-gray-600 text-white' : 'bg-white border border-gray-300 text-gray-900'}`}
+                                        >
+                                            <option value="">Select duration</option>
+                                            {DURATION_OPTIONS.map((o) => (
+                                                <option key={o.value} value={o.value}>
+                                                    {o.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field label="Preferred experience level" error={errors.preferred_experience_level} icon="school" isDark={isDark}>
+                                        <select
+                                            value={data.preferred_experience_level}
+                                            onChange={(e) => setData('preferred_experience_level', e.target.value)}
+                                            className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-inner appearance-none cursor-pointer ${isDark ? 'bg-gray-700 border border-gray-600 text-white' : 'bg-white border border-gray-300 text-gray-900'}`}
+                                        >
+                                            <option value="">Select level</option>
+                                            {EXPERIENCE_OPTIONS.map((o) => (
+                                                <option key={o.value} value={o.value}>
+                                                    {o.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field label="Hiring frequency" error={errors.hiring_frequency} icon="event_repeat" isDark={isDark}>
+                                        <select
+                                            value={data.hiring_frequency}
+                                            onChange={(e) => setData('hiring_frequency', e.target.value)}
+                                            className={`w-full pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none transition-all shadow-inner appearance-none cursor-pointer ${isDark ? 'bg-gray-700 border border-gray-600 text-white' : 'bg-white border border-gray-300 text-gray-900'}`}
+                                        >
+                                            <option value="">Select frequency</option>
+                                            {FREQUENCY_OPTIONS.map((o) => (
+                                                <option key={o.value} value={o.value}>
+                                                    {o.label}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </Field>
                                 </div>
                             </div>
@@ -372,10 +563,10 @@ export default function EmployerEdit({ user, status }) {
                             )}
                             <button
                                 type="submit"
-                                disabled={processing || !isDirty}
+                                disabled={submitting || !isDirty}
                                 className="px-10 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-black rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-600/40 hover:-translate-y-1 active:translate-y-0 active:shadow-sm transition-all flex items-center gap-3"
                             >
-                                {processing ? (
+                                {submitting ? (
                                     <><span className="material-symbols-outlined text-xl text-white animate-spin">refresh</span> Processing...</>
                                 ) : (
                                     <><span className="material-symbols-outlined text-xl text-white">verified</span> Update Profile</>

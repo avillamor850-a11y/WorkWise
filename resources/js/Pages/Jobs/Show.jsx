@@ -115,7 +115,7 @@ export default function JobShow({ job, canBid }) {
                     bidId: bid.id,
                     gigWorkerId: bid.gig_worker?.id,
                     gigWorkerName: bid.gig_worker ? `${bid.gig_worker.first_name} ${bid.gig_worker.last_name}` : 'N/A',
-                    expectedUrl: bid.gig_worker?.id ? `/workers/${bid.gig_worker.id}` : 'N/A'
+                    expectedUrl: bid.gig_worker?.id ? route('gig-worker.profile.show', bid.gig_worker.id) : 'N/A'
                 });
             });
         }
@@ -602,7 +602,7 @@ export default function JobShow({ job, canBid }) {
                                                                 <h4 className={`font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                                                     {bid.gig_worker ? (
                                                                         <a
-                                                                            href={`/workers/${bid.gig_worker.id}`}
+                                                                            href={route('gig-worker.profile.show', bid.gig_worker.id)}
                                                                             className={isDark ? 'text-blue-400 hover:text-blue-300 hover:underline font-medium' : 'text-blue-600 hover:text-blue-700 hover:underline font-medium'}
                                                                         >
                                                                             {`${bid.gig_worker.first_name} ${bid.gig_worker.last_name}`}

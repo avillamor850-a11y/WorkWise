@@ -89,14 +89,12 @@ class GigJobController extends Controller
         if ($user && $user->isEmployer()) {
             // For employers, show their own jobs (all statuses)
             $query = GigJob::with(['employer'])->withCount('bids')
-                ->where('employer_id', $user->id)
-                ->latest();
+                ->where('employer_id', $user->id);
         } else {
             // For gig workers and guests, show all open jobs (exclude hidden by admin)
             $query = GigJob::with(['employer'])->withCount('bids')
                 ->where('status', 'open')
-                ->visible()
-                ->latest();
+                ->visible();
         }
 
         // Search functionality
@@ -104,8 +102,8 @@ class GigJobController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereJsonContains('required_skills', $search);
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereJsonContains('required_skills', $search);
             });
         }
 
@@ -127,11 +125,17 @@ class GigJobController extends Controller
             $query->where('budget_max', '<=', $request->get('max_budget'));
         }
 
-        $jobs = $query->paginate(12);
+        $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
+            ? $request->query('direction')
+            : 'desc';
+        $query->orderBy('created_at', $direction)->orderBy('id', $direction);
+
+        $jobs = $query->paginate(12)->withQueryString();
 
         // Add budget display to each job
         $jobs->getCollection()->transform(function ($job) {
             $job->budget_display = $job->getBudgetDisplayAttribute();
+
             return $job;
         });
 
@@ -140,7 +144,10 @@ class GigJobController extends Controller
 
         return Inertia::render('Jobs/Index', [
             'jobs' => $jobs,
-            'filters' => $request->only(['search', 'skills', 'min_budget', 'max_budget']),
+            'filters' => array_merge(
+                $request->only(['search', 'skills', 'min_budget', 'max_budget']),
+                ['direction' => $direction]
+            ),
             'availableSkills' => $availableSkills,
         ]);
     }
@@ -160,7 +167,7 @@ class GigJobController extends Controller
                 return trim($skill);
             })
             ->filter(function ($skill) {
-                return !empty($skill);
+                return ! empty($skill);
             })
             ->unique()
             ->sort()
@@ -200,17 +207,17 @@ class GigJobController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string|min:100',
             'project_category' => 'nullable|string|max:255',
-            
+
             // Primary structured skills field (required)
             'skills_requirements' => 'required|array|min:1',
             'skills_requirements.*.skill' => 'required|string|max:100',
             'skills_requirements.*.experience_level' => 'required|in:beginner,intermediate,expert',
             'skills_requirements.*.importance' => 'required|in:required,preferred',
-            
+
             // Legacy field - no longer required, auto-populated for backward compatibility
             'required_skills' => 'nullable|array',
             'required_skills.*' => 'string|max:50',
-            
+
             'budget_type' => 'required|in:fixed,hourly',
             'budget_min' => 'required|numeric|min:5',
             'budget_max' => 'required|numeric|min:5|gte:budget_min',
@@ -226,9 +233,9 @@ class GigJobController extends Controller
         $validated['status'] = 'open';
 
         // Auto-populate required_skills from skills_requirements for backward compatibility
-        if (!empty($validated['skills_requirements'])) {
+        if (! empty($validated['skills_requirements'])) {
             $validated['required_skills'] = array_map(
-                fn($skill) => $skill['skill'],
+                fn ($skill) => $skill['skill'],
                 $validated['skills_requirements']
             );
             $validated['experience_level'] = $this->deriveExperienceLevelFromSkills($validated['skills_requirements']);
@@ -246,7 +253,7 @@ class GigJobController extends Controller
 
     /**
      * Display the specified resource.
-     * 
+     *
      * DATA CONSISTENCY VERIFICATION (Requirement 9.1-9.6):
      * - Job data comes from gig_jobs table
      * - Employer profile data comes from users table
@@ -261,11 +268,11 @@ class GigJobController extends Controller
             'employer:id,first_name,last_name,company_name,profile_picture,user_type',
             'bids' => function ($query) {
                 $query->with([
-                    'gigWorker:id,first_name,last_name,professional_title,profile_picture,user_type'
+                    'gigWorker:id,first_name,last_name,professional_title,profile_picture,user_type',
                 ]);
-            }
+            },
         ]);
-        
+
         $job->budget_display = $job->getBudgetDisplayAttribute();
 
         $user = auth()->user();
@@ -310,17 +317,17 @@ class GigJobController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'project_category' => 'sometimes|nullable|string|max:255',
-            
+
             // Primary structured skills field
             'skills_requirements' => 'sometimes|required|array|min:1',
             'skills_requirements.*.skill' => 'required|string|max:100',
             'skills_requirements.*.experience_level' => 'required|in:beginner,intermediate,expert',
             'skills_requirements.*.importance' => 'required|in:required,preferred',
-            
+
             // Legacy field - no longer required, auto-populated for backward compatibility
             'required_skills' => 'sometimes|nullable|array',
             'required_skills.*' => 'string|max:50',
-            
+
             'budget_type' => 'sometimes|required|in:fixed,hourly',
             'budget_min' => 'sometimes|required|numeric|min:0',
             'budget_max' => 'sometimes|nullable|numeric|min:0|gte:budget_min',
@@ -334,9 +341,9 @@ class GigJobController extends Controller
         ]);
 
         // Auto-populate required_skills from skills_requirements for backward compatibility
-        if (isset($validated['skills_requirements']) && !empty($validated['skills_requirements'])) {
+        if (isset($validated['skills_requirements']) && ! empty($validated['skills_requirements'])) {
             $validated['required_skills'] = array_map(
-                fn($skill) => $skill['skill'],
+                fn ($skill) => $skill['skill'],
                 $validated['skills_requirements']
             );
             $validated['experience_level'] = $this->deriveExperienceLevelFromSkills($validated['skills_requirements']);
@@ -367,11 +374,11 @@ class GigJobController extends Controller
      */
     private function deriveExperienceLevelFromSkills(array $skillsRequirements): string
     {
-        $required = array_filter($skillsRequirements, fn($s) => is_array($s) && (($s['importance'] ?? 'required') === 'required'));
+        $required = array_filter($skillsRequirements, fn ($s) => is_array($s) && (($s['importance'] ?? 'required') === 'required'));
         if (empty($required)) {
             return 'intermediate';
         }
-        $levels = array_map(fn($s) => $s['experience_level'] ?? 'intermediate', $required);
+        $levels = array_map(fn ($s) => $s['experience_level'] ?? 'intermediate', $required);
         $counts = array_count_values($levels);
         $order = ['expert' => 3, 'intermediate' => 2, 'beginner' => 1];
         $best = 'intermediate';
@@ -385,6 +392,7 @@ class GigJobController extends Controller
                 $bestOrder = $o;
             }
         }
+
         return $best;
     }
 
@@ -395,12 +403,16 @@ class GigJobController extends Controller
     private function ensureJobSkillsForPromotion(GigJob $job): void
     {
         $reqs = $job->skills_requirements;
-        if (!is_array($reqs)) return;
+        if (! is_array($reqs)) {
+            return;
+        }
 
         $skillService = app(SkillService::class);
         foreach ($reqs as $req) {
             $name = trim($req['skill'] ?? '');
-            if ($name === '') continue;
+            if ($name === '') {
+                continue;
+            }
             $skill = $skillService->ensureSkill($name);
             $skillService->checkPromotion($skill);
         }

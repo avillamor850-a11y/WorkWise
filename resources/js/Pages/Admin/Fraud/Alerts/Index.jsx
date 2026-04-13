@@ -260,7 +260,7 @@ export default function FraudAlertsIndex({ auth, alerts, filters }) {
                                                     >
                                                         View
                                                     </Link>
-                                                    {alert.status === 'active' && (
+                                                    {/* {alert.status === 'active' && (
                                                         <>
                                                             <button
                                                                 onClick={() => handleAcknowledgeAlert(alert.id)}
@@ -281,7 +281,7 @@ export default function FraudAlertsIndex({ auth, alerts, filters }) {
                                                                 False Positive
                                                             </button>
                                                         </>
-                                                    )}
+                                                    )} */}
                                                 </td>
                                             </tr>
                                         ))}

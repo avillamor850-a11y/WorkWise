@@ -4,8 +4,9 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -202,7 +203,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->getFullNameAttribute();
     }
 
-
     /**
      * Check if user is an employer
      */
@@ -251,15 +251,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(GigJob::class, 'employer_id');
     }
 
-
     // Project relationships
-    
+
     /**
      * Get all projects where this user is the employer/client
-     * 
+     *
      * This is the primary relationship for accessing projects posted by this employer.
      * Use this instead of the deprecated clientProjects() method.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany<Project>
      */
     public function employerProjects(): HasMany
@@ -271,6 +270,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * Get freelancer projects (deprecated - use gigWorkerProjects)
      *
      * @deprecated Use gigWorkerProjects() instead. This method is maintained for backward compatibility.
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany<Project>
      */
     public function freelancerProjects(): HasMany
@@ -280,6 +280,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get gig worker projects (projects where this user is the worker)
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany<Project>
      */
     public function gigWorkerProjects(): HasMany
@@ -340,6 +341,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Resume screenings generated for this gig worker.
+     */
+    public function resumeScreenings(): HasMany
+    {
+        return $this->hasMany(ResumeScreening::class, 'gig_worker_id');
+    }
+
+    /**
+     * Cached computed user profiling summary.
+     */
+    public function userProfile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
+    /**
      * Get average rating for this user
      */
     public function getAverageRatingAttribute(): float
@@ -347,20 +364,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->receivedReviews()->avg('rating') ?? 0.0;
     }
 
-
     /**
      * Get all deposits made by this user (employer)
-     * 
+     *
      * This relationship provides access to all escrow deposits made by the employer
      * for funding projects. Used in the wallet page to display deposit history.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany<Deposit>
      */
     public function deposits(): HasMany
     {
         return $this->hasMany(Deposit::class);
     }
-
 
     /**
      * Get job templates created by this employer
@@ -388,11 +403,13 @@ class User extends Authenticatable implements MustVerifyEmail
             return $this->skills->pluck('name')->map(fn ($n) => (string) $n)->values()->all();
         }
         $raw = $this->skills_with_experience ?? [];
-        if (!is_array($raw)) {
+        if (! is_array($raw)) {
             return [];
         }
+
         return array_values(array_filter(array_map(function ($item) {
             $name = is_array($item) ? ($item['skill'] ?? $item['name'] ?? null) : $item;
+
             return $name ? trim((string) $name) : null;
         }, $raw)));
     }
@@ -409,6 +426,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $names = $this->getDisplaySkillNamesAttribute();
         if (empty($names)) {
             $this->skills()->detach();
+
             return;
         }
 
@@ -416,6 +434,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $ids = collect($names)->map(function ($name) use ($skillService) {
             $skill = $skillService->ensureSkill($name);
             $skillService->checkPromotion($skill);
+
             return $skill->id;
         })->all();
 

@@ -31,8 +31,14 @@ function resolveProfileImageUrl(url) {
     return '/storage/' + u.replace(/^\//, '');
 }
 
-export default function JobsIndex({ jobs, availableSkills = [] }) {
+export default function JobsIndex({ jobs, availableSkills = [], filters: urlFilters = {} }) {
     const { auth } = usePage().props;
+    const postedSortDirection = urlFilters.direction === 'asc' ? 'asc' : 'desc';
+
+    const handlePostedSortChange = (e) => {
+        const direction = e.target.value;
+        router.get(route('jobs.index'), { direction }, { preserveScroll: true });
+    };
     const [search, setSearch] = useState('');
     const [filters, setFilters] = useState({
         experience: 'all',
@@ -468,6 +474,15 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                                 </option>
                                             ))}
                                         </select>
+                                        <select
+                                            value={postedSortDirection}
+                                            onChange={handlePostedSortChange}
+                                            aria-label="Sort jobs by posted date"
+                                            className={isDark ? "h-11 rounded-lg border border-gray-600 pl-3 pr-8 py-2 text-sm text-gray-100 bg-gray-700 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[11rem]" : "h-11 rounded-lg border border-gray-300 pl-3 pr-8 py-2 text-sm text-gray-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[11rem]"}
+                                        >
+                                            <option value="desc" style={isDark ? { backgroundColor: '#1f2937', color: '#f3f4f6' } : undefined}>Newest first</option>
+                                            <option value="asc" style={isDark ? { backgroundColor: '#1f2937', color: '#f3f4f6' } : undefined}>Oldest first</option>
+                                        </select>
                                         <div className="relative z-[60]">
                                             <button
                                                 type="button"
@@ -777,6 +792,21 @@ export default function JobsIndex({ jobs, availableSkills = [] }) {
                                 </div>
                             ) : (
                                 <div className="space-y-8">
+                                    <div className="flex flex-wrap items-center justify-end gap-2">
+                                        <label htmlFor="employer-jobs-sort" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                            Posted
+                                        </label>
+                                        <select
+                                            id="employer-jobs-sort"
+                                            value={postedSortDirection}
+                                            onChange={handlePostedSortChange}
+                                            aria-label="Sort jobs by posted date"
+                                            className={isDark ? "h-11 rounded-lg border border-gray-600 pl-3 pr-8 py-2 text-sm text-gray-100 bg-gray-700 focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-w-[11rem]" : "h-11 rounded-lg border border-gray-300 pl-3 pr-8 py-2 text-sm text-gray-700 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[11rem]"}
+                                        >
+                                            <option value="desc" style={isDark ? { backgroundColor: '#1f2937', color: '#f3f4f6' } : undefined}>Newest first</option>
+                                            <option value="asc" style={isDark ? { backgroundColor: '#1f2937', color: '#f3f4f6' } : undefined}>Oldest first</option>
+                                        </select>
+                                    </div>
                                     {jobs.data && jobs.data.map((job) => (
                                         <div key={job.id} className={isDark ? "bg-gray-800 backdrop-blur-sm overflow-hidden rounded-xl border border-gray-700 hover:border-blue-500/30 transition-all duration-200" : "bg-white backdrop-blur-sm overflow-hidden rounded-xl border border-gray-200 shadow-lg hover:border-blue-300 transition-all duration-200"}>
                                             <div className="p-8">

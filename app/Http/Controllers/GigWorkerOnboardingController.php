@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessResumeScreeningJob;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -407,6 +408,10 @@ class GigWorkerOnboardingController extends Controller
         $user->portfolio_link = $validated['portfolio_link'] ?? null;
         $user->save();
         $user->syncSkillsFromExperience();
+
+        if (!empty($user->resume_file)) {
+            ProcessResumeScreeningJob::dispatchScreening($user->id);
+        }
     }
 
     /**

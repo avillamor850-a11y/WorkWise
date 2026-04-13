@@ -1,0 +1,777 @@
+DatabaseName,ParentSchema,ParentTable,ColumnName,ColumnOrder,DataType,ColumnSize,ConstraintType,ChildSchema,ChildTable,ChildColumn
+,main,bids,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,bids,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,bids,job_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,bids,job_id,2,integer,NULL,FOREIGN KEY,main,gig_jobs,id
+,main,bids,gig_worker_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,bids,gig_worker_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,bids,gig_worker_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,bids,bid_amount,4,numeric,NULL,NULL,NULL,NULL,NULL
+,main,bids,proposal_message,5,text,NULL,NULL,NULL,NULL,NULL
+,main,bids,estimated_days,6,integer,NULL,NULL,NULL,NULL,NULL
+,main,bids,status,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,bids,submitted_at,8,datetime,NULL,NULL,NULL,NULL,NULL
+,main,bids,created_at,9,datetime,NULL,NULL,NULL,NULL,NULL
+,main,bids,updated_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,biometric_data,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,biometric_data,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,biometric_data,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,biometric_data,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,biometric_data,biometric_type,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,biometric_data,biometric_hash,4,text,NULL,NULL,NULL,NULL,NULL
+,main,biometric_data,metadata,5,text,NULL,NULL,NULL,NULL,NULL
+,main,biometric_data,is_active,6,tinyint,1,NULL,NULL,NULL,NULL
+,main,biometric_data,enrolled_at,7,datetime,NULL,NULL,NULL,NULL,NULL
+,main,biometric_data,created_at,8,datetime,NULL,NULL,NULL,NULL,NULL
+,main,biometric_data,updated_at,9,datetime,NULL,NULL,NULL,NULL,NULL
+,main,cache,key,1,varchar,NULL,NULL,NULL,NULL,NULL
+,main,cache,key,1,varchar,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,cache,key,1,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,cache,value,2,text,NULL,NULL,NULL,NULL,NULL
+,main,cache,expiration,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,cache_locks,key,1,varchar,NULL,NULL,NULL,NULL,NULL
+,main,cache_locks,key,1,varchar,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,cache_locks,key,1,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,cache_locks,owner,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,cache_locks,expiration,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,contract_deadlines,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,contract_deadlines,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,contract_deadlines,contract_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,contract_deadlines,contract_id,2,integer,NULL,FOREIGN KEY,main,projects,id
+,main,contract_deadlines,milestone_name,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contract_deadlines,due_date,4,date,NULL,NULL,NULL,NULL,NULL
+,main,contract_deadlines,status,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contract_deadlines,reminder_sent,6,tinyint,1,NULL,NULL,NULL,NULL
+,main,contract_deadlines,created_at,7,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contract_deadlines,updated_at,8,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,contract_signatures,contract_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,contract_id,2,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,contract_signatures,contract_id,2,integer,NULL,FOREIGN KEY,main,contracts,id
+,main,contract_signatures,user_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,user_id,3,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,contract_signatures,user_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,contract_signatures,full_name,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,role,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,ip_address,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,user_agent,7,text,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,signed_at,8,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,contract_version_hash,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,browser_info,10,text,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,device_type,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,created_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contract_signatures,updated_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contracts,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,contracts,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,contracts,contract_id,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contracts,contract_id,2,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,contracts,project_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,contracts,project_id,3,integer,NULL,FOREIGN KEY,main,projects,id
+,main,contracts,employer_id,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,contracts,employer_id,4,integer,NULL,FOREIGN KEY,main,users,id
+,main,contracts,gig_worker_id,5,integer,NULL,NULL,NULL,NULL,NULL
+,main,contracts,gig_worker_id,5,integer,NULL,FOREIGN KEY,main,users,id
+,main,contracts,job_id,6,integer,NULL,NULL,NULL,NULL,NULL
+,main,contracts,job_id,6,integer,NULL,FOREIGN KEY,main,gig_jobs,id
+,main,contracts,bid_id,7,integer,NULL,NULL,NULL,NULL,NULL
+,main,contracts,bid_id,7,integer,NULL,FOREIGN KEY,main,bids,id
+,main,contracts,scope_of_work,8,text,NULL,NULL,NULL,NULL,NULL
+,main,contracts,total_payment,9,numeric,NULL,NULL,NULL,NULL,NULL
+,main,contracts,contract_type,10,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contracts,project_start_date,11,date,NULL,NULL,NULL,NULL,NULL
+,main,contracts,project_end_date,12,date,NULL,NULL,NULL,NULL,NULL
+,main,contracts,employer_responsibilities,13,text,NULL,NULL,NULL,NULL,NULL
+,main,contracts,gig_worker_responsibilities,14,text,NULL,NULL,NULL,NULL,NULL
+,main,contracts,preferred_communication,15,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contracts,communication_frequency,16,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contracts,status,17,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contracts,gig_worker_signed_at,18,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contracts,employer_signed_at,19,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contracts,fully_signed_at,20,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contracts,pdf_path,21,varchar,NULL,NULL,NULL,NULL,NULL
+,main,contracts,pdf_generated_at,22,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contracts,created_at,23,datetime,NULL,NULL,NULL,NULL,NULL
+,main,contracts,updated_at,24,datetime,NULL,NULL,NULL,NULL,NULL
+,main,deposits,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,deposits,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,deposits,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,deposits,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,deposits,amount,3,numeric,NULL,NULL,NULL,NULL,NULL
+,main,deposits,currency,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,deposits,stripe_payment_intent_id,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,deposits,stripe_payment_intent_id,5,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,deposits,payment_method,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,deposits,status,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,deposits,metadata,8,text,NULL,NULL,NULL,NULL,NULL
+,main,deposits,created_at,9,datetime,NULL,NULL,NULL,NULL,NULL
+,main,deposits,updated_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,dispute_cases,escrow_account_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,escrow_account_id,2,integer,NULL,FOREIGN KEY,main,escrow_accounts,id
+,main,dispute_cases,milestone_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,milestone_id,3,integer,NULL,FOREIGN KEY,main,escrow_milestones,id
+,main,dispute_cases,initiated_by,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,initiated_by,4,integer,NULL,FOREIGN KEY,main,users,id
+,main,dispute_cases,dispute_type,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,description,6,text,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,evidence,7,text,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,status,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,resolution,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,resolution_amount,10,numeric,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,resolution_notes,11,text,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,resolved_by,12,integer,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,resolved_by,12,integer,NULL,FOREIGN KEY,main,users,id
+,main,dispute_cases,resolved_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,created_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,dispute_cases,updated_at,15,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,escrow_accounts,project_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,project_id,2,integer,NULL,FOREIGN KEY,main,projects,id
+,main,escrow_accounts,employer_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,employer_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,escrow_accounts,gig_worker_id,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,gig_worker_id,4,integer,NULL,FOREIGN KEY,main,users,id
+,main,escrow_accounts,total_amount,5,numeric,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,platform_fee,6,numeric,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,available_amount,7,numeric,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,status,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,protection_level,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,escrow_terms,10,text,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,risk_score,11,numeric,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,milestone_based,12,tinyint,1,NULL,NULL,NULL,NULL
+,main,escrow_accounts,automatic_release,13,tinyint,1,NULL,NULL,NULL,NULL
+,main,escrow_accounts,fraud_insurance,14,tinyint,1,NULL,NULL,NULL,NULL
+,main,escrow_accounts,multi_signature,15,tinyint,1,NULL,NULL,NULL,NULL
+,main,escrow_accounts,funded_at,16,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,expires_at,17,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,created_at,18,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_accounts,updated_at,19,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,escrow_milestones,escrow_account_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,escrow_account_id,2,integer,NULL,FOREIGN KEY,main,escrow_accounts,id
+,main,escrow_milestones,title,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,description,4,text,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,amount,5,numeric,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,order_index,6,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,status,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,completion_criteria,8,text,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,deliverables,9,text,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,due_date,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,completed_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,approved_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,released_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,created_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_milestones,updated_at,15,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,escrow_transactions,escrow_account_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,escrow_account_id,2,integer,NULL,FOREIGN KEY,main,escrow_accounts,id
+,main,escrow_transactions,milestone_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,milestone_id,3,integer,NULL,FOREIGN KEY,main,escrow_milestones,id
+,main,escrow_transactions,transaction_type,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,amount,5,numeric,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,status,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,stripe_payment_intent_id,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,stripe_transfer_id,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,transaction_metadata,9,text,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,description,10,text,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,processed_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,created_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,escrow_transactions,updated_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,failed_jobs,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,failed_jobs,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,failed_jobs,uuid,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,failed_jobs,uuid,2,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,failed_jobs,connection,3,text,NULL,NULL,NULL,NULL,NULL
+,main,failed_jobs,queue,4,text,NULL,NULL,NULL,NULL,NULL
+,main,failed_jobs,payload,5,text,NULL,NULL,NULL,NULL,NULL
+,main,failed_jobs,exception,6,text,NULL,NULL,NULL,NULL,NULL
+,main,failed_jobs,failed_at,7,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,fraud_detection_alerts,alert_id,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,alert_id,2,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,fraud_detection_alerts,user_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,user_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_detection_alerts,alert_type,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,rule_name,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,fraud_case_id,6,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,fraud_case_id,6,integer,NULL,FOREIGN KEY,main,fraud_detection_cases,id
+,main,fraud_detection_alerts,alert_message,7,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,alert_data,8,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,risk_score,9,numeric,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,severity,10,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,status,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,assigned_admin_id,12,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,assigned_admin_id,12,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_detection_alerts,triggered_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,acknowledged_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,resolved_at,15,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,resolution_notes,16,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,notified,17,tinyint,1,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,notification_channels,18,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,ip_address,19,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,user_agent,20,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,context_data,21,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,created_at,22,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_alerts,updated_at,23,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,fraud_detection_cases,case_id,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,case_id,2,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,fraud_detection_cases,user_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,user_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_detection_cases,fraud_type,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,description,5,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,evidence_data,6,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,fraud_score,7,numeric,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,financial_impact,8,numeric,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,status,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,severity,10,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,assigned_admin_id,11,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,assigned_admin_id,11,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_detection_cases,investigation_notes,12,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,detected_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,resolved_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,resolution_data,15,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,ip_address,16,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,user_agent,17,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,device_fingerprint,18,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,location_data,19,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,created_at,20,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_cases,updated_at,21,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,fraud_detection_logs,escrow_account_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,escrow_account_id,2,integer,NULL,FOREIGN KEY,main,escrow_accounts,id
+,main,fraud_detection_logs,user_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,user_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_detection_logs,detection_type,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,risk_score,5,numeric,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,detection_data,6,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,action_taken,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,notes,8,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,false_positive,9,tinyint,1,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,created_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_logs,updated_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,fraud_detection_rules,rule_name,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,rule_name,2,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,fraud_detection_rules,description,3,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,rule_type,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,rule_type,4,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,fraud_detection_rules,conditions,5,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,parameters,6,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,threshold_value,7,numeric,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,threshold_operator,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,time_window_minutes,9,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,risk_score,10,numeric,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,severity,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,enabled,12,tinyint,1,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,priority,13,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,created_by,14,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,created_by,14,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_detection_rules,updated_by,15,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,updated_by,15,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_detection_rules,tags,16,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,last_triggered_at,17,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,trigger_count,18,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,created_at,19,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_detection_rules,updated_at,20,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_watchlist,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_watchlist,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,fraud_watchlist,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_watchlist,user_id,2,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,fraud_watchlist,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_watchlist,added_by,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,fraud_watchlist,added_by,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,fraud_watchlist,reason,4,text,NULL,NULL,NULL,NULL,NULL
+,main,fraud_watchlist,created_at,5,datetime,NULL,NULL,NULL,NULL,NULL
+,main,fraud_watchlist,updated_at,6,datetime,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,gig_jobs,employer_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,employer_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,gig_jobs,title,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,description,4,text,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,required_skills,5,text,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,budget_type,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,budget_min,7,numeric,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,budget_max,8,numeric,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,experience_level,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,estimated_duration_days,10,integer,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,status,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,deadline,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,location,13,varchar,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,is_remote,14,tinyint,1,NULL,NULL,NULL,NULL
+,main,gig_jobs,created_at,15,datetime,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,updated_at,16,datetime,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,hidden_by_admin,17,tinyint,1,NULL,NULL,NULL,NULL
+,main,gig_jobs,project_category,18,varchar,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,job_complexity,19,varchar,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,skills_requirements,20,text,NULL,NULL,NULL,NULL,NULL
+,main,gig_jobs,nice_to_have_skills,21,text,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,immutable_audit_logs,log_id,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,log_id,2,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,immutable_audit_logs,table_name,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,action,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,record_id,5,integer,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,user_id,6,integer,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,user_id,6,integer,NULL,FOREIGN KEY,main,users,id
+,main,immutable_audit_logs,user_type,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,old_values,8,text,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,new_values,9,text,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,metadata,10,text,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,ip_address,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,user_agent,12,text,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,session_id,13,varchar,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,hash_signature,14,varchar,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,previous_hash,15,varchar,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,logged_at,16,datetime,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,created_at,17,datetime,NULL,NULL,NULL,NULL,NULL
+,main,immutable_audit_logs,updated_at,18,datetime,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,insurance_claims,escrow_account_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,escrow_account_id,2,integer,NULL,FOREIGN KEY,main,escrow_accounts,id
+,main,insurance_claims,claimant_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,claimant_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,insurance_claims,claim_type,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,claim_amount,5,numeric,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,description,6,text,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,evidence,7,text,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,status,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,approved_amount,9,numeric,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,review_notes,10,text,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,reviewed_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,paid_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,created_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,insurance_claims,updated_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,id,1,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,id,1,varchar,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,job_batches,id,1,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,job_batches,name,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,total_jobs,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,pending_jobs,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,failed_jobs,5,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,failed_job_ids,6,text,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,options,7,text,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,cancelled_at,8,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,created_at,9,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_batches,finished_at,10,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,job_templates,employer_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,employer_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,job_templates,template_name,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,description,4,text,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,is_favorite,5,tinyint,1,NULL,NULL,NULL,NULL
+,main,job_templates,title_template,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,description_template,7,text,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,project_category,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,skills_requirements,9,text,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,nice_to_have_skills,10,text,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,budget_type,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,typical_budget_min,12,numeric,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,typical_budget_max,13,numeric,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,typical_duration,14,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,estimated_duration_days,15,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,experience_level,16,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,job_complexity,17,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,location,18,varchar,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,is_remote,19,tinyint,1,NULL,NULL,NULL,NULL
+,main,job_templates,times_used,20,integer,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,last_used_at,21,datetime,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,created_at,22,datetime,NULL,NULL,NULL,NULL,NULL
+,main,job_templates,updated_at,23,datetime,NULL,NULL,NULL,NULL,NULL
+,main,jobs,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,jobs,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,jobs,queue,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,jobs,payload,3,text,NULL,NULL,NULL,NULL,NULL
+,main,jobs,attempts,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,jobs,reserved_at,5,integer,NULL,NULL,NULL,NULL,NULL
+,main,jobs,available_at,6,integer,NULL,NULL,NULL,NULL,NULL
+,main,jobs,created_at,7,integer,NULL,NULL,NULL,NULL,NULL
+,main,messages,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,messages,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,messages,sender_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,messages,sender_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,messages,receiver_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,messages,receiver_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,messages,project_id,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,messages,project_id,4,integer,NULL,FOREIGN KEY,main,projects,id
+,main,messages,message,5,text,NULL,NULL,NULL,NULL,NULL
+,main,messages,attachment_path,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,messages,attachment_name,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,messages,type,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,messages,is_read,9,tinyint,1,NULL,NULL,NULL,NULL
+,main,messages,read_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,messages,created_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,messages,updated_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,messages,reply_to_id,13,integer,NULL,NULL,NULL,NULL,NULL
+,main,messages,reply_to_id,13,integer,NULL,FOREIGN KEY,main,messages,id
+,main,migrations,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,migrations,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,migrations,migration,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,migrations,batch,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,notification_preferences,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,notification_preferences,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,notification_preferences,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,notification_preferences,user_id,2,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,notification_preferences,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,notification_preferences,notification_type,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,notification_preferences,notification_type,3,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,notification_preferences,is_enabled,4,tinyint,1,NULL,NULL,NULL,NULL
+,main,notification_preferences,email_enabled,5,tinyint,1,NULL,NULL,NULL,NULL
+,main,notification_preferences,push_enabled,6,tinyint,1,NULL,NULL,NULL,NULL
+,main,notification_preferences,created_at,7,datetime,NULL,NULL,NULL,NULL,NULL
+,main,notification_preferences,updated_at,8,datetime,NULL,NULL,NULL,NULL,NULL
+,main,notifications,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,notifications,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,notifications,created_at,2,datetime,NULL,NULL,NULL,NULL,NULL
+,main,notifications,updated_at,3,datetime,NULL,NULL,NULL,NULL,NULL
+,main,notifications,user_id,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,notifications,user_id,4,integer,NULL,FOREIGN KEY,main,users,id
+,main,notifications,type,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,notifications,title,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,notifications,message,7,text,NULL,NULL,NULL,NULL,NULL
+,main,notifications,data,8,text,NULL,NULL,NULL,NULL,NULL
+,main,notifications,is_read,9,tinyint,1,NULL,NULL,NULL,NULL
+,main,notifications,read_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,notifications,action_url,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,notifications,icon,12,varchar,NULL,NULL,NULL,NULL,NULL
+,main,password_reset_tokens,email,1,varchar,NULL,NULL,NULL,NULL,NULL
+,main,password_reset_tokens,email,1,varchar,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,password_reset_tokens,email,1,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,password_reset_tokens,token,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,password_reset_tokens,created_at,3,datetime,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,portfolio_items,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,portfolio_items,title,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,description,4,text,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,project_url,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,images,6,text,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,tags,7,text,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,completion_date,8,date,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,project_type,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,display_order,10,integer,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,created_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,updated_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,portfolio_items,document_file,13,varchar,NULL,NULL,NULL,NULL,NULL
+,main,projects,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,projects,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,projects,job_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,projects,job_id,2,integer,NULL,FOREIGN KEY,main,gig_jobs,id
+,main,projects,employer_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,projects,employer_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,projects,gig_worker_id,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,projects,gig_worker_id,4,integer,NULL,FOREIGN KEY,main,users,id
+,main,projects,bid_id,5,integer,NULL,NULL,NULL,NULL,NULL
+,main,projects,bid_id,5,integer,NULL,FOREIGN KEY,main,bids,id
+,main,projects,agreed_amount,6,numeric,NULL,NULL,NULL,NULL,NULL
+,main,projects,platform_fee,7,numeric,NULL,NULL,NULL,NULL,NULL
+,main,projects,net_amount,8,numeric,NULL,NULL,NULL,NULL,NULL
+,main,projects,status,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,projects,started_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,completed_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,completion_notes,12,text,NULL,NULL,NULL,NULL,NULL
+,main,projects,employer_approved,13,tinyint,1,NULL,NULL,NULL,NULL
+,main,projects,approved_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,payment_released,15,tinyint,1,NULL,NULL,NULL,NULL
+,main,projects,payment_released_at,16,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,created_at,17,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,updated_at,18,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,contract_id,19,integer,NULL,NULL,NULL,NULL,NULL
+,main,projects,contract_id,19,integer,NULL,FOREIGN KEY,main,contracts,id
+,main,projects,contract_signed,20,tinyint,1,NULL,NULL,NULL,NULL
+,main,projects,contract_signed_at,21,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,agreed_duration_days,22,integer,NULL,NULL,NULL,NULL,NULL
+,main,projects,deadline,23,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,admin_review_requested_at,24,datetime,NULL,NULL,NULL,NULL,NULL
+,main,projects,admin_review_request_notes,25,text,NULL,NULL,NULL,NULL,NULL
+,main,reports,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,reports,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,reports,reporter_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,reports,reporter_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,reports,reported_user_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,reports,reported_user_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,reports,project_id,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,reports,project_id,4,integer,NULL,FOREIGN KEY,main,projects,id
+,main,reports,type,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,reports,description,6,text,NULL,NULL,NULL,NULL,NULL
+,main,reports,evidence,7,text,NULL,NULL,NULL,NULL,NULL
+,main,reports,status,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,reports,admin_notes,9,text,NULL,NULL,NULL,NULL,NULL
+,main,reports,resolved_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,reports,created_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,reports,updated_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,resume_screenings,gig_worker_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,gig_worker_id,2,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,resume_screenings,gig_worker_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,resume_screenings,resume_hash,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,resume_hash,3,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,resume_screenings,resume_path,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,status,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,screening_result,6,text,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,extracted_skills,7,text,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,experience_summary,8,text,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,strengths,9,text,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,gaps,10,text,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,confidence,11,numeric,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,error_message,12,text,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,screened_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,created_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,resume_screenings,updated_at,15,datetime,NULL,NULL,NULL,NULL,NULL
+,main,reviews,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,reviews,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,reviews,project_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,reviews,project_id,2,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,reviews,project_id,2,integer,NULL,FOREIGN KEY,main,projects,id
+,main,reviews,reviewer_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,reviews,reviewer_id,3,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,reviews,reviewer_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,reviews,reviewee_id,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,reviews,reviewee_id,4,integer,NULL,FOREIGN KEY,main,users,id
+,main,reviews,rating,5,integer,NULL,NULL,NULL,NULL,NULL
+,main,reviews,comment,6,text,NULL,NULL,NULL,NULL,NULL
+,main,reviews,criteria_ratings,7,text,NULL,NULL,NULL,NULL,NULL
+,main,reviews,is_public,8,tinyint,1,NULL,NULL,NULL,NULL
+,main,reviews,created_at,9,datetime,NULL,NULL,NULL,NULL,NULL
+,main,reviews,updated_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,security_alerts,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,security_alerts,alert_type,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,risk_score,4,numeric,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,alert_data,5,text,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,status,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,severity,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,description,8,text,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,recommended_actions,9,text,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,resolved_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,created_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,security_alerts,updated_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,sessions,id,1,varchar,NULL,NULL,NULL,NULL,NULL
+,main,sessions,id,1,varchar,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,sessions,id,1,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,sessions,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,sessions,ip_address,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,sessions,user_agent,4,text,NULL,NULL,NULL,NULL,NULL
+,main,sessions,payload,5,text,NULL,NULL,NULL,NULL,NULL
+,main,sessions,last_activity,6,integer,NULL,NULL,NULL,NULL,NULL
+,main,skill_recommendation_stats,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,skill_recommendation_stats,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,skill_recommendation_stats,type,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,skill_recommendation_stats,type,2,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,skill_recommendation_stats,value,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,skill_recommendation_stats,value,3,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,skill_recommendation_stats,accepted_count,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,skill_recommendation_stats,context,5,text,NULL,NULL,NULL,NULL,NULL
+,main,skill_recommendation_stats,last_accepted_at,6,datetime,NULL,NULL,NULL,NULL,NULL
+,main,skill_recommendation_stats,created_at,7,datetime,NULL,NULL,NULL,NULL,NULL
+,main,skill_recommendation_stats,updated_at,8,datetime,NULL,NULL,NULL,NULL,NULL
+,main,skill_user,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,skill_user,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,skill_user,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,skill_user,user_id,2,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,skill_user,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,skill_user,skill_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,skill_user,skill_id,3,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,skill_user,skill_id,3,integer,NULL,FOREIGN KEY,main,skills,id
+,main,skill_user,created_at,4,datetime,NULL,NULL,NULL,NULL,NULL
+,main,skill_user,updated_at,5,datetime,NULL,NULL,NULL,NULL,NULL
+,main,skills,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,skills,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,skills,name,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,skills,name,2,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,skills,created_at,3,datetime,NULL,NULL,NULL,NULL,NULL
+,main,skills,updated_at,4,datetime,NULL,NULL,NULL,NULL,NULL
+,main,skills,source,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,skills,promoted_at,6,datetime,NULL,NULL,NULL,NULL,NULL
+,main,transactions,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,transactions,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,transactions,project_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,transactions,project_id,2,integer,NULL,FOREIGN KEY,main,projects,id
+,main,transactions,payer_id,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,transactions,payer_id,3,integer,NULL,FOREIGN KEY,main,users,id
+,main,transactions,payee_id,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,transactions,payee_id,4,integer,NULL,FOREIGN KEY,main,users,id
+,main,transactions,amount,5,numeric,NULL,NULL,NULL,NULL,NULL
+,main,transactions,platform_fee,6,numeric,NULL,NULL,NULL,NULL,NULL
+,main,transactions,net_amount,7,numeric,NULL,NULL,NULL,NULL,NULL
+,main,transactions,type,8,varchar,NULL,NULL,NULL,NULL,NULL
+,main,transactions,status,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,transactions,stripe_payment_intent_id,10,varchar,NULL,NULL,NULL,NULL,NULL
+,main,transactions,stripe_charge_id,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,transactions,description,12,text,NULL,NULL,NULL,NULL,NULL
+,main,transactions,metadata,13,text,NULL,NULL,NULL,NULL,NULL
+,main,transactions,processed_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,transactions,created_at,15,datetime,NULL,NULL,NULL,NULL,NULL
+,main,transactions,updated_at,16,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,user_behavior_analytics,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,user_behavior_analytics,session_id,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,action_type,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,behavior_data,5,text,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,ip_address,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,user_agent,7,text,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,device_fingerprint,8,text,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,risk_score,9,numeric,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,risk_factors,10,text,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,flagged,11,tinyint,1,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,analyzed_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,created_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_behavior_analytics,updated_at,14,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,user_profiles,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,user_profiles,completeness_score,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,activity_score_30d,4,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,intent_score,5,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,traits,6,text,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,segments,7,text,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,computed_at,8,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,created_at,9,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_profiles,updated_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,user_typing_patterns,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,user_id,2,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,user_typing_patterns,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,user_typing_patterns,avg_typing_speed,3,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,keystroke_dynamics,4,text,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,pause_patterns,5,text,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,common_typos,6,text,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,device_type,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,device_type,7,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,user_typing_patterns,sample_count,8,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,last_updated,9,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,created_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_typing_patterns,updated_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,user_verifications,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,user_id,2,integer,NULL,UNIQUE,NULL,NULL,NULL
+,main,user_verifications,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,user_verifications,verification_type,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,verification_type,3,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,user_verifications,status,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,verification_data,5,text,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,verification_result,6,text,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,confidence_score,7,numeric,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,notes,8,text,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,verified_by,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,verified_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,expires_at,11,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,created_at,12,datetime,NULL,NULL,NULL,NULL,NULL
+,main,user_verifications,updated_at,13,datetime,NULL,NULL,NULL,NULL,NULL
+,main,users,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,users,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,users,first_name,2,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,last_name,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,email,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,email,4,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,users,email_verified_at,5,datetime,NULL,NULL,NULL,NULL,NULL
+,main,users,password,6,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,user_type,7,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,profile_completed,8,tinyint,1,NULL,NULL,NULL,NULL
+,main,users,profile_status,9,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,bio,10,text,NULL,NULL,NULL,NULL,NULL
+,main,users,phone,11,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,profile_photo,12,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,professional_title,13,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,hourly_rate,14,numeric,NULL,NULL,NULL,NULL,NULL
+,main,users,company_name,15,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,work_type_needed,16,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,budget_range,17,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,project_intent,18,text,NULL,NULL,NULL,NULL,NULL
+,main,users,remember_token,19,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,created_at,20,datetime,NULL,NULL,NULL,NULL,NULL
+,main,users,updated_at,21,datetime,NULL,NULL,NULL,NULL,NULL
+,main,users,escrow_balance,22,numeric,NULL,NULL,NULL,NULL,NULL
+,main,users,stripe_customer_id,23,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,stripe_account_id,24,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,stripe_account_details,25,text,NULL,NULL,NULL,NULL,NULL
+,main,users,stripe_onboarded_at,26,datetime,NULL,NULL,NULL,NULL,NULL
+,main,users,registration_ip_country,27,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,is_admin,28,tinyint,1,NULL,NULL,NULL,NULL
+,main,users,id_verification_required_by_admin,29,tinyint,1,NULL,NULL,NULL,NULL
+,main,users,name,30,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,google_id,31,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,google_id,31,varchar,NULL,UNIQUE,NULL,NULL,NULL
+,main,users,avatar,32,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,profile_picture,33,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,broad_category,34,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,specific_services,35,text,NULL,NULL,NULL,NULL,NULL
+,main,users,skills_with_experience,36,text,NULL,NULL,NULL,NULL,NULL
+,main,users,working_hours,37,text,NULL,NULL,NULL,NULL,NULL
+,main,users,timezone,38,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,preferred_communication,39,text,NULL,NULL,NULL,NULL,NULL
+,main,users,availability_notes,40,text,NULL,NULL,NULL,NULL,NULL
+,main,users,id_type,41,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,id_front_image,42,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,id_back_image,43,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,id_verification_status,44,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,id_verification_notes,45,text,NULL,NULL,NULL,NULL,NULL
+,main,users,id_verified_at,46,datetime,NULL,NULL,NULL,NULL,NULL
+,main,users,tutorial_completed,47,tinyint,1,NULL,NULL,NULL,NULL
+,main,users,onboarding_step,48,integer,NULL,NULL,NULL,NULL,NULL
+,main,users,country,49,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,street_address,50,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,city,51,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,postal_code,52,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,province,53,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,municipality,54,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,company_size,55,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,industry,56,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,company_website,57,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,company_description,58,text,NULL,NULL,NULL,NULL,NULL
+,main,users,primary_hiring_needs,59,text,NULL,NULL,NULL,NULL,NULL
+,main,users,typical_project_budget,60,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,typical_project_duration,61,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,preferred_experience_level,62,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,hiring_frequency,63,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,business_registration_document,64,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,tax_id,65,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,portfolio_link,66,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,resume_file,67,varchar,NULL,NULL,NULL,NULL,NULL
+,main,users,primary_hiring_skills,68,text,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,verification_attempts,user_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,user_id,2,integer,NULL,FOREIGN KEY,main,users,id
+,main,verification_attempts,verification_type,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,ip_address,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,user_agent,5,text,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,attempt_data,6,text,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,successful,7,tinyint,1,NULL,NULL,NULL,NULL
+,main,verification_attempts,failure_reason,8,text,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,created_at,9,datetime,NULL,NULL,NULL,NULL,NULL
+,main,verification_attempts,updated_at,10,datetime,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,id,1,integer,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,id,1,integer,NULL,PRIMARY KEY,NULL,NULL,NULL
+,main,verification_documents,user_verification_id,2,integer,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,user_verification_id,2,integer,NULL,FOREIGN KEY,main,user_verifications,id
+,main,verification_documents,document_type,3,varchar,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,file_path,4,varchar,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,file_hash,5,varchar,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,extracted_data,6,text,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,validation_results,7,text,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,is_verified,8,tinyint,1,NULL,NULL,NULL,NULL
+,main,verification_documents,created_at,9,datetime,NULL,NULL,NULL,NULL,NULL
+,main,verification_documents,updated_at,10,datetime,NULL,NULL,NULL,NULL,NULL

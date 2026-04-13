@@ -2,33 +2,43 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GigJob;
 use App\Models\Bid;
-use App\Models\Project;
-use App\Models\User;
-use App\Models\Skill;
-use App\Models\Review;
+use App\Models\GigJob;
 use App\Models\Notification;
-use App\Services\NotificationManager;
-use App\Services\DeadlineTracker;
-use App\Services\NotificationService;
-use App\Services\EmployerAnalyticsService;
+use App\Models\Project;
+use App\Models\Skill;
+use App\Models\User;
 use App\Services\ActivityService;
-use App\Services\SearchService;
+use App\Services\DeadlineTracker;
+use App\Services\EmployerAnalyticsService;
+use App\Services\EmployerProfilingInsightService;
 use App\Services\ExportService;
+use App\Services\NotificationManager;
+use App\Services\NotificationService;
+use App\Services\SearchService;
+use App\Services\UserProfilingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EmployerDashboardController extends Controller
 {
     protected NotificationManager $notificationManager;
+
     protected DeadlineTracker $deadlineTracker;
+
     protected NotificationService $notificationService;
+
     protected EmployerAnalyticsService $analyticsService;
+
     protected ActivityService $activityService;
+
+    protected EmployerProfilingInsightService $profilingInsightService;
+
+    protected UserProfilingService $userProfilingService;
+
     protected SearchService $searchService;
+
     protected ExportService $exportService;
 
     public function __construct(
@@ -37,6 +47,8 @@ class EmployerDashboardController extends Controller
         NotificationService $notificationService,
         EmployerAnalyticsService $analyticsService,
         ActivityService $activityService,
+        EmployerProfilingInsightService $profilingInsightService,
+        UserProfilingService $userProfilingService,
         SearchService $searchService,
         ExportService $exportService
     ) {
@@ -45,6 +57,8 @@ class EmployerDashboardController extends Controller
         $this->notificationService = $notificationService;
         $this->analyticsService = $analyticsService;
         $this->activityService = $activityService;
+        $this->profilingInsightService = $profilingInsightService;
+        $this->userProfilingService = $userProfilingService;
         $this->searchService = $searchService;
         $this->exportService = $exportService;
     }
@@ -54,7 +68,8 @@ class EmployerDashboardController extends Controller
         $user = $request->user();
 
         // #region agent log
-        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H1,H2,H5','location'=>'EmployerDashboardController::index','message'=>'index entered','data'=>['hasUser'=>!!$user,'user_type'=>$user->user_type ?? null],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId' => '849b3f', 'hypothesisId' => 'H1,H2,H5', 'location' => 'EmployerDashboardController::index', 'message' => 'index entered', 'data' => ['hasUser' => (bool) $user, 'user_type' => $user->user_type ?? null], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
+        @file_put_contents(base_path('debug-fdc02e.log'), json_encode(['sessionId' => 'fdc02e', 'runId' => 'initial', 'hypothesisId' => 'H4', 'location' => 'EmployerDashboardController::index', 'message' => 'dashboard_entry_before_insights', 'data' => ['has_user' => (bool) $user, 'user_id' => $user->id ?? null, 'user_type' => $user->user_type ?? null], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
         // #endregion
 
         if ($user->user_type !== 'employer') {
@@ -65,6 +80,10 @@ class EmployerDashboardController extends Controller
         $skillsFilter = $request->input('skills', []);
         $skillsFilter = is_array($skillsFilter) ? $skillsFilter : (is_string($skillsFilter) ? array_filter(explode(',', $skillsFilter)) : []);
         $sort = $request->input('sort', 'latest_registered'); // latest_registered | best_match | most_relevant
+        $sortDir = strtolower((string) $request->input('sort_dir', 'desc'));
+        if (! in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'desc';
+        }
 
         $query = User::query()
             ->where('user_type', 'gig_worker')
@@ -72,7 +91,7 @@ class EmployerDashboardController extends Controller
 
         // Search by name, professional title, or skills
         if ($search !== '') {
-            $term = '%' . trim($search) . '%';
+            $term = '%'.trim($search).'%';
             $query->where(function ($q) use ($term) {
                 $driver = DB::connection()->getDriverName();
                 $nameExpr = $driver === 'mysql'
@@ -88,7 +107,7 @@ class EmployerDashboardController extends Controller
         }
 
         // Filter by skills (worker must have at least one of the selected skills)
-        if (!empty($skillsFilter)) {
+        if (! empty($skillsFilter)) {
             $query->whereHas('skills', function ($q) use ($skillsFilter) {
                 $q->whereIn('name', $skillsFilter);
             });
@@ -96,7 +115,7 @@ class EmployerDashboardController extends Controller
 
         // Employer's job required skills for "Best for Me" ranking (from database)
         $requiredSkillNames = $this->getEmployerRequiredSkillNames($user);
-        $bestMatchHasSkills = !empty($requiredSkillNames);
+        $bestMatchHasSkills = ! empty($requiredSkillNames);
 
         if ($sort === 'best_match' && $bestMatchHasSkills) {
             // Rank by how many of the employer's job skills the worker has (skill_user + skills tables)
@@ -118,8 +137,8 @@ class EmployerDashboardController extends Controller
             );
             $query->orderByDesc('avg_rating')->orderByDesc('completed_projects_count');
         } else {
-            // Latest Registered: order by created_at from database
-            $query->orderByDesc('created_at');
+            // Latest Registered: order by created_at from database with direction toggle
+            $query->orderBy('created_at', $sortDir);
         }
 
         $workers = $query->paginate(12)->withQueryString();
@@ -131,7 +150,8 @@ class EmployerDashboardController extends Controller
         $allSkills = Skill::orderBy('name')->pluck('name')->values()->all();
 
         // #region agent log
-        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId'=>'849b3f','hypothesisId'=>'H2','location'=>'EmployerDashboardController::index','message'=>'returning Inertia Employer/Dashboard','data'=>['workersCount'=>$workers->count()],'timestamp'=>round(microtime(true)*1000)])."\n", FILE_APPEND | LOCK_EX);
+        file_put_contents(base_path('debug-849b3f.log'), json_encode(['sessionId' => '849b3f', 'hypothesisId' => 'H2', 'location' => 'EmployerDashboardController::index', 'message' => 'returning Inertia Employer/Dashboard', 'data' => ['workersCount' => $workers->count()], 'timestamp' => round(microtime(true) * 1000)])."\n", FILE_APPEND | LOCK_EX);
+
         // #endregion
         return Inertia::render('Employer/Dashboard', [
             'auth' => [
@@ -147,11 +167,11 @@ class EmployerDashboardController extends Controller
                     'profile_completed' => $user->profile_completed,
                     'id_verification_status' => [
                         'is_verified' => $user->isIDVerified(),
-                        'has_id_front' => !empty($user->id_front_image),
-                        'has_id_back' => !empty($user->id_back_image),
+                        'has_id_front' => ! empty($user->id_front_image),
+                        'has_id_back' => ! empty($user->id_back_image),
                         'status' => $user->id_verification_status,
-                    ]
-                ]
+                    ],
+                ],
             ],
             'workers' => $workers,
             'filterOptions' => [
@@ -161,8 +181,11 @@ class EmployerDashboardController extends Controller
                 'search' => $search,
                 'skills' => $skillsFilter,
                 'sort' => $sort,
+                'sort_dir' => $sortDir,
             ],
             'bestMatchHasSkills' => $bestMatchHasSkills,
+            'profilingInsights' => $this->profilingInsightService->getInsightsForEmployer($user),
+            'profileSummary' => $this->userProfilingService->getOrBuildSummary($user),
         ]);
     }
 
@@ -180,7 +203,7 @@ class EmployerDashboardController extends Controller
         $names = [];
         foreach ($jobs as $job) {
             $req = $job->skills_requirements;
-            if (!is_array($req)) {
+            if (! is_array($req)) {
                 continue;
             }
             foreach ($req as $item) {
@@ -190,6 +213,7 @@ class EmployerDashboardController extends Controller
                 }
             }
         }
+
         return array_values(array_unique($names));
     }
 
@@ -206,7 +230,7 @@ class EmployerDashboardController extends Controller
             'id' => $worker->id,
             'first_name' => $worker->first_name,
             'last_name' => $worker->last_name,
-            'full_name' => trim($worker->first_name . ' ' . $worker->last_name) ?: $worker->name,
+            'full_name' => trim($worker->first_name.' '.$worker->last_name) ?: $worker->name,
             'professional_title' => $worker->professional_title,
             'bio' => $worker->bio ? \Illuminate\Support\Str::limit($worker->bio, 160) : null,
             'skills' => $skillNames,
@@ -224,15 +248,17 @@ class EmployerDashboardController extends Controller
     private function getSkillNamesFromProfile(User $worker): array
     {
         $raw = $worker->skills_with_experience ?? [];
-        if (is_array($raw) && !empty($raw)) {
+        if (is_array($raw) && ! empty($raw)) {
             return array_values(array_filter(array_map(function ($item) {
                 $name = is_array($item) ? ($item['skill'] ?? $item['name'] ?? null) : $item;
+
                 return $name ? trim((string) $name) : null;
             }, $raw)));
         }
         if ($worker->relationLoaded('skills') && $worker->skills->isNotEmpty()) {
             return $worker->skills->pluck('name')->map(fn ($n) => (string) $n)->values()->all();
         }
+
         return [];
     }
 
@@ -242,7 +268,7 @@ class EmployerDashboardController extends Controller
      */
     private function supabaseUrl(?string $stored): ?string
     {
-        if (!$stored || !is_string($stored)) {
+        if (! $stored || ! is_string($stored)) {
             return null;
         }
         $stored = trim($stored);
@@ -256,7 +282,8 @@ class EmployerDashboardController extends Controller
         if ($path === '') {
             return null;
         }
-        return url('/storage/supabase/' . $path);
+
+        return url('/storage/supabase/'.$path);
     }
 
     private function getJobsSummary($user)
@@ -287,15 +314,15 @@ class EmployerDashboardController extends Controller
                         'budget_min' => $job->budget_min,
                         'budget_max' => $job->budget_max,
                     ];
-                })
+                }),
         ];
     }
 
     private function getProposalsReceived($user)
     {
         return Bid::whereHas('job', function ($query) use ($user) {
-                $query->where('employer_id', $user->id);
-            })
+            $query->where('employer_id', $user->id);
+        })
             ->with(['job', 'gigWorker'])
             ->latest()
             ->limit(10)
@@ -305,7 +332,7 @@ class EmployerDashboardController extends Controller
                     'id' => $bid->id,
                     'job_title' => $bid->job->title,
                     'job_id' => $bid->job->id,
-                    'freelancer_name' => $bid->gigWorker->first_name . ' ' . $bid->gigWorker->last_name,
+                    'freelancer_name' => $bid->gigWorker->first_name.' '.$bid->gigWorker->last_name,
                     'freelancer_id' => $bid->gigWorker->id,
                     'bid_amount' => $bid->bid_amount,
                     'proposal_message' => $bid->proposal_message,
@@ -329,7 +356,7 @@ class EmployerDashboardController extends Controller
                 return [
                     'id' => $project->id,
                     'job_title' => $project->job->title,
-                    'freelancer_name' => $project->gigWorker->first_name . ' ' . $project->gigWorker->last_name,
+                    'freelancer_name' => $project->gigWorker->first_name.' '.$project->gigWorker->last_name,
                     'freelancer_id' => $project->gigWorker->id,
                     'agreed_amount' => $project->agreed_amount,
                     'status' => $project->status,
@@ -351,7 +378,7 @@ class EmployerDashboardController extends Controller
             'escrow' => $this->notificationManager->getEscrowAlerts($user),
             'deadlines' => $this->notificationManager->getUpcomingDeadlines($user),
             'messages' => $this->notificationManager->getMessageNotifications($user),
-            'unreadCount' => $this->notificationService->getUnreadCount($user)
+            'unreadCount' => $this->notificationService->getUnreadCount($user),
         ];
     }
 
@@ -383,7 +410,7 @@ class EmployerDashboardController extends Controller
                 'results' => [],
                 'total' => 0,
                 'suggestions' => $this->searchService->getSuggestions($user, ''),
-                'filters' => $this->searchService->getAdvancedFilters($user)
+                'filters' => $this->searchService->getAdvancedFilters($user),
             ]);
         }
 
@@ -394,7 +421,7 @@ class EmployerDashboardController extends Controller
             'query' => $query,
             'filters' => $filters,
             'suggestions' => $this->searchService->getSuggestions($user, $query),
-            'available_filters' => $this->searchService->getAdvancedFilters($user)
+            'available_filters' => $this->searchService->getAdvancedFilters($user),
         ]);
     }
 
@@ -412,7 +439,7 @@ class EmployerDashboardController extends Controller
         $query = $request->get('q', '');
 
         return response()->json([
-            'suggestions' => $this->searchService->getSuggestions($user, $query)
+            'suggestions' => $this->searchService->getSuggestions($user, $query),
         ]);
     }
 
@@ -429,7 +456,7 @@ class EmployerDashboardController extends Controller
 
         return response()->json([
             'filters' => $this->searchService->getAdvancedFilters($user),
-            'stats' => $this->searchService->getSearchStats($user)
+            'stats' => $this->searchService->getSearchStats($user),
         ]);
     }
 
@@ -450,12 +477,12 @@ class EmployerDashboardController extends Controller
         $filters = $request->get('filters', []);
 
         // Validate format
-        if (!in_array($format, ['csv', 'json', 'pdf'])) {
+        if (! in_array($format, ['csv', 'json', 'pdf'])) {
             return response()->json(['error' => 'Invalid export format'], 400);
         }
 
         // Validate type
-        if (!in_array($type, ['all', 'jobs', 'proposals', 'contracts', 'notifications', 'deadlines', 'analytics'])) {
+        if (! in_array($type, ['all', 'jobs', 'proposals', 'contracts', 'notifications', 'deadlines', 'analytics'])) {
             return response()->json(['error' => 'Invalid export type'], 400);
         }
 
@@ -463,19 +490,19 @@ class EmployerDashboardController extends Controller
             switch ($format) {
                 case 'csv':
                     $content = $this->exportService->exportToCSV($user, $type, $filters);
-                    $filename = "export_{$type}_" . now()->format('Y-m-d_H-i-s') . '.csv';
+                    $filename = "export_{$type}_".now()->format('Y-m-d_H-i-s').'.csv';
                     $mimeType = 'text/csv';
                     break;
 
                 case 'json':
                     $content = $this->exportService->exportToJSON($user, $type, $filters);
-                    $filename = "export_{$type}_" . now()->format('Y-m-d_H-i-s') . '.json';
+                    $filename = "export_{$type}_".now()->format('Y-m-d_H-i-s').'.json';
                     $mimeType = 'application/json';
                     break;
 
                 case 'pdf':
                     $content = $this->exportService->exportToPDF($user);
-                    $filename = "export_report_" . now()->format('Y-m-d_H-i-s') . '.json'; // PDF data as JSON
+                    $filename = 'export_report_'.now()->format('Y-m-d_H-i-s').'.json'; // PDF data as JSON
                     $mimeType = 'application/json';
                     break;
 
@@ -485,16 +512,16 @@ class EmployerDashboardController extends Controller
 
             return response($content, 200, [
                 'Content-Type' => $mimeType,
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
                 'Pragma' => 'no-cache',
-                'Expires' => '0'
+                'Expires' => '0',
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Export failed',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -512,7 +539,7 @@ class EmployerDashboardController extends Controller
 
         return response()->json([
             'formats' => $this->exportService->getAvailableFormats(),
-            'types' => $this->exportService->getAvailableTypes()
+            'types' => $this->exportService->getAvailableTypes(),
         ]);
     }
 
@@ -538,13 +565,13 @@ class EmployerDashboardController extends Controller
                 'preview' => array_slice($data, 0, 10), // Show first 10 records
                 'total_records' => count($data),
                 'summary' => $summary,
-                'headers' => $this->exportService->getCSVHeaders($type)
+                'headers' => $this->exportService->getCSVHeaders($type),
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Preview failed',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

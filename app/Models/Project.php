@@ -34,6 +34,7 @@ class Project extends Model
         'contract_signed_at',
         'admin_review_requested_at',
         'admin_review_request_notes',
+        'milestones',
     ];
 
     protected $casts = [
@@ -47,6 +48,7 @@ class Project extends Model
         'payment_released' => 'boolean',
         'employer_approved' => 'boolean',
         'contract_signed' => 'boolean',
+        'milestones' => 'array',
         'agreed_amount' => 'decimal:2',
         'platform_fee' => 'decimal:2',
         'net_amount' => 'decimal:2',
@@ -54,10 +56,10 @@ class Project extends Model
 
     /**
      * Get the employer (client) who posted this project
-     * 
+     *
      * This is the primary relationship for accessing the employer/client user.
      * Use this instead of the deprecated client() method.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, Project>
      */
     public function employer(): BelongsTo
@@ -67,8 +69,9 @@ class Project extends Model
 
     /**
      * Get the client (deprecated - use employer)
-     * 
+     *
      * @deprecated Use employer() instead. This method is maintained for backward compatibility.
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, Project>
      */
     public function client(): BelongsTo
@@ -78,10 +81,10 @@ class Project extends Model
 
     /**
      * Get the gig worker assigned to this project
-     * 
+     *
      * This is the primary relationship for accessing the gig worker user.
      * Use this instead of the deprecated freelancer() method.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, Project>
      */
     public function gigWorker(): BelongsTo
@@ -91,8 +94,9 @@ class Project extends Model
 
     /**
      * Get the freelancer (deprecated - use gigWorker)
-     * 
+     *
      * @deprecated Use gigWorker() instead. This method is maintained for backward compatibility.
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, Project>
      */
     public function freelancer(): BelongsTo
@@ -102,10 +106,10 @@ class Project extends Model
 
     /**
      * Get the job/gig that this project is based on
-     * 
+     *
      * This relationship provides access to the original job posting details
      * including title, description, budget, and requirements.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<GigJob, Project>
      */
     public function job(): BelongsTo
@@ -115,7 +119,7 @@ class Project extends Model
 
     /**
      * Get the bid that was accepted to create this project
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Bid, Project>
      */
     public function bid(): BelongsTo
@@ -125,9 +129,9 @@ class Project extends Model
 
     /**
      * Get all transactions associated with this project
-     * 
+     *
      * Includes escrow deposits, payment releases, and platform fees.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany<Transaction>
      */
     public function transactions(): HasMany
@@ -182,7 +186,7 @@ class Project extends Model
 
     public function getDaysRemainingAttribute(): int
     {
-        if (!$this->deadline) {
+        if (! $this->deadline) {
             return 0;
         }
 
@@ -191,7 +195,7 @@ class Project extends Model
 
     public function getProgressPercentageAttribute(): int
     {
-        if (!$this->contractDeadlines) {
+        if (! $this->contractDeadlines) {
             return 0;
         }
 

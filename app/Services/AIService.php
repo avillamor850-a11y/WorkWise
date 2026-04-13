@@ -13,14 +13,20 @@ class AIService
     private string $modelExplanations;
     /** Model for skill recommendations (faster) */
     private string $modelRecommendations;
+    /** Model dedicated for resume screening (resume-only analysis) */
+    private string $modelResumeScreening;
 
     public function __construct()
     {
-        $this->apiKey = env('GROQ_API_KEY');
-        $this->baseUrl = 'https://api.groq.com/openai/v1';
+        $this->apiKey = config('services.groq.api_key', env('GROQ_API_KEY'));
+        $this->baseUrl = rtrim((string) config('services.groq.base_url', 'https://api.groq.com/openai/v1'), '/');
         // Align with MatchService: 70b for quality, 8b-instant for speed
         $this->modelExplanations = 'llama-3.3-70b-versatile';
         $this->modelRecommendations = 'llama-3.1-8b-instant';
+        $this->modelResumeScreening = (string) config(
+            'services.groq.resume_model',
+            'meta-llama/llama-4-scout-17b-16e-instruct'
+        );
     }
 
     /**
@@ -352,6 +358,223 @@ class AIService
     }
 
     /**
+     * Generate AI-powered resume screening output from normalized resume data.
+     * Inputs are resume-only: pass `resume_text` extracted from the uploaded file (and optional `user_id` for logging).
+     */
+    public function generateResumeScreening(array $resumeData): array
+    {
+        if (trim((string) ($resumeData['resume_text'] ?? '')) === '') {
+            return $this->fallbackResumeScreening($resumeData, 'No resume text extracted');
+        }
+
+        if (! $this->isAvailable()) {
+            return $this->fallbackResumeScreening($resumeData, 'AI service not configured');
+        }
+
+        try {
+            $prompt = $this->buildResumeScreeningPrompt($resumeData);
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(30)->post("{$this->baseUrl}/chat/completions", [
+                'model' => $this->modelResumeScreening,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are an AI recruiter. You receive only text extracted from a candidate\'s resume document. Base every output field strictly on that resume text only—do not use profile data or facts not present in the text, except you may compare the extracted candidate name against the provided expected worker name. Return ONLY strict JSON with keys: extracted_skills(array of strings), experience_summary(string), strengths(string), gaps(string), confidence(number 0..100), summary(string), resume_candidate_name(string), name_match(boolean), name_match_confidence(number 0..100), name_match_note(string).',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'max_tokens' => 500,
+                'temperature' => 0.4,
+            ]);
+
+            if (! $response->successful()) {
+                return $this->fallbackResumeScreening($resumeData, 'AI request failed');
+            }
+
+            $content = (string) ($response->json()['choices'][0]['message']['content'] ?? '');
+            $parsed = $this->extractJsonFromAiContent($content);
+            if (!is_array($parsed)) {
+                return $this->fallbackResumeScreening($resumeData, 'AI response not parseable');
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'extracted_skills' => array_values(array_filter(array_map('strval', (array) ($parsed['extracted_skills'] ?? [])))),
+                    'experience_summary' => (string) ($parsed['experience_summary'] ?? 'Experience summary unavailable.'),
+                    'strengths' => (string) ($parsed['strengths'] ?? 'No strengths identified.'),
+                    'gaps' => (string) ($parsed['gaps'] ?? 'No major gaps identified.'),
+                    'confidence' => (float) ($parsed['confidence'] ?? 50),
+                    'summary' => (string) ($parsed['summary'] ?? 'Resume was screened successfully.'),
+                    'resume_candidate_name' => (string) ($parsed['resume_candidate_name'] ?? ''),
+                    'name_match' => (bool) ($parsed['name_match'] ?? false),
+                    'name_match_confidence' => (float) ($parsed['name_match_confidence'] ?? 0),
+                    'name_match_note' => (string) ($parsed['name_match_note'] ?? ''),
+                ],
+                'raw_response' => $content,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('AI resume screening error', [
+                'error' => $e->getMessage(),
+                'user_id' => $resumeData['user_id'] ?? null,
+            ]);
+
+            return $this->fallbackResumeScreening($resumeData, 'AI screening exception');
+        }
+    }
+
+    /**
+     * Generate employer-side profiling insights as informational guidance.
+     */
+    public function generateEmployerProfilingInsights(array $employerData, array $screeningContext): array
+    {
+        if (! $this->isAvailable()) {
+            return $this->fallbackEmployerInsights($employerData);
+        }
+
+        try {
+            $prompt = $this->buildEmployerProfilingPrompt($employerData, $screeningContext);
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(30)->post("{$this->baseUrl}/chat/completions", [
+                'model' => $this->modelExplanations,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Return ONLY strict JSON with key "insights" as an array of 3 concise strings. Keep informational and non-decisive.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'max_tokens' => 220,
+                'temperature' => 0.5,
+            ]);
+
+            if (! $response->successful()) {
+                return $this->fallbackEmployerInsights($employerData);
+            }
+
+            $content = (string) ($response->json()['choices'][0]['message']['content'] ?? '');
+            $parsed = $this->extractJsonFromAiContent($content);
+            $insights = array_values(array_filter(array_map('strval', (array) ($parsed['insights'] ?? []))));
+            if (empty($insights)) {
+                return $this->fallbackEmployerInsights($employerData);
+            }
+
+            return [
+                'success' => true,
+                'insights' => array_slice($insights, 0, 5),
+                'raw_response' => $content,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('AI employer insights error', [
+                'error' => $e->getMessage(),
+                'user_id' => $employerData['user_id'] ?? null,
+            ]);
+
+            return $this->fallbackEmployerInsights($employerData);
+        }
+    }
+
+    private function buildResumeScreeningPrompt(array $resumeData): string
+    {
+        $text = (string) ($resumeData['resume_text'] ?? '');
+        $workerName = trim((string) ($resumeData['worker_name'] ?? ''));
+
+        return "Analyze the following resume text and return JSON only.\n\n"
+            . "Use ONLY the text below as your source for extracted_skills, experience_summary, strengths, gaps, confidence, and summary. "
+            . "Do not use any information that is not present in this text.\n"
+            . "Also detect the candidate name written in the resume text, then compare it with the expected worker account name provided below and return name_match fields.\n\n"
+            . "If the text is empty or unusable, still return valid JSON with low confidence (below 30) and clearly explain in summary and gaps that the document could not be meaningfully analyzed.\n\n"
+            . "Expected worker account name: " . ($workerName !== '' ? $workerName : 'Unknown') . "\n\n"
+            . "Resume text (from uploaded document):\n"
+            . $text;
+    }
+
+    private function buildEmployerProfilingPrompt(array $employerData, array $screeningContext): string
+    {
+        return sprintf(
+            "Generate informational hiring insights only.\nEmployer needs: %s\nPreferred level: %s\nTypical budget: %s\nRecent context: %s",
+            implode(', ', (array) ($employerData['primary_hiring_needs'] ?? [])),
+            (string) ($employerData['preferred_experience_level'] ?? 'any'),
+            (string) ($employerData['typical_project_budget'] ?? 'not set'),
+            json_encode($screeningContext)
+        );
+    }
+
+    private function extractJsonFromAiContent(string $content): ?array
+    {
+        $trimmed = trim($content);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $decoded = json_decode($trimmed, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        if (preg_match('/\{.*\}/s', $trimmed, $matches) !== 1) {
+            return null;
+        }
+
+        $decoded = json_decode($matches[0], true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function fallbackResumeScreening(array $resumeData, string $reason): array
+    {
+        $resumeText = trim((string) ($resumeData['resume_text'] ?? ''));
+        $hasText = $resumeText !== '';
+        $excerpt = $hasText
+            ? mb_substr($resumeText, 0, 280).(mb_strlen($resumeText) > 280 ? '…' : '')
+            : 'No resume text was available to analyze.';
+
+        return [
+            'success' => false,
+            'data' => [
+                'extracted_skills' => [],
+                'experience_summary' => $excerpt,
+                'strengths' => 'Automated analysis unavailable. Review the uploaded resume manually.',
+                'gaps' => 'Resume AI analysis unavailable. Please review the uploaded document manually.',
+                'confidence' => 20.0,
+                'summary' => $hasText
+                    ? 'Fallback screening generated from resume text only (AI unavailable or error).'
+                    : 'No resume text could be analyzed.',
+                'resume_candidate_name' => '',
+                'name_match' => false,
+                'name_match_confidence' => 0.0,
+                'name_match_note' => 'Name match could not be determined.',
+            ],
+            'error' => $reason,
+        ];
+    }
+
+    private function fallbackEmployerInsights(array $employerData): array
+    {
+        $needs = (array) ($employerData['primary_hiring_needs'] ?? []);
+        $needsText = empty($needs) ? 'your configured hiring needs' : implode(', ', array_slice($needs, 0, 3));
+
+        return [
+            'success' => false,
+            'insights' => [
+                "Most activity appears around {$needsText}.",
+                'Use insights as guidance only; final hiring decisions should remain manual.',
+                'Review skill fit, experience level, and communication quality before shortlisting.',
+            ],
+            'error' => 'Fallback insights generated',
+        ];
+    }
+
+    /**
      * Get service configuration info (without exposing API key)
      */
     public function getConfig(): array
@@ -361,6 +584,7 @@ class AIService
             'base_url' => $this->baseUrl,
             'model_explanations' => $this->modelExplanations,
             'model_recommendations' => $this->modelRecommendations,
+            'model_resume_screening' => $this->modelResumeScreening,
             'available' => $this->isAvailable()
         ];
     }

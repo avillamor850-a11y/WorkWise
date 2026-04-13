@@ -34,6 +34,32 @@ const proficiencyLabel = (p) => {
     return p.charAt(0).toUpperCase() + p.slice(1);
 };
 
+const getSegmentCta = (segments = []) => {
+    if (segments.includes('active_seeker')) {
+        return {
+            label: 'Browse recommended jobs',
+            href: route('jobs.index'),
+        };
+    }
+    if (segments.includes('ready_to_hire')) {
+        return {
+            label: 'Post a job',
+            href: route('jobs.create'),
+        };
+    }
+    if (segments.includes('new_user')) {
+        return {
+            label: 'Complete setup',
+            href: route('gig-worker.onboarding'),
+        };
+    }
+
+    return {
+        label: 'Explore opportunities',
+        href: route('jobs.index'),
+    };
+};
+
 // ─── Avatar / initials helpers ────────────────────────────────────────────────
 function Avatar({ user, size = 'lg', dark = false }) {
     const sizeClass = size === 'lg' ? 'w-32 h-32 text-4xl' : 'w-10 h-10 text-sm';
@@ -107,7 +133,7 @@ function EditBtn({ onClick, dark = false }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function GigWorkerProfile({ user, status, jobContext, pastProjects = [] }) {
+export default function GigWorkerProfile({ user, status, jobContext, pastProjects = [], resumeScreening = null, profileSummary = null }) {
     const rawSkills = user.skills_with_experience;
     const skills = Array.isArray(rawSkills) ? rawSkills : [];
     const initials = `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || 'GW';
@@ -129,6 +155,15 @@ export default function GigWorkerProfile({ user, status, jobContext, pastProject
     const isOwnProfile = authUser?.id === user.id;
 
     const [isHiring, setIsHiring] = useState(false);
+    const [isRefreshingScreening, setIsRefreshingScreening] = useState(false);
+    const [screeningNotice, setScreeningNotice] = useState(null);
+    const [currentResumeScreening, setCurrentResumeScreening] = useState(resumeScreening);
+    const segments = Array.isArray(profileSummary?.segments) ? profileSummary.segments : [];
+    const segmentCta = getSegmentCta(segments);
+
+    useEffect(() => {
+        setCurrentResumeScreening(resumeScreening);
+    }, [resumeScreening]);
 
     const handleHireMe = () => {
         setIsHiring(true);
@@ -162,8 +197,107 @@ export default function GigWorkerProfile({ user, status, jobContext, pastProject
     const goToEdit = () => router.visit('/profile/gig-worker/edit');
     const goToOnboarding = () => router.visit(route('gig-worker.onboarding'));
 
+    const pollLatestResumeScreening = async (maxAttempts = 8, intervalMs = 1200) => {
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+            await new Promise((resolve) => setTimeout(resolve, intervalMs));
+            try {
+                const latest = await window.axios.get(route('employer.workers.resume-screening', user.id));
+                const screening = latest?.data?.screening ?? null;
+                // #region agent log
+                fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'11082d'},body:JSON.stringify({sessionId:'11082d',runId:'run1',hypothesisId:'H4',location:'GigWorkerProfile.jsx:pollLatestResumeScreening',message:'poll_attempt',data:{attempt,status:screening?.status ?? null,hasScreening:!!screening},timestamp:Date.now()})}).catch(()=>{});
+                // #endregion
+                if (screening) {
+                    setCurrentResumeScreening(screening);
+                    if (screening.status === 'success' || screening.status === 'failed') {
+                        // #region agent log
+                        fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'11082d'},body:JSON.stringify({sessionId:'11082d',runId:'run1',hypothesisId:'H4',location:'GigWorkerProfile.jsx:pollLatestResumeScreening',message:'poll_terminal_status',data:{status:screening.status},timestamp:Date.now()})}).catch(()=>{});
+                        // #endregion
+                        setScreeningNotice('AI screening updated.');
+                        return;
+                    }
+                }
+            } catch (error) {
+                // #region agent log
+                fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'11082d'},body:JSON.stringify({sessionId:'11082d',runId:'run1',hypothesisId:'H5',location:'GigWorkerProfile.jsx:pollLatestResumeScreening',message:'poll_error',data:{error:error?.message ?? 'unknown'},timestamp:Date.now()})}).catch(()=>{});
+                // #endregion
+                // Ignore transient polling errors during refresh loop.
+            }
+        }
+        setScreeningNotice('AI screening queued. Please refresh if results do not appear yet.');
+    };
+
+    const handleRefreshScreening = async () => {
+        if (!isEmployerViewing) return;
+        setIsRefreshingScreening(true);
+        setScreeningNotice(null);
+        try {
+            const payload = {};
+            if (jobContext?.job_id) {
+                payload.job_id = jobContext.job_id;
+            }
+            const res = await window.axios.post(route('employer.workers.resume-screening.refresh', user.id), payload);
+            // #region agent log
+            fetch('http://127.0.0.1:7560/ingest/fe535072-11db-4206-82bf-3a98b77fb18e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'11082d'},body:JSON.stringify({sessionId:'11082d',runId:'run1',hypothesisId:'H5',location:'GigWorkerProfile.jsx:handleRefreshScreening',message:'refresh_response',data:{status:res?.data?.status ?? null,cooldown:res?.data?.cooldown_seconds ?? null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            if (res?.data?.status === 'queued') {
+                setScreeningNotice('AI screening queued. Updating automatically...');
+                await pollLatestResumeScreening();
+            } else {
+                setScreeningNotice('Screening request submitted.');
+            }
+        } catch (err) {
+            const status = err?.response?.data?.status;
+            if (status === 'cooldown') {
+                const retry = err?.response?.data?.retry_after_seconds ?? 5;
+                setScreeningNotice(`Please wait about ${retry}s before requesting another refresh.`);
+            } else if (status === 'unavailable') {
+                setScreeningNotice('Resume screening is unavailable until screening table/migration is ready.');
+            } else {
+                setScreeningNotice('Unable to queue screening refresh right now.');
+            }
+        } finally {
+            setIsRefreshingScreening(false);
+        }
+    };
+
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+
+    const screeningStatusLabel = (() => {
+        if (!currentResumeScreening) return 'Not started';
+        const s = currentResumeScreening.status;
+        if (s === 'processing') return 'Processing';
+        if (s === 'pending') return 'Queued';
+        if (s === 'success') return 'Complete';
+        if (s === 'failed') return 'Failed';
+        return s || 'Unknown';
+    })();
+
+    const screeningSummaryLine = (() => {
+        const sr = currentResumeScreening?.screening_result;
+        const summary = sr && typeof sr.summary === 'string' ? sr.summary : null;
+        if (!currentResumeScreening) {
+            return 'Screening has not completed yet. Refresh this page in a few seconds.';
+        }
+        if (currentResumeScreening.status === 'processing' || currentResumeScreening.status === 'pending') {
+            return 'AI is analyzing this resume. Results will appear here when ready.';
+        }
+        if (currentResumeScreening.status === 'failed') {
+            return summary || currentResumeScreening.error_message || 'AI screening did not complete. Try Refresh AI analysis.';
+        }
+        if (summary) return summary;
+        return 'No AI summary available yet.';
+    })();
+
+    const screeningNameMatch = (() => {
+        const sr = currentResumeScreening?.screening_result || {};
+        const matchKnown = typeof sr.name_match === 'boolean';
+        const match = matchKnown ? sr.name_match : null;
+        const confidence = Number(sr.name_match_confidence ?? 0);
+        const note = typeof sr.name_match_note === 'string' ? sr.name_match_note : '';
+        const candidateName = typeof sr.resume_candidate_name === 'string' ? sr.resume_candidate_name : '';
+        return { matchKnown, match, confidence, note, candidateName };
+    })();
 
     return (
         <AuthenticatedLayout pageTheme={isDark ? 'dark' : undefined}>
@@ -298,6 +432,55 @@ export default function GigWorkerProfile({ user, status, jobContext, pastProject
                                 </div>
                             </Card>
 
+                            {/* Profile Insights */}
+                            <Card className="p-5" dark={isDark}>
+                                <SectionHeader title="Profile Insights" dark={isDark} />
+                                {profileSummary ? (
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className={`rounded-lg p-2 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                                                <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Complete</p>
+                                                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{profileSummary.completeness_score ?? 0}</p>
+                                            </div>
+                                            <div className={`rounded-lg p-2 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                                                <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Activity</p>
+                                                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{profileSummary.activity_score_30d ?? 0}</p>
+                                            </div>
+                                            <div className={`rounded-lg p-2 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                                                <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Intent</p>
+                                                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{profileSummary.intent_score ?? 0}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {segments.length > 0 ? (
+                                                segments.map((segment) => (
+                                                    <span
+                                                        key={segment}
+                                                        className={`text-[11px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-blue-50 text-blue-700 border-blue-200'}`}
+                                                    >
+                                                        {segment}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>No segments yet</span>
+                                            )}
+                                        </div>
+                                        <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                            Last updated: {profileSummary.computed_at ? new Date(profileSummary.computed_at).toLocaleString() : 'Not available yet'}
+                                        </p>
+                                        <Link
+                                            href={segmentCta.href}
+                                            className={`inline-flex items-center gap-1 text-xs font-medium ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+                                        >
+                                            {segmentCta.label}
+                                            <span className="material-icons text-base">arrow_forward</span>
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Not available yet</p>
+                                )}
+                            </Card>
+
                             {/* Hourly Rate */}
                             <Card className="p-5" dark={isDark}>
                                 <div className="mb-5">
@@ -327,28 +510,6 @@ export default function GigWorkerProfile({ user, status, jobContext, pastProject
                                     <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Response time: &lt; 24 hours</p>
                                 </div>
                             </Card>
-
-                            {/* Resume */}
-                            {user.resume_file && (
-                                <Card className="p-5" dark={isDark}>
-                                    <SectionHeader title="Resume / CV" dark={isDark} />
-                                    <a
-                                        href={user.resume_file}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors group ${isDark ? 'border-gray-600 bg-gray-800 hover:bg-blue-500/20 hover:border-blue-500/30' : 'border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-200'}`}
-                                    >
-                                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-                                            <span className="material-icons text-blue-400">description</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`text-sm font-medium truncate group-hover:text-blue-400 ${isDark ? 'text-white' : 'text-gray-900'}`}>Download CV</p>
-                                            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>PDF / DOC</p>
-                                        </div>
-                                        <span className="material-icons text-gray-500 group-hover:text-blue-400">download</span>
-                                    </a>
-                                </Card>
-                            )}
 
                             {/* Boost Profile CTA (if not completed) */}
                             {!user.profile_completed && (
@@ -560,6 +721,65 @@ export default function GigWorkerProfile({ user, status, jobContext, pastProject
                                     </div>
                                 )}
                             </Card>
+
+                            {isEmployerViewing && (currentResumeScreening || user.resume_file) && (
+                                <Card className="p-5" dark={isDark}>
+                                    <SectionHeader
+                                        title="AI Resume Screening"
+                                        dark={isDark}
+                                        action={(
+                                            <button
+                                                type="button"
+                                                onClick={handleRefreshScreening}
+                                                disabled={isRefreshingScreening}
+                                                className={`${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} text-xs font-medium disabled:opacity-60`}
+                                            >
+                                                {isRefreshingScreening ? 'Refreshing...' : 'Refresh AI analysis'}
+                                            </button>
+                                        )}
+                                    />
+                                    <div className="space-y-2">
+                                        <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                            Status: <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{screeningStatusLabel}</span>
+                                        </p>
+                                        <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                            {screeningSummaryLine}
+                                        </p>
+                                        {Array.isArray(currentResumeScreening?.extracted_skills) && currentResumeScreening.extracted_skills.length > 0 && (
+                                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                Skills: {currentResumeScreening.extracted_skills.slice(0, 8).join(', ')}
+                                            </p>
+                                        )}
+                                        {currentResumeScreening?.screened_at && (
+                                            <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                Last analyzed: {new Date(currentResumeScreening.screened_at).toLocaleString()}
+                                            </p>
+                                        )}
+                                        {screeningNotice && (
+                                            <p className={`text-[11px] ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                                                {screeningNotice}
+                                            </p>
+                                        )}
+                                        {(currentResumeScreening?.status === 'success' || currentResumeScreening?.status === 'failed') && (
+                                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                Name check:{' '}
+                                                <span className={isDark ? 'text-gray-200' : 'text-gray-800'}>
+                                                    {screeningNameMatch.matchKnown
+                                                        ? (screeningNameMatch.match ? 'Matches gig worker name' : 'Does not match gig worker name')
+                                                        : 'Unknown'}
+                                                </span>
+                                                {screeningNameMatch.candidateName ? ` (Resume: ${screeningNameMatch.candidateName})` : ''}
+                                                {Number.isFinite(screeningNameMatch.confidence) ? ` - ${Math.round(screeningNameMatch.confidence)}%` : ''}
+                                            </p>
+                                        )}
+                                        {screeningNameMatch.note && (
+                                            <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                {screeningNameMatch.note}
+                                            </p>
+                                        )}
+                                    </div>
+                                </Card>
+                            )}
                         </div>
 
                         {/* ── RIGHT SIDEBAR ─────────────────────────────── */}
@@ -670,6 +890,28 @@ export default function GigWorkerProfile({ user, status, jobContext, pastProject
                                     )}
                                 </div>
                             </Card>
+
+                            {/* Resume */}
+                            {user.resume_file && (
+                                <Card className="p-5" dark={isDark}>
+                                    <SectionHeader title="Resume / CV" dark={isDark} />
+                                    <a
+                                        href={user.resume_file}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors group ${isDark ? 'border-gray-600 bg-gray-800 hover:bg-blue-500/20 hover:border-blue-500/30' : 'border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-200'}`}
+                                    >
+                                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center shadow-sm border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+                                            <span className="material-icons text-blue-400">description</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-sm font-medium truncate group-hover:text-blue-400 ${isDark ? 'text-white' : 'text-gray-900'}`}>Download CV</p>
+                                            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>PDF / DOC</p>
+                                        </div>
+                                        <span className="material-icons text-gray-500 group-hover:text-blue-400">download</span>
+                                    </a>
+                                </Card>
+                            )}
                         </div>
 
                     </div>

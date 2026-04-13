@@ -36,10 +36,38 @@ function Card({ children, className = '', isDark }) {
     );
 }
 
-export default function EmployerProfile({ user, stats, activeJobs, pastProjects, status }) {
+function getSegmentCta(segments = []) {
+    if (segments.includes('ready_to_hire')) {
+        return {
+            label: 'Post a New Job',
+            href: route('jobs.create'),
+        };
+    }
+    if (segments.includes('active_seeker')) {
+        return {
+            label: 'Browse gigs',
+            href: route('jobs.index'),
+        };
+    }
+    if (segments.includes('new_user')) {
+        return {
+            label: 'Complete setup',
+            href: route('employer.onboarding'),
+        };
+    }
+
+    return {
+        label: 'Find gig workers',
+        href: route('employer.dashboard'),
+    };
+}
+
+export default function EmployerProfile({ user, stats, activeJobs, pastProjects, status, profileSummary = null }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const goToEdit = () => router.visit(route('employer.profile.edit'));
+    const segments = Array.isArray(profileSummary?.segments) ? profileSummary.segments : [];
+    const segmentCta = getSegmentCta(segments);
 
     const formatJobBudget = (job) => {
         if (job.budget_type === 'fixed' && (job.budget_min != null || job.budget_max != null)) {
@@ -139,6 +167,55 @@ export default function EmployerProfile({ user, stats, activeJobs, pastProjects,
                                         <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.hire_rate}</span>
                                     </div>
                                 </div>
+                            </Card>
+
+                            {/* Profile Insights */}
+                            <Card className="p-5" isDark={isDark}>
+                                <h3 className={`text-xs font-semibold uppercase tracking-wider mb-4 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Profile Insights</h3>
+                                {profileSummary ? (
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className={`rounded-lg p-2 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                                                <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Complete</p>
+                                                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{profileSummary.completeness_score ?? 0}</p>
+                                            </div>
+                                            <div className={`rounded-lg p-2 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                                                <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Activity</p>
+                                                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{profileSummary.activity_score_30d ?? 0}</p>
+                                            </div>
+                                            <div className={`rounded-lg p-2 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                                                <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Intent</p>
+                                                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{profileSummary.intent_score ?? 0}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {segments.length > 0 ? (
+                                                segments.map((segment) => (
+                                                    <span
+                                                        key={segment}
+                                                        className={isDark ? 'text-[11px] px-2 py-0.5 rounded-full border bg-blue-500/20 text-blue-300 border-blue-500/30' : 'text-[11px] px-2 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-200'}
+                                                    >
+                                                        {segment}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>No segments yet</span>
+                                            )}
+                                        </div>
+                                        <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                            Last updated: {profileSummary.computed_at ? new Date(profileSummary.computed_at).toLocaleString() : 'Not available yet'}
+                                        </p>
+                                        <Link
+                                            href={segmentCta.href}
+                                            className={isDark ? 'inline-flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300' : 'inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700'}
+                                        >
+                                            {segmentCta.label}
+                                            <span className="material-symbols-outlined text-base">arrow_forward</span>
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Not available yet</p>
+                                )}
                             </Card>
 
                             {/* Information */}
